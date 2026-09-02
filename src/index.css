@@ -1,0 +1,93 @@
+@import "tailwindcss";
+
+/* 清爽、稳定的浅色界面：页面层与内容卡片有明确的层次。 */
+@theme {
+  --color-bg: #f6f8f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f0f4f3;
+  --color-border: #e0e7e5;
+  --color-text: #17212b;
+  --color-text-muted: #5d6b78;
+  --color-text-faint: #8b98a5;
+  --color-accent: #0f766e;
+  --color-accent-soft: #d8f3ee;
+  --color-accent-hover: #0b635d;
+
+  --color-cat-traffic: #0ea5e9;
+  --color-cat-traffic-soft: #e0f2fe;
+  --color-cat-sight: #0d9488;
+  --color-cat-sight-soft: #ccfbf1;
+  --color-cat-food: #f59e0b;
+  --color-cat-food-soft: #fef3c7;
+  --color-cat-stay: #8b5cf6;
+  --color-cat-stay-soft: #ede9fe;
+  --color-cat-shop: #ec4899;
+  --color-cat-shop-soft: #fce7f3;
+
+  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--color-accent-soft); color: var(--color-accent-hover); }
+
+button, input, textarea, select { -webkit-tap-highlight-color: transparent; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 22%, transparent);
+  outline-offset: 2px;
+}
+input::placeholder, textarea::placeholder { color: var(--color-text-faint); opacity: .9; }
+
+/* 细滚动条 */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: #d6dade; border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: #b8bdc2; }
+*::-webkit-scrollbar-track { background: transparent; }
+
+/* Leaflet 融入浅色设计 */
+.leaflet-container {
+  font-family: var(--font-sans);
+  background: #eef1f3;
+}
+.leaflet-control-zoom {
+  border: 1px solid var(--color-border) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+}
+.leaflet-control-zoom a {
+  color: var(--color-text) !important;
+  border: none !important;
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+}
+.leaflet-control-zoom a:hover {
+  background: var(--color-surface) !important;
+}
+.leaflet-bar a.leaflet-disabled {
+  color: var(--color-text-faint) !important;
+}
+.map-marker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--color-accent);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-accent);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+}
