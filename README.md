@@ -84,6 +84,8 @@ http://NAS_IP:8080
 
 如果 `8080` 已被占用，请修改 `compose.yaml` 中 `8080:80` 左侧的端口。极空间等 NAS 可直接在 Docker Compose 页面选择本目录并部署。
 
+> Dockerfile 使用明确的镜像站地址拉取 Node 与 Nginx，不需要在极空间额外配置全局镜像加速。
+
 ### 分享给朋友与 PWA 安装
 
 如需让朋友从手机安装，建议为 NAS 配置一个固定的 HTTPS 域名，再将请求反向代理至 `http://127.0.0.1:8080`。也可以使用 Cloudflare Tunnel，避免直接暴露 NAS 端口。
