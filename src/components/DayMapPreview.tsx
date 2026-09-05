@@ -3,12 +3,13 @@ import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
+import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 
 function pointIcon(label: string, active: boolean) {
-  const color = active ? '#0f766e' : '#0d9488'
+  const color = active ? '#2e496f' : '#415f88'
   return L.divIcon({
     className: '',
-    html: `<div class="map-marker" style="border-color:${color};color:${color};${active ? 'background:#ccfbf1;' : ''}">${label}</div>`,
+    html: `<div class="map-marker" style="border-color:${color};color:${color};${active ? 'background:#e8eff8;' : ''}">${label}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   })
@@ -26,11 +27,19 @@ function FitPreview({ points }: { points: [number, number][] }) {
 export default function DayMapPreview({ dayId, selectedActivityId }: { dayId: string; selectedActivityId: string | null }) {
   const trip = useActiveTrip()
   const selectActivity = useTripStore((s) => s.selectActivity)
+  const amapJsKey = useTripStore((s) => s.amapJsKey)
   const items = activitiesByDay(trip, dayId).filter((activity) => activity.geo)
   const points = useMemo(
     () => items.map((activity) => [activity.geo!.lat, activity.geo!.lng] as [number, number]),
     [items],
   )
+  const amapMarkers: AmapMarker[] = items.map((activity, index) => ({
+    id: activity.id,
+    point: activity.geo!,
+    label: String(index + 1),
+    active: selectedActivityId === activity.id,
+    onClick: () => selectActivity(activity.id),
+  }))
 
   if (items.length === 0) {
     return (
@@ -42,10 +51,13 @@ export default function DayMapPreview({ dayId, selectedActivityId }: { dayId: st
 
   return (
     <div className="h-[176px] overflow-hidden rounded-lg border border-border">
+      {amapJsKey ? (
+        <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={points.length > 1 ? [{ id: dayId, points: items.map((activity) => activity.geo!), color: '#415f88', weight: 3 }] : []} className="h-full w-full" zoom={13} />
+      ) : (
       <MapContainer center={points[0]} zoom={13} className="h-full w-full" zoomControl={false} attributionControl={false}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <FitPreview points={points} />
-        {points.length > 1 && <Polyline positions={points} pathOptions={{ color: '#0d9488', weight: 3, opacity: 0.65 }} />}
+        {points.length > 1 && <Polyline positions={points} pathOptions={{ color: '#415f88', weight: 3, opacity: 0.65 }} />}
         {items.map((activity, index) => (
           <Marker
             key={activity.id}
@@ -55,6 +67,7 @@ export default function DayMapPreview({ dayId, selectedActivityId }: { dayId: st
           />
         ))}
       </MapContainer>
+      )}
     </div>
   )
 }

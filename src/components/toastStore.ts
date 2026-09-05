@@ -19,7 +19,8 @@ export const useToastStore = create<ToastState>((set, get) => ({
   show: (message, opts) => {
     const { timer } = get()
     if (timer) clearTimeout(timer)
-    const t = setTimeout(() => get().dismiss(), opts?.duration ?? 5000)
+    // 带撤销的操作多留几秒，避免用户刚看清结果按钮就消失。
+    const t = setTimeout(() => get().dismiss(), opts?.duration ?? (opts?.undo ? 8000 : 5000))
     set({ open: true, message, undoFn: opts?.undo ?? null, timer: t })
   },
   dismiss: () => {

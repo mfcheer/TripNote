@@ -1,0 +1,8 @@
+services:
+  tripnote:
+    build:
+      context: .
+    container_name: tripnote
+    restart: unless-stopped
+    ports:
+      - "8080:80"

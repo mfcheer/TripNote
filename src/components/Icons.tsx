@@ -14,14 +14,15 @@ const base = (size: number): SVGProps<SVGSVGElement> => ({
   strokeLinejoin: 'round',
 })
 
-// Logo：一条前进路线抵达目的地旗帜，比单独的定位针更贴合“规划行程”。
+// Logo：打开的旅行册，左页记录路线、右页留下目的地标记。
 export const LogoIcon = ({ size = 22, ...p }: IconProps) => (
   <svg {...base(size)} {...p} strokeWidth={1.9}>
-    <path d="M4.5 17.5c2.4-5.5 4.7-7.5 7.1-7.5 2.2 0 3.4 1.7 5.4 1.7 1 0 1.9-.4 2.8-1.2" />
-    <path d="M16.5 5v5.4" />
-    <path d="M16.5 5l3 1.2-3 1.2" />
-    <circle cx="4.5" cy="17.5" r="1.25" fill="currentColor" stroke="none" />
-    <circle cx="19.8" cy="10.5" r="1.25" fill="currentColor" stroke="none" />
+    <path d="M3.5 5.5c2.8-1 5.6-.7 8.5.9v14c-2.9-1.6-5.7-1.9-8.5-.9v-14z" />
+    <path d="M20.5 5.5c-2.8-1-5.6-.7-8.5.9v14c2.9-1.6 5.7-1.9 8.5-.9v-14z" />
+    <path d="M6.3 15.4c1.1-2.8 2.1-4 3.3-4 1 0 1.5.6 2.4.9" stroke="var(--color-cat-sight)" />
+    <circle cx="6.3" cy="15.4" r="1.15" fill="var(--color-cat-sight)" stroke="none" />
+    <path d="M16.4 9.2a2.1 2.1 0 0 0-2.1 2.1c0 1.8 2.1 3.7 2.1 3.7s2.1-1.9 2.1-3.7a2.1 2.1 0 0 0-2.1-2.1z" fill="var(--color-accent-soft)" />
+    <circle cx="16.4" cy="11.3" r=".65" fill="currentColor" stroke="none" />
   </svg>
 )
 
@@ -66,6 +67,47 @@ export const CalendarIcon = ({ size = 17, ...p }: IconProps) => (
   <svg {...base(size)} {...p}>
     <rect x="3" y="5" width="18" height="16" rx="2" />
     <path d="M3 10h18M8 3v4M16 3v4" />
+  </svg>
+)
+
+export const OverviewIcon = ({ size = 17, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <rect x="3" y="3" width="7" height="7" rx="2" />
+    <rect x="14" y="3" width="7" height="7" rx="2" />
+    <rect x="3" y="14" width="7" height="7" rx="2" />
+    <rect x="14" y="14" width="7" height="7" rx="2" />
+  </svg>
+)
+
+export const HeartIcon = ({ size = 17, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <path d="M20.8 5.8a5.1 5.1 0 0 0-7.2 0L12 7.4l-1.6-1.6a5.1 5.1 0 0 0-7.2 7.2L12 21l8.8-8a5.1 5.1 0 0 0 0-7.2z" />
+  </svg>
+)
+
+export const DownloadIcon = ({ size = 16, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <path d="M12 3v12M7 10l5 5 5-5M4 21h16" />
+  </svg>
+)
+
+export const CheckCircleIcon = ({ size = 16, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8 12 2.6 2.6L16.5 9" />
+  </svg>
+)
+
+export const AlertCircleIcon = ({ size = 16, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v6M12 17h.01" />
+  </svg>
+)
+
+export const ChevronRightIcon = ({ size = 14, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <path d="m9 18 6-6-6-6" />
   </svg>
 )
 

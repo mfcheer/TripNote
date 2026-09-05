@@ -212,12 +212,12 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
         <button
           onClick={() =>
             askConfirm({
-            title: `删除「${activity.title}」？`,
-            message: '该行程及其全部花费将一并删除。',
+            title: `删除安排「${activity.title}」？`,
+            message: '该安排及其中记录的花费都会被删除。',
             onConfirm: () => {
               const { trips, activeTripId } = useTripStore.getState()
               removeActivity(activity.id)
-              useToastStore.getState().show(`已删除「${activity.title}」`, {
+              useToastStore.getState().show(`已删除安排「${activity.title}」`, {
                 undo: () => useTripStore.getState().restoreTrips(trips, activeTripId),
               })
             },
@@ -225,7 +225,7 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
           }
           className="flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:text-red-500"
         >
-          <TrashIcon size={13} /> 删除
+          <TrashIcon size={13} /> 删除安排
         </button>
       </div>
     </div>

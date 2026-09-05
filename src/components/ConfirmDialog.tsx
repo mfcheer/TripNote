@@ -19,10 +19,10 @@ export default function ConfirmDialog() {
 
   return (
     <div
-      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/25 backdrop-blur-[1px]"
+      className="fixed inset-0 z-[1000] flex items-center justify-center bg-black/25 p-4 backdrop-blur-[1px]"
       onMouseDown={(e) => e.target === e.currentTarget && mode === 'confirm' && close(false)}
     >
-      <div className="w-[340px] rounded-xl border border-border bg-white p-5 shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
+      <div className="w-full max-w-[340px] rounded-xl border border-border bg-white p-5 shadow-[0_8px_30px_rgba(0,0,0,0.15)]">
         <div className="text-[15px] font-semibold">{title}</div>
         {message && (
           <div className="mt-2 text-[13px] leading-relaxed text-text-muted">{message}</div>

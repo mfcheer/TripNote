@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import type { ReactElement } from 'react'
-import { useActiveTrip, useTripStore, displayDate } from '../store'
-import type { ViewKey } from '../types'
-import { CalendarIcon, ChevronDownIcon, EditIcon, LogoIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
+import type { DragEvent, ReactElement } from 'react'
+import { useActiveTrip, useTripStore, displayDate, nextActivityTime } from '../store'
+import type { TripDay, ViewKey } from '../types'
+import { CalendarIcon, ChevronDownIcon, DownloadIcon, EditIcon, LogoIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 
@@ -20,6 +20,13 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
   const [endDate, setEndDate] = useState(today)
   const [budget, setBudget] = useState('')
   const [error, setError] = useState('')
+  const daysCount = Math.max(
+    1,
+    Math.floor(
+      (new Date(`${endDate}T00:00:00`).getTime() - new Date(`${startDate}T00:00:00`).getTime()) /
+        86400000,
+    ) + 1,
+  )
 
   function submit() {
     if (endDate < startDate) {
@@ -38,7 +45,7 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" role="dialog" aria-modal="true" aria-label="创建旅程">
-      <div className="w-full max-w-[440px] rounded-xl bg-white p-5 shadow-xl">
+      <div className="max-h-[calc(100vh-32px)] w-full max-w-[440px] overflow-y-auto rounded-xl bg-white p-5 shadow-xl">
         <div className="mb-1 text-[18px] font-semibold">创建旅程</div>
         <p className="mb-4 text-[12.5px] leading-relaxed text-text-muted">
           填好目的地和日期后，会自动生成每天的行程框架，之后再逐条补充安排即可。
@@ -63,14 +70,16 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
               className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
             />
           </label>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <label className="text-[12px] font-medium text-text-muted">
               出发日期
               <input
                 type="date"
                 value={startDate}
                 onChange={(e) => {
-                  setStartDate(e.target.value)
+                  const nextStartDate = e.target.value
+                  setStartDate(nextStartDate)
+                  if (endDate < nextStartDate) setEndDate(nextStartDate)
                   setError('')
                 }}
                 className="mt-1.5 w-full rounded-md border border-border px-2.5 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
@@ -89,6 +98,9 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
                 className="mt-1.5 w-full rounded-md border border-border px-2.5 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
               />
             </label>
+          </div>
+          <div className="rounded-md bg-accent-soft px-3 py-2 text-[12px] text-accent-hover">
+            将自动创建 <span className="font-semibold">{daysCount} 天</span>的连续行程，从 {displayDate(startDate)} 到 {displayDate(endDate)}。
           </div>
           <label className="text-[12px] font-medium text-text-muted">
             总预算 <span className="font-normal text-text-faint">（可选）</span>
@@ -121,7 +133,7 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
 }
 
 // 旅程切换器：点击展开下拉，支持切换 / 重命名 / 新建 / 删除
-function TripSwitcher() {
+function TripSwitcher({ compact = false }: { compact?: boolean }) {
   const { trips, activeTripId, switchTrip, deleteTrip, renameTrip } = useTripStore()
   const trip = useActiveTrip()
   const [open, setOpen] = useState(false)
@@ -147,20 +159,24 @@ function TripSwitcher() {
   }
 
   return (
-    <div ref={boxRef} className="relative px-5">
+    <div ref={boxRef} className={compact ? 'relative min-w-0 flex-1' : 'relative px-5'}>
       <button
         onClick={() => setOpen(!open)}
-        className="flex w-full items-center gap-2 rounded-lg border border-border bg-white px-3 py-2.5 text-left transition-colors hover:border-accent/60"
+        className={`flex w-full min-w-0 items-center gap-2 rounded-lg text-left transition-colors ${
+          compact
+            ? 'px-2 py-1.5 active:bg-surface-2'
+            : 'border border-border bg-white px-3 py-2.5 hover:border-accent/60'
+        }`}
       >
         <div className="min-w-0 flex-1">
           <div className="truncate text-[13px] font-semibold">{trip.name}</div>
-          <div className="mt-0.5 text-[12px] text-text-muted">{trip.days.length} 天</div>
+          <div className={`${compact ? 'text-[10.5px]' : 'mt-0.5 text-[12px]'} text-text-muted`}>{trip.days.length} 天</div>
         </div>
         <ChevronDownIcon size={14} />
       </button>
 
       {open && (
-        <div className="absolute top-full left-5 z-30 mt-1 w-[calc(100%-40px)] rounded-lg border border-border bg-white py-1.5 shadow-lg">
+        <div className={`absolute top-full z-[650] mt-1 rounded-lg border border-border bg-white py-1.5 shadow-lg ${compact ? 'left-0 w-[min(280px,calc(100vw-32px))]' : 'left-5 w-[calc(100%-40px)]'}`}>
           {trips.map((t) => {
             const active = t.id === activeTripId
             const renaming = renamingId === t.id
@@ -252,21 +268,74 @@ function TripSwitcher() {
   )
 }
 
-export default function Sidebar() {
-  const { view, setView, planTab, setPlanTab, activeDayId, setActiveDay, selectActivity } =
-    useTripStore()
-  const trip = useActiveTrip()
+export function MobileHeader({ onExport, exporting }: { onExport: () => void; exporting: boolean }) {
+  const { view, setView } = useTripStore()
 
   return (
-    <aside className="flex h-full w-[240px] shrink-0 flex-col border-r border-border bg-surface">
+    <header className="mobile-safe-top flex shrink-0 items-center gap-1.5 border-b border-border bg-surface/95 px-3 pb-2 backdrop-blur md:hidden">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-[#f8fafd] text-accent-hover shadow-[0_2px_8px_rgba(31,50,76,0.06)]" aria-label="途记">
+        <LogoIcon size={21} />
+      </div>
+      <TripSwitcher compact />
+      <button
+        onClick={onExport}
+        disabled={exporting}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-muted active:bg-accent-soft active:text-accent disabled:opacity-50"
+        aria-label={exporting ? '正在生成行程卡片' : '导出行程卡片'}
+        title="导出行程卡片"
+      >
+        <DownloadIcon size={18} />
+      </button>
+      <button
+        onClick={() => setView(view === 'settings' ? 'plan' : 'settings')}
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${view === 'settings' ? 'bg-accent-soft text-accent-hover' : 'text-text-muted active:bg-accent-soft active:text-accent'}`}
+        aria-label={view === 'settings' ? '返回行程' : '打开设置'}
+        title={view === 'settings' ? '返回行程' : '设置'}
+      >
+        <SettingsIcon size={18} />
+      </button>
+    </header>
+  )
+}
+
+export default function Sidebar() {
+  const { view, setView, planTab, setPlanTab, activeDayId, setActiveDay, selectActivity, scheduleWishPlace } =
+    useTripStore()
+  const trip = useActiveTrip()
+  const [dropDayId, setDropDayId] = useState<string | null>(null)
+
+  function scheduleDroppedWish(event: DragEvent<HTMLButtonElement>, day: TripDay) {
+    event.preventDefault()
+    setDropDayId(null)
+    const placeId = event.dataTransfer.getData('application/x-tripnote-wish-id')
+    const place = trip.wishPlaces.find((item) => item.id === placeId)
+    if (!place) return
+    const time = nextActivityTime(trip, day.id)
+    const activityId = scheduleWishPlace(place.id, day.id, {
+      time,
+      title: place.title,
+      category: place.category,
+      location: place.location,
+      note: place.note,
+      geo: place.geo,
+    })
+    if (!activityId) return
+    setView('plan')
+    setPlanTab('timeline')
+    selectActivity(activityId)
+    useToastStore.getState().show(`已安排「${place.title}」到 ${day.label} · ${time}`)
+  }
+
+  return (
+    <aside className="hidden h-full w-[240px] shrink-0 flex-col border-r border-border bg-surface md:flex">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 pt-5 pb-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#0f766e,#14998b)] text-white shadow-[0_4px_10px_rgba(15,118,110,0.22)] ring-1 ring-accent/15">
-          <LogoIcon size={20} />
+        <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-border bg-[#f8fafd] text-accent-hover shadow-[0_4px_12px_rgba(31,50,76,0.08)]">
+          <LogoIcon size={23} />
         </div>
         <div>
           <div className="text-[15px] font-semibold leading-tight tracking-[0.02em]">途记</div>
-          <div className="mt-0.5 text-[10.5px] leading-tight tracking-[0.08em] text-text-faint">TRIPNOTE</div>
+          <div className="mt-0.5 text-[10.5px] leading-tight tracking-[0.08em] text-text-faint">TripNote</div>
         </div>
       </div>
 
@@ -286,17 +355,26 @@ export default function Sidebar() {
                 setPlanTab('timeline')
                 selectActivity(null)
               }}
+              onDragOver={(event) => {
+                event.preventDefault()
+                event.dataTransfer.dropEffect = 'copy'
+                setDropDayId(d.id)
+              }}
+              onDragLeave={() => setDropDayId((id) => (id === d.id ? null : id))}
+              onDrop={(event) => scheduleDroppedWish(event, d)}
               className={`mb-0.5 flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[13px] transition-colors ${
-                active
+                dropDayId === d.id
+                  ? 'bg-accent text-white shadow-[0_2px_8px_rgba(65,95,136,0.22)]'
+                  : active
                   ? 'bg-accent-soft font-medium text-accent-hover'
                   : 'text-text-muted hover:bg-surface-2'
               }`}
             >
               <span>
                 {d.label}
-                <span className="ml-2 text-[12px] text-text-faint">{d.place}</span>
+                <span className={`ml-2 text-[12px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>{d.place}</span>
               </span>
-              <span className="text-[11px] text-text-faint">
+              <span className={`text-[11px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>
                 {/^\d{4}-\d{2}-\d{2}$/.test(d.date)
                   ? displayDate(d.date).split(' ')[0]
                   : d.date !== '待定'
@@ -307,7 +385,18 @@ export default function Sidebar() {
           )
         })}
         <button
-          onClick={() => useTripStore.getState().addDay()}
+          onClick={() => {
+            const previousLastDay = trip.days.at(-1)
+            useTripStore.getState().addDay()
+            const newDay = useTripStore.getState().trips
+              .find((item) => item.id === trip.id)
+              ?.days.at(-1)
+            useToastStore.getState().show(
+              newDay?.date && newDay.date !== '待定'
+                ? `已在${previousLastDay?.label ?? '最后一天'}后添加 ${displayDate(newDay.date)}`
+                : '已添加一天，可继续设置日期和地点',
+            )
+          }}
           className="mt-1 flex w-full items-center gap-2.5 rounded-md border border-dashed border-border px-2.5 py-2 text-[13px] text-text-muted transition-colors hover:border-accent hover:text-accent"
         >
           <PlusIcon size={15} /> 添加一天

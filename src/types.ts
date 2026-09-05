@@ -31,6 +31,7 @@ export interface Activity {
   duration?: string // 展示用："2小时"
   durationMinutes?: number // 用于排程与冲突检测的结构化时长（分钟）
   geo?: GeoPoint
+  sourceWishId?: string // 从想去清单安排时保留来源，便于同步状态
 }
 
 // 想去清单中的地点：先收集，确认日期与时间后再排入行程。
@@ -41,6 +42,8 @@ export interface WishPlace {
   location?: string
   note?: string
   geo?: GeoPoint
+  scheduledActivityIds?: string[] // 可关联多条已生成的行程
+  scheduledActivityId?: string // 旧版单条关联字段，读取旧数据时自动迁移
 }
 
 export interface TripDay {

@@ -16,13 +16,13 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { activitiesByDay, displayDate, useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS, PlusIcon, TrashIcon } from './Icons'
+import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
+import { CalendarIcon, CATEGORY_ICONS, OverviewIcon, PinIcon, PlusIcon, TrashIcon, WalletIcon } from './Icons'
 import ActivityForm, { activityToFormValues } from './ActivityForm'
 import InlineActivityDetail from './ActivityDetail'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
-import { CATEGORY_META, type Activity, type ActivityCategory } from '../types'
+import { CATEGORY_META, type Activity, type ActivityCategory, type Trip } from '../types'
 import { searchPlaces, type GeoResult } from '../api/geocode'
 import { fetchWalkingRouteInfo } from '../api/route'
 import DayMapPreview from './DayMapPreview'
@@ -35,16 +35,6 @@ function timeToMinutes(time: string) {
 function minutesToTime(minutes: number) {
   const normalized = ((minutes % 1440) + 1440) % 1440
   return `${String(Math.floor(normalized / 60)).padStart(2, '0')}:${String(normalized % 60).padStart(2, '0')}`
-}
-
-function suggestedTime(items: Activity[]) {
-  const last = items[items.length - 1]
-  if (!last) return '09:00'
-  if (last.endTime) return last.endTime
-  const hourMatch = last.duration?.match(/(\d+(?:\.\d+)?)\s*小时/)
-  const minuteMatch = last.duration?.match(/(\d+)\s*分钟/)
-  const duration = hourMatch ? Number(hourMatch[1]) * 60 : minuteMatch ? Number(minuteMatch[1]) : 90
-  return minutesToTime(timeToMinutes(last.time) + duration)
 }
 
 function activityDurationMinutes(activity: Activity) {
@@ -89,6 +79,38 @@ function periodLabel(time: string) {
   if (hour < 12) return '上午'
   if (hour < 18) return '下午'
   return '晚上'
+}
+
+function TripStatsBar({ trip }: { trip: Trip }) {
+  const totalCost = trip.activities.reduce(
+    (sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0),
+    0,
+  )
+  const stats = [
+    { label: '天数', value: `${trip.days.length} 天`, Icon: CalendarIcon },
+    { label: '安排', value: `${trip.activities.length} 项`, Icon: OverviewIcon },
+    { label: '已定位', value: `${trip.activities.filter((activity) => activity.geo).length} 个`, Icon: PinIcon },
+    { label: '总花费', value: `¥${totalCost.toLocaleString()}`, Icon: WalletIcon },
+  ]
+
+  return (
+    <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-white shadow-[0_2px_10px_rgba(45,55,65,0.035)] sm:grid-cols-4 sm:divide-x sm:divide-border">
+      {stats.map(({ label, value, Icon }, index) => (
+        <div
+          key={label}
+          className={`flex min-w-0 items-center gap-2.5 px-3 py-2.5 ${index < 2 ? 'border-b border-border sm:border-b-0' : ''} ${index % 2 === 0 ? 'border-r border-border sm:border-r-0' : ''}`}
+        >
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-hover">
+            <Icon size={14} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[10.5px] leading-none text-text-faint">{label}</span>
+            <span className="mt-1 block truncate text-[13px] font-semibold leading-none text-text">{value}</span>
+          </span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function DayOverview({ items }: { items: Activity[] }) {
@@ -158,34 +180,44 @@ function TransitHint({ from, to }: { from: Activity; to: Activity }) {
 // 分类、花费和备注等细节可在添加后从卡片详情继续补充。
 function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void }) {
   const addActivity = useTripStore((s) => s.addActivity)
+  const removeActivity = useTripStore((s) => s.removeActivity)
   const addWishPlace = useTripStore((s) => s.addWishPlace)
   const selectActivity = useTripStore((s) => s.selectActivity)
+  const amapWebServiceKey = useTripStore((s) => s.amapWebServiceKey)
   const trip = useActiveTrip()
-  const items = activitiesByDay(trip, dayId)
-  const [time, setTime] = useState(() => suggestedTime(items))
+  const day = trip.days.find((item) => item.id === dayId)
+  const [time, setTime] = useState(() => nextActivityTime(trip, dayId))
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState<ActivityCategory>('sight')
   const [pickedPlace, setPickedPlace] = useState<GeoResult | null>(null)
   const [results, setResults] = useState<GeoResult[]>([])
+  const [resultIndex, setResultIndex] = useState(-1)
+  const [searchedQuery, setSearchedQuery] = useState('')
   const [loading, setLoading] = useState(false)
   const [showOptions, setShowOptions] = useState(false)
+  const [duration, setDuration] = useState('')
+  const [cost, setCost] = useState('')
+  const [note, setNote] = useState('')
   const abortRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
     const query = title.trim()
     if (pickedPlace && query === pickedPlace.label.split(',')[0]) return
-    if (query.length < 2) {
-      return
-    }
+    if (query.length < 2) return
     const timer = setTimeout(async () => {
       abortRef.current?.abort()
       const ctrl = new AbortController()
       abortRef.current = ctrl
       setLoading(true)
       try {
-        setResults(await searchPlaces(query, ctrl.signal))
+        setResults(await searchPlaces(query, ctrl.signal, amapWebServiceKey))
+        setResultIndex(-1)
+        setSearchedQuery(query)
       } catch (error) {
-        if ((error as Error).name !== 'AbortError') setResults([])
+        if ((error as Error).name !== 'AbortError') {
+          setResults([])
+          setSearchedQuery(query)
+        }
       } finally {
         if (!ctrl.signal.aborted) setLoading(false)
       }
@@ -194,12 +226,14 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
       clearTimeout(timer)
       abortRef.current?.abort()
     }
-  }, [title, pickedPlace])
+  }, [title, pickedPlace, amapWebServiceKey])
 
   function pickPlace(place: GeoResult) {
     setPickedPlace(place)
     setTitle(place.label.split(',')[0])
     setResults([])
+    setResultIndex(-1)
+    setSearchedQuery('')
   }
 
   function savePlace(place: GeoResult) {
@@ -211,11 +245,14 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
     })
     useToastStore.getState().show('已加入想去清单')
     setResults([])
+    setResultIndex(-1)
+    setSearchedQuery('')
     setTitle('')
   }
 
   function submit() {
     if (!title.trim()) return
+    const durationMinutes = Number(duration) > 0 ? Math.round(Number(duration)) : undefined
     const id = addActivity({
       dayId,
       time,
@@ -223,33 +260,67 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
       category,
       location: pickedPlace?.label,
       geo: pickedPlace ? { lat: pickedPlace.lat, lng: pickedPlace.lng } : undefined,
-      costs: [],
+      durationMinutes,
+      duration: durationMinutes
+        ? durationMinutes % 60 === 0
+          ? `${durationMinutes / 60}小时`
+          : durationMinutes > 60
+            ? `${Math.floor(durationMinutes / 60)}小时${durationMinutes % 60}分钟`
+            : `${durationMinutes}分钟`
+        : undefined,
+      endTime: durationMinutes
+        ? minutesToTime(timeToMinutes(time) + durationMinutes)
+        : undefined,
+      note: note.trim() || undefined,
+      costs: cost !== '' ? [{ id: `cost-${crypto.randomUUID()}`, amount: Number(cost) }] : [],
     })
     selectActivity(id)
+    useToastStore.getState().show(
+      `已添加到${day?.label ?? '当前天'} · ${time}`,
+      { undo: () => removeActivity(id) },
+    )
     onDone()
   }
 
   return (
-    <div className="rounded-lg border border-dashed border-accent/50 bg-white p-3.5">
+    <div className="rounded-lg border border-dashed border-accent/50 bg-white p-3 sm:p-3.5">
       <div className="flex flex-wrap gap-2">
         <input
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          className="w-[104px] rounded-md border border-border px-2.5 py-2 text-[13px] tabular-nums outline-none focus:border-accent"
+          className="w-[96px] rounded-md border border-border px-2.5 py-2 text-[13px] tabular-nums outline-none focus:border-accent sm:w-[104px]"
         />
-        <div className="relative min-w-[220px] flex-1">
+        <div className="relative min-w-[170px] flex-1 sm:min-w-[220px]">
           <input
             value={title}
             onChange={(e) => {
               setPickedPlace(null)
               setTitle(e.target.value)
+              setSearchedQuery('')
               if (e.target.value.trim().length < 2) {
                 setResults([])
+                setResultIndex(-1)
+                setSearchedQuery('')
                 setLoading(false)
               }
             }}
-            onKeyDown={(e) => e.key === 'Enter' && submit()}
+            onKeyDown={(e) => {
+              if (e.key === 'ArrowDown' && results.length > 0) {
+                e.preventDefault()
+                setResultIndex((index) => Math.min(index + 1, results.length - 1))
+              } else if (e.key === 'ArrowUp' && results.length > 0) {
+                e.preventDefault()
+                setResultIndex((index) => Math.max(index - 1, -1))
+              } else if (e.key === 'Enter') {
+                e.preventDefault()
+                if (resultIndex >= 0) pickPlace(results[resultIndex])
+                else submit()
+              } else if (e.key === 'Escape') {
+                setResults([])
+                setResultIndex(-1)
+              }
+            }}
             placeholder="搜索地点，或直接输入安排"
             className="w-full rounded-md border border-border px-3 py-2 text-[13px] outline-none focus:border-accent"
           />
@@ -257,8 +328,8 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
           {results.length > 0 && (
             <ul className="absolute top-full left-0 z-20 mt-1 max-h-[220px] w-full overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
               {results.map((place) => (
-                <li key={`${place.lat},${place.lng}`} className="flex items-center gap-2 px-1.5 py-1 hover:bg-accent-soft">
-                  <button onClick={() => pickPlace(place)} className="min-w-0 flex-1 px-1.5 py-1 text-left">
+                <li key={`${place.lat},${place.lng}`} className={`flex items-center gap-2 px-1.5 py-1 ${results[resultIndex] === place ? 'bg-accent-soft' : 'hover:bg-accent-soft'}`}>
+                  <button onClick={() => pickPlace(place)} onMouseEnter={() => setResultIndex(results.indexOf(place))} className="min-w-0 flex-1 px-1.5 py-1 text-left">
                     <div className="truncate text-[12.5px] font-medium">{place.label.split(',')[0]}</div>
                     <div className="mt-0.5 truncate text-[11px] text-text-faint">{place.label}</div>
                   </button>
@@ -266,11 +337,16 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
                     onClick={() => savePlace(place)}
                     className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:border-accent hover:text-accent"
                   >
-                    想去
+                    收藏
                   </button>
                 </li>
               ))}
             </ul>
+          )}
+          {!loading && searchedQuery === title.trim() && searchedQuery.length >= 2 && results.length === 0 && !pickedPlace && (
+            <div className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-[11.5px] text-text-muted shadow-lg">
+              没有找到匹配地点，仍可按 Enter 作为普通安排添加。
+            </div>
           )}
         </div>
         <button
@@ -284,30 +360,64 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
           onClick={() => setShowOptions((show) => !show)}
           className={`rounded-md px-2.5 py-2 text-[12px] transition-colors ${showOptions ? 'bg-accent-soft text-accent-hover' : 'text-text-muted hover:bg-surface'}`}
         >
-          选项
+          {showOptions ? '收起' : '更多信息'}
         </button>
         <button onClick={onDone} className="rounded-md px-2.5 py-2 text-[13px] text-text-muted hover:bg-surface">
-          取消
+          清空
         </button>
       </div>
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
+        <span className="mr-0.5 text-[11.5px] text-text-faint">分类</span>
+        {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => {
+          const active = category === value
+          const meta = CATEGORY_META[value]
+          const Icon = CATEGORY_ICONS[value]
+          return (
+            <button
+              key={value}
+              onClick={() => setCategory(value)}
+              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11.5px]"
+              style={{ background: active ? meta.soft : 'transparent', color: active ? meta.color : 'var(--color-text-muted)' }}
+            >
+              <Icon size={12} /> {meta.label}
+            </button>
+          )
+        })}
+        {pickedPlace && (
+          <span className="ml-auto max-w-[280px] truncate rounded-full bg-accent-soft px-2 py-0.5 text-[11px] text-accent-hover" title={pickedPlace.label}>
+            ✓ 已定位 · {pickedPlace.label}
+          </span>
+        )}
+      </div>
       {showOptions && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
-          <span className="mr-0.5 text-[11.5px] text-text-faint">分类</span>
-          {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => {
-            const active = category === value
-            const meta = CATEGORY_META[value]
-            return (
-              <button
-                key={value}
-                onClick={() => setCategory(value)}
-                className="rounded px-1.5 py-0.5 text-[11.5px]"
-                style={{ background: active ? meta.soft : 'transparent', color: active ? meta.color : 'var(--color-text-muted)' }}
-              >
-                {meta.label}
-              </button>
-            )
-          })}
-          <span className="ml-auto text-[11.5px] text-text-faint">花费、时长和备注可在添加后补充</span>
+        <div className="mt-2 grid gap-2 border-t border-border pt-2 sm:grid-cols-[150px_140px_1fr]">
+          <label className="relative">
+            <input
+              value={duration}
+              onChange={(event) => setDuration(event.target.value.replace(/[^\d]/g, ''))}
+              placeholder="预计时长"
+              inputMode="numeric"
+              aria-label="预计时长"
+              className="w-full rounded-md border border-border px-2.5 py-1.5 pr-9 text-[12.5px] outline-none focus:border-accent"
+            />
+            <span className="absolute top-1.5 right-2.5 text-[11.5px] text-text-faint">分钟</span>
+          </label>
+          <input
+            value={cost}
+            onChange={(event) => setCost(event.target.value.replace(/[^\d.]/g, '').replace(/(\..*)\./g, '$1'))}
+            placeholder="花费 ¥"
+            inputMode="decimal"
+            aria-label="花费"
+            className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent"
+          />
+          <input
+            value={note}
+            onChange={(event) => setNote(event.target.value)}
+            onKeyDown={(event) => event.key === 'Enter' && submit()}
+            placeholder="备注（选填）"
+            aria-label="备注"
+            className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent"
+          />
         </div>
       )}
     </div>
@@ -322,7 +432,7 @@ function EditActivityForm({ activity, onDone }: { activity: Activity; onDone: ()
   // 恢复属于当前条目的草稿
   const draft = useTripStore((s) => (s.activityDraft?.activityId === activity.id ? s.activityDraft : null))
   return (
-    <div className="rounded-lg border border-accent/50 bg-white p-3.5 shadow-[0_1px_6px_rgba(13,148,136,0.12)]">
+    <div className="rounded-lg border border-accent/50 bg-white p-3.5 shadow-[0_2px_8px_rgba(49,92,125,0.12)]">
       <ActivityForm
         initial={draft ? { ...activityToFormValues(activity), ...draft.values } : activityToFormValues(activity)}
         submitLabel="保存"
@@ -376,7 +486,7 @@ function ActivityCard({
   return (
     <div
       className={`relative flex w-full items-center gap-2 rounded-lg border bg-white py-3 pr-2 pl-3.5 transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] ${
-        selected ? 'border-accent shadow-[0_1px_6px_rgba(13,148,136,0.12)]' : 'border-border'
+        selected ? 'border-accent shadow-[0_2px_8px_rgba(49,92,125,0.12)]' : 'border-border'
       }`}
     >
       <div
@@ -404,19 +514,19 @@ function ActivityCard({
         onClick={(e) => {
           e.stopPropagation()
           askConfirm({
-            title: `删除「${activity.title}」？`,
-            message: '该行程及其全部花费将一并删除。',
+            title: `删除安排「${activity.title}」？`,
+            message: '该安排及其中记录的花费都会被删除。',
             onConfirm: () => {
               const { trips, activeTripId } = useTripStore.getState()
               removeActivity(activity.id)
-              useToastStore.getState().show(`已删除「${activity.title}」`, {
+              useToastStore.getState().show(`已删除安排「${activity.title}」`, {
                 undo: () => useTripStore.getState().restoreTrips(trips, activeTripId),
               })
             },
           })
         }}
         className="shrink-0 rounded-md p-1.5 text-text-faint transition-colors hover:bg-red-50 hover:text-red-500"
-        title="删除该行程"
+        title="删除安排"
       >
         <TrashIcon size={14} />
       </button>
@@ -456,7 +566,7 @@ function SortableActivity({
   )
 }
 
-// 天标题：日期/地点点击可编辑（日期选择后自动推算后续天）
+// 天标题：日期/地点点击可编辑；修改任意一天的日期会连续顺延后续天。
 function DayHeaderInfo({ day }: { day: { id: string; date: string; place: string } }) {
   const updateDay = useTripStore((s) => s.updateDay)
   const [editing, setEditing] = useState(false)
@@ -492,15 +602,19 @@ function DayHeaderInfo({ day }: { day: { id: string; date: string; place: string
   }
 
   function commit() {
+    const dateChanged = date.trim() && date.trim() !== day.date
     updateDay(day.id, {
       date: date.trim() || '待定',
       place: place.trim(),
     })
+    if (dateChanged) {
+      useToastStore.getState().show('日期已更新，后续日期已自动顺延')
+    }
     setEditing(false)
   }
 
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="flex flex-wrap items-center gap-1.5">
       <input
         autoFocus
         type="date"
@@ -528,6 +642,7 @@ function DayHeaderInfo({ day }: { day: { id: string; date: string; place: string
       >
         保存
       </button>
+      <span className="text-[10.5px] text-text-faint">修改日期后，后续天会自动顺延</span>
     </div>
   )
 }
@@ -572,13 +687,23 @@ function DaySection({ dayId, onQuickAdd }: { dayId: string; onQuickAdd: () => vo
   return (
       <section ref={setNodeRef} className={`mb-6 rounded-lg transition-colors ${isOver ? 'bg-accent-soft/30' : ''}`}>
         {/* 天标题 */}
-        <header className="mb-3 flex items-center gap-3 px-0.5">
+        <header className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 px-0.5">
           <h2 className="text-[16px] font-semibold">{day.label}</h2>
           <DayHeaderInfo day={day} />
           {trip.days.length > 1 && (
-            <div className="ml-auto flex items-center gap-1">
+            <div className="flex w-full items-center justify-end gap-1 sm:ml-auto sm:w-auto">
               <button
-                onClick={() => addDay(dayId)}
+                onClick={() => {
+                  addDay(dayId)
+                  const insertedDay = useTripStore.getState().trips
+                    .find((item) => item.id === trip.id)
+                    ?.days.find((item) => item.id === useTripStore.getState().activeDayId)
+                  useToastStore.getState().show(
+                    insertedDay?.date && insertedDay.date !== '待定'
+                      ? `已插入${insertedDay.label} · ${displayDate(insertedDay.date)}，后续日期已顺延`
+                      : `已在${day.label}后插入一天`,
+                  )
+                }}
                 className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent"
                 title="在这天后插入一天"
               >
@@ -684,7 +809,7 @@ function PlannerInspector({
   const activity = trip.activities.find((item) => item.id === activityId)
 
   return (
-    <aside className="sticky top-0 hidden h-[calc(100vh-44px)] w-[340px] shrink-0 overflow-y-auto border-l border-border bg-white lg:block">
+    <aside className="sticky top-0 hidden h-[calc(100vh-44px)] w-[clamp(380px,32vw,520px)] shrink-0 overflow-y-auto border-l border-border bg-white lg:block">
       <div className="border-b border-border p-4">
         <div className="mb-2 flex items-center justify-between">
           <div>
@@ -737,13 +862,65 @@ function PlannerInspector({
   )
 }
 
+function MobileDayStrip({ trip }: { trip: Trip }) {
+  const { activeDayId, setActiveDay, selectActivity, addDay } = useTripStore()
+
+  function appendDay() {
+    const previousLastDay = trip.days.at(-1)
+    addDay()
+    const updatedTrip = useTripStore.getState().trips.find((item) => item.id === trip.id)
+    const newDay = updatedTrip?.days.at(-1)
+    useToastStore.getState().show(
+      newDay?.date && newDay.date !== '待定'
+        ? `已在${previousLastDay?.label ?? '最后一天'}后添加 ${displayDate(newDay.date)}`
+        : '已添加一天，可继续设置日期和地点',
+    )
+  }
+
+  return (
+    <div className="-mx-3 mb-4 flex items-stretch gap-2 overflow-x-auto px-3 pb-1 sm:hidden">
+      {trip.days.map((day) => {
+        const active = day.id === activeDayId
+        return (
+          <button
+            key={day.id}
+            onClick={() => {
+              setActiveDay(day.id)
+              selectActivity(null)
+            }}
+            className={`shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
+              active
+                ? 'border-accent bg-accent text-white shadow-[0_2px_8px_rgba(49,92,125,0.18)]'
+                : 'border-border bg-white text-text-muted'
+            }`}
+          >
+            <span className="block text-[12px] font-semibold">{day.label}</span>
+            <span className={`mt-0.5 block max-w-[84px] truncate text-[10.5px] ${active ? 'text-white/75' : 'text-text-faint'}`}>
+              {day.place || (day.date !== '待定' ? displayDate(day.date).split(' ')[0] : '待安排')}
+            </span>
+          </button>
+        )
+      })}
+      <button
+        onClick={appendDay}
+        className="flex min-w-[68px] shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-white px-2 py-2 text-[11px] text-text-muted active:border-accent active:text-accent"
+      >
+        <PlusIcon size={15} />
+        <span className="mt-0.5">加一天</span>
+      </button>
+    </div>
+  )
+}
+
 export default function TimelineView() {
   const trip = useActiveTrip()
   const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [quickAddKey, setQuickAddKey] = useState(0)
+  const [mobileQuickAddOpen, setMobileQuickAddOpen] = useState(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const draggingActivity = trip.activities.find((activity) => activity.id === draggingId)
+  const activeDay = trip.days.find((day) => day.id === activeDayId)
 
   function onDragStart(event: DragStartEvent) {
     setDraggingId(String(event.active.id))
@@ -764,8 +941,21 @@ export default function TimelineView() {
   }
 
   function focusQuickAdd() {
+    if (window.matchMedia('(max-width: 639px)').matches) {
+      setMobileQuickAddOpen(true)
+      return
+    }
     document.querySelector<HTMLInputElement>('[data-quick-add] input:not([type="time"])')?.focus()
   }
+
+  useEffect(() => {
+    if (!mobileQuickAddOpen) return
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMobileQuickAddOpen(false)
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [mobileQuickAddOpen])
 
   // 不打断表单输入：在非输入区域按 /，可随时开始记录一个安排。
   useEffect(() => {
@@ -799,21 +989,23 @@ export default function TimelineView() {
     >
       <div className="flex min-h-full min-w-0">
         <div className="min-w-0 flex-1">
-          <div className="mx-auto max-w-[780px] px-6 py-7 lg:px-8">
+          <div className="mr-auto max-w-[900px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+            <MobileDayStrip trip={trip} />
+            <TripStatsBar trip={trip} />
             {/* 空旅程引导：还没有任何行程时给出第一步指引 */}
             {trip.activities.length === 0 && (
-              <div className="mb-6 rounded-xl border border-accent/30 bg-[linear-gradient(135deg,rgba(216,243,238,0.72),rgba(255,255,255,0.94))] px-5 py-5 sm:px-6 sm:py-6">
+              <div className="mb-6 rounded-xl border border-accent/30 bg-[linear-gradient(135deg,rgba(232,239,248,0.92),rgba(248,250,253,0.96))] px-5 py-5 sm:px-6 sm:py-6">
                 <div className="text-[15px] font-semibold text-accent-hover">从一个地点开始，行程会自然成形</div>
                 <p className="mt-1.5 max-w-[480px] text-[13px] leading-relaxed text-text-muted">
                   不需要一次填完所有信息。先记下要去哪里，再逐步补充时间、花费和备注。
                 </p>
                 <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  <button onClick={focusQuickAdd} className="rounded-lg border border-accent/30 bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-[0_2px_8px_rgba(15,118,110,0.08)]">
+                  <button onClick={focusQuickAdd} className="rounded-lg border border-accent/30 bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-[0_2px_8px_rgba(49,92,125,0.10)]">
                     <span className="text-[11px] font-semibold text-accent">01</span>
                     <span className="mt-0.5 block text-[12.5px] font-medium">添加第一个安排</span>
                     <span className="mt-0.5 block text-[11px] text-text-faint">直接输入地点或事项</span>
                   </button>
-                  <button onClick={() => setPlanTab('places')} className="rounded-lg border border-border bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-[0_2px_8px_rgba(15,118,110,0.08)]">
+                  <button onClick={() => setPlanTab('places')} className="rounded-lg border border-border bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-[0_2px_8px_rgba(49,92,125,0.10)]">
                     <span className="text-[11px] font-semibold text-text-muted">02</span>
                     <span className="mt-0.5 block text-[12.5px] font-medium">先收集想去的地点</span>
                     <span className="mt-0.5 block text-[11px] text-text-faint">日期暂未确定也没关系</span>
@@ -830,14 +1022,26 @@ export default function TimelineView() {
               <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} />
             ))}
           </div>
-          <div data-quick-add className="sticky bottom-0 z-20 border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur lg:px-8">
-            <div className="mx-auto max-w-[780px]">
+          <div data-quick-add className="sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block lg:px-8">
+            <div className="mr-auto max-w-[900px]">
               <div className="mb-1.5 flex items-center justify-between text-[11.5px] font-medium text-text-faint">
-                <span>快速添加到当前天</span>
+                <span>
+                  快速添加到 {activeDay?.label ?? '当前天'}
+                  {activeDay?.place ? ` · ${activeDay.place}` : ''}
+                </span>
                 <span className="hidden rounded border border-border bg-white px-1.5 py-0.5 text-[10.5px] font-normal sm:inline">按 / 快速输入</span>
               </div>
               <AddActivityForm key={`${activeDayId}-${quickAddKey}`} dayId={activeDayId} onDone={() => setQuickAddKey((key) => key + 1)} />
             </div>
+          </div>
+          <div className="sticky bottom-0 z-20 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:hidden">
+            <button
+              onClick={() => setMobileQuickAddOpen(true)}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-[13px] font-medium text-white shadow-[0_3px_10px_rgba(49,92,125,0.2)] active:bg-accent-hover"
+            >
+              <PlusIcon size={16} />
+              添加到 {activeDay?.label ?? '当前天'}{activeDay?.place ? ` · ${activeDay.place}` : ''}
+            </button>
           </div>
         </div>
         <PlannerInspector
@@ -853,6 +1057,37 @@ export default function TimelineView() {
           </div>
         )}
       </DragOverlay>
+      {mobileQuickAddOpen && (
+        <div className="fixed inset-0 z-[700] flex items-end bg-black/30 sm:hidden" role="dialog" aria-modal="true" aria-label="新增安排">
+          <button className="absolute inset-0" onClick={() => setMobileQuickAddOpen(false)} aria-label="关闭新增安排" />
+          <div className="mobile-safe-bottom relative max-h-[84vh] w-full overflow-y-auto rounded-t-[22px] bg-[#fbfcfe] px-4 pt-3 shadow-[0_-12px_36px_rgba(15,23,42,0.18)]">
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div>
+                <div className="text-[16px] font-semibold">新增安排</div>
+                <div className="mt-0.5 text-[11.5px] text-text-muted">
+                  {activeDay?.label ?? '当前天'}{activeDay?.place ? ` · ${activeDay.place}` : ''}
+                </div>
+              </div>
+              <button
+                onClick={() => setMobileQuickAddOpen(false)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-[20px] leading-none text-text-muted"
+                aria-label="关闭"
+              >
+                ×
+              </button>
+            </div>
+            <AddActivityForm
+              key={`mobile-${activeDayId}-${quickAddKey}`}
+              dayId={activeDayId}
+              onDone={() => {
+                setQuickAddKey((key) => key + 1)
+                setMobileQuickAddOpen(false)
+              }}
+            />
+          </div>
+        </div>
+      )}
     </DndContext>
   )
 }

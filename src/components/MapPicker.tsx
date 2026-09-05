@@ -4,10 +4,12 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { reverseGeocode } from '../api/geocode'
 import type { GeoPoint } from '../types'
+import { useTripStore } from '../store'
+import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 
 const pickIcon = L.divIcon({
   className: '',
-  html: `<div class="map-marker" style="border-color:#0d9488;color:#0d9488">📍</div>`,
+  html: `<div class="map-marker" style="border-color:#415f88;color:#415f88">📍</div>`,
   iconSize: [26, 26],
   iconAnchor: [13, 26],
 })
@@ -21,11 +23,19 @@ function ClickHandler({ onPick }: { onPick: (p: GeoPoint) => void }) {
 }
 
 // 视角初始化：已有坐标或行程默认区域
-function InitialView({ center }: { center?: GeoPoint }) {
+function InitialView({
+  center,
+  fallbackCenter,
+  fallbackZoom,
+}: {
+  center?: GeoPoint
+  fallbackCenter: GeoPoint
+  fallbackZoom: number
+}) {
   const map = useMap()
   useEffect(() => {
     if (center) map.setView([center.lat, center.lng], 14)
-    else map.setView([34.9, 135.6], 9)
+    else map.setView([fallbackCenter.lat, fallbackCenter.lng], fallbackZoom)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
   return null
 }
@@ -44,11 +54,19 @@ export default function MapPicker({
   point,
   label,
   onPick,
+  initialCenter = { lat: 34.9, lng: 135.6 },
+  initialZoom = 9,
+  heightClassName = 'h-[200px]',
 }: {
   point?: GeoPoint
   label: string
   onPick: (p: GeoPoint, label: string) => void
+  initialCenter?: GeoPoint
+  initialZoom?: number
+  heightClassName?: string
 }) {
+  const amapWebServiceKey = useTripStore((state) => state.amapWebServiceKey)
+  const amapJsKey = useTripStore((state) => state.amapJsKey)
   const [picking, setPicking] = useState(false)
   const [resolving, setResolving] = useState(false)
   const latestCall = useRef(0)
@@ -58,7 +76,7 @@ export default function MapPicker({
     setPicking(true)
     setResolving(true)
     const callId = ++latestCall.current
-    const name = await reverseGeocode(newPoint.lat, newPoint.lng)
+    const name = await reverseGeocode(newPoint.lat, newPoint.lng, amapWebServiceKey)
     if (callId !== latestCall.current) return // 已有更新的选点，丢弃
     setResolving(false)
     setPicking(false)
@@ -68,19 +86,29 @@ export default function MapPicker({
     }
   }
 
+  const amapMarkers: AmapMarker[] = point ? [{ id: 'picked', point, label: '📍', color: '#415f88' }] : []
+
   return (
     <div className="overflow-hidden rounded-md border border-border">
-      <div className="h-[200px]">
-        <MapContainer className="h-full w-full" center={point ? [point.lat, point.lng] : [34.9, 135.6]} zoom={point ? 13 : 9}>
+      <div className={heightClassName}>
+        {amapJsKey ? (
+          <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} className="h-full w-full" zoom={point ? 13 : initialZoom} onMapPick={handlePick} />
+        ) : (
+        <MapContainer
+          className="h-full w-full"
+          center={point ? [point.lat, point.lng] : [initialCenter.lat, initialCenter.lng]}
+          zoom={point ? 13 : initialZoom}
+        >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
-          <InitialView center={point} />
+          <InitialView center={point} fallbackCenter={initialCenter} fallbackZoom={initialZoom} />
           <ClickHandler onPick={handlePick} />
           <FollowPoint point={point} />
           {point && <Marker position={[point.lat, point.lng]} icon={pickIcon} />}
         </MapContainer>
+        )}
       </div>
       <div className="flex items-center justify-between border-t border-border bg-surface px-3 py-1.5 text-[11.5px] text-text-muted">
         <span>{resolving ? '正在解析地名…' : picking || point ? '已选点，点击地图可重新选' : '点击地图选取位置'}</span>

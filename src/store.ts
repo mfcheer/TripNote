@@ -20,6 +20,12 @@ interface TripState {
   activeDayId: string
   selectedActivityId: string | null
   editingActivityId: string | null
+  // 可选地图服务：留空时始终使用 OSM / Nominatim；Key 仅保存在当前浏览器。
+  amapJsKey: string
+  amapWebServiceKey: string
+  mapRouteMode: 'direct' | 'walking'
+  setAmapKeys: (keys: { jsKey: string; webServiceKey: string }) => void
+  setMapRouteMode: (mode: 'direct' | 'walking') => void
   // 编辑表单草稿（切换天/视图/旅程时暂存，回来恢复，避免丢输入）
   activityDraft: { activityId: string; values: ActivityFormValues } | null
   saveActivityDraft: (draft: { activityId: string; values: ActivityFormValues } | null) => void
@@ -54,7 +60,9 @@ interface TripState {
   // 想去清单
   addWishPlace: (place: Omit<WishPlace, 'id'>) => string
   removeWishPlace: (placeId: string) => void
-  scheduleWishPlace: (placeId: string, dayId: string) => string | null
+  reorderWishPlace: (placeId: string, targetPlaceId: string) => void
+  scheduleWishPlace: (placeId: string, dayId: string, values: ActivityFormValues) => string | null
+  cancelWishSchedule: (placeId: string, activityId: string) => void
 }
 
 // 当前激活旅程（各视图统一从这里取数据）
@@ -116,7 +124,9 @@ function migrateTrip(raw: unknown): Trip {
   if (!trip || !Array.isArray(trip.activities)) return seedTrip
   const migrated: Trip = {
     ...trip,
-    wishPlaces: Array.isArray((trip as Partial<Trip>).wishPlaces) ? (trip as Trip).wishPlaces : [],
+    wishPlaces: Array.isArray((trip as Partial<Trip>).wishPlaces)
+      ? (trip as Trip).wishPlaces.map(normalizeWishPlace)
+      : [],
     expenses: [],
     activities: trip.activities.map((a, i) => {
       const legacy = a as Activity & { cost?: number }
@@ -160,8 +170,24 @@ function normalizeImportedTrip(raw: unknown): Trip | null {
       if (a.cost != null) withCosts.costs = [{ id: `c-imp-${i}`, amount: a.cost }]
       return withCosts
     }),
-    wishPlaces: Array.isArray(t.wishPlaces) ? t.wishPlaces : [],
+    wishPlaces: Array.isArray(t.wishPlaces) ? t.wishPlaces.map(normalizeWishPlace) : [],
   } as Trip
+}
+
+function wishScheduledActivityIds(wish: WishPlace) {
+  return Array.from(new Set([...(wish.scheduledActivityIds ?? []), ...(wish.scheduledActivityId ? [wish.scheduledActivityId] : [])]))
+}
+
+function normalizeWishPlace(wish: WishPlace): WishPlace {
+  const ids = wishScheduledActivityIds(wish)
+  const { scheduledActivityId: _legacyScheduledActivityId, ...rest } = wish
+  return ids.length > 0 ? { ...rest, scheduledActivityIds: ids } : rest
+}
+
+function unlinkWishActivity(wish: WishPlace, activityId: string): WishPlace {
+  const ids = wishScheduledActivityIds(wish).filter((id) => id !== activityId)
+  const { scheduledActivityId: _legacyScheduledActivityId, ...rest } = wish
+  return ids.length > 0 ? { ...rest, scheduledActivityIds: ids } : rest
 }
 
 // 天编号按位置重排（删除/插入后天数标签始终连续，避免重复编号）
@@ -195,6 +221,13 @@ function schedulingDuration(activity: Activity): number {
   return parsed > 0 ? parsed : 90
 }
 
+// 新增安排的建议时间：接在当天最后一个行程之后；空白天从 09:00 开始。
+export function nextActivityTime(trip: Trip, dayId: string): string {
+  const dayItems = activitiesByDay(trip, dayId)
+  const last = dayItems[dayItems.length - 1]
+  return last ? toHHMM(toMinutes(last.time) + schedulingDuration(last)) : '09:00'
+}
+
 // 天日期：标准格式 YYYY-MM-DD 时自动推算后续天（+1），非标准格式不动
 export function shiftDate(dateStr: string, days: number): string {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr
@@ -224,6 +257,14 @@ export const useTripStore = create<TripState>()(
       activeDayId: 'd1',
       selectedActivityId: null,
       editingActivityId: null,
+      amapJsKey: '',
+      amapWebServiceKey: '',
+      mapRouteMode: 'direct',
+      setAmapKeys: ({ jsKey, webServiceKey }) => set({
+        amapJsKey: jsKey.trim(),
+        amapWebServiceKey: webServiceKey.trim(),
+      }),
+      setMapRouteMode: (mapRouteMode) => set({ mapRouteMode }),
       activityDraft: null,
       saveActivityDraft: (activityDraft) => set({ activityDraft }),
 
@@ -346,6 +387,8 @@ export const useTripStore = create<TripState>()(
           activeDayId: 'd1',
           selectedActivityId: null,
           editingActivityId: null,
+          view: 'plan',
+          planTab: 'timeline',
         }),
 
       restoreTrips: (snapshot, activeTripId) => set({ trips: snapshot, activeTripId }),
@@ -403,11 +446,21 @@ export const useTripStore = create<TripState>()(
 
       removeActivity: (activityId) =>
         set((s) => ({
-          trips: s.trips.map((t) =>
-            t.id === s.activeTripId
-              ? { ...t, activities: t.activities.filter((a) => a.id !== activityId) }
-              : t,
-          ),
+          trips: s.trips.map((t) => {
+            if (t.id !== s.activeTripId) return t
+            const removed = t.activities.find((activity) => activity.id === activityId)
+            return {
+              ...t,
+              activities: t.activities.filter((activity) => activity.id !== activityId),
+              wishPlaces: removed?.sourceWishId
+                ? t.wishPlaces.map((wish) =>
+                    wish.id === removed.sourceWishId
+                      ? unlinkWishActivity(wish, activityId)
+                      : wish,
+                  )
+                : t.wishPlaces,
+            }
+          }),
           selectedActivityId: s.selectedActivityId === activityId ? null : s.selectedActivityId,
           editingActivityId: s.editingActivityId === activityId ? null : s.editingActivityId,
         })),
@@ -417,14 +470,28 @@ export const useTripStore = create<TripState>()(
         set((s) => ({
           trips: s.trips.map((t) => {
             if (t.id !== s.activeTripId) return t
-            const newDay: TripDay = { id: newId, label: '', date: '待定', place: '' }
-            let days: TripDay[]
-            if (afterDayId) {
-              const idx = t.days.findIndex((d) => d.id === afterDayId)
-              days = [...t.days.slice(0, idx + 1), newDay, ...t.days.slice(idx + 1)]
-            } else {
-              days = [...t.days, newDay]
+            const anchorIndex = afterDayId ? t.days.findIndex((d) => d.id === afterDayId) : t.days.length - 1
+            const insertIndex = anchorIndex >= 0 ? anchorIndex + 1 : t.days.length
+            const previousDay = t.days[insertIndex - 1]
+            const suggestedDate = previousDay && isDate(previousDay.date)
+              ? shiftDate(previousDay.date, 1)
+              : '待定'
+            const newDay: TripDay = {
+              id: newId,
+              label: '',
+              date: suggestedDate,
+              place: previousDay?.place ?? '',
             }
+
+            // 从中间插入时，后续已有的标准日期整体顺延一天，避免产生重复日期。
+            const shiftedTail = t.days.slice(insertIndex).map((day) =>
+              isDate(day.date) ? { ...day, date: shiftDate(day.date, 1) } : day,
+            )
+            let days: TripDay[] = [
+              ...t.days.slice(0, insertIndex),
+              newDay,
+              ...shiftedTail,
+            ]
             days = renumberDays(days)
             return { ...t, days, daysCount: days.length }
           }),
@@ -440,11 +507,26 @@ export const useTripStore = create<TripState>()(
           const trips = s.trips.map((t) => {
             if (t.id !== s.activeTripId) return t
             const days = renumberDays(t.days.filter((d) => d.id !== dayId))
+            const removedWishActivityIds = new Map<string, string[]>()
+            t.activities
+              .filter((activity) => activity.dayId === dayId && activity.sourceWishId)
+              .forEach((activity) => {
+                const ids = removedWishActivityIds.get(activity.sourceWishId!) ?? []
+                ids.push(activity.id)
+                removedWishActivityIds.set(activity.sourceWishId!, ids)
+              })
             return {
               ...t,
               days,
               daysCount: days.length,
               activities: t.activities.filter((a) => a.dayId !== dayId),
+              wishPlaces: removedWishActivityIds.size > 0
+                ? t.wishPlaces.map((wish) =>
+                    removedWishActivityIds.has(wish.id)
+                      ? removedWishActivityIds.get(wish.id)!.reduce(unlinkWishActivity, wish)
+                      : wish,
+                  )
+                : t.wishPlaces,
             }
           })
           // 删的是当前激活天时，切到前一天（没有则第一天）
@@ -464,18 +546,11 @@ export const useTripStore = create<TripState>()(
             const idx = t.days.findIndex((d) => d.id === dayId)
             if (idx === -1) return t
             const days = t.days.map((d) => (d.id === dayId ? { ...d, ...patch } : d))
-            // 设置标准格式日期时：后续天自动 +1 顺延（后续天里已有标准日期且恰好连续的不动）
+            // 修改任意一天的标准日期后，后续日期始终按天连续顺延。
+            // 这样能避免用户改了出发日或中间日期后，出现重复、断档或旧日期残留。
             if (patch.date && /^\d{4}-\d{2}-\d{2}$/.test(patch.date)) {
               for (let i = idx + 1; i < days.length; i++) {
-                const expect = shiftDate(days[i - 1].date, 1)
-                if (days[i].date !== expect && !/^\d{4}-\d{2}-\d{2}$/.test(days[i].date)) {
-                  days[i] = { ...days[i], date: expect }
-                } else if (days[i].date === expect) {
-                  // 已连续，继续顺延基准不变
-                } else {
-                  // 后续天已是标准日期但不连续：视为用户手动改过，停止推算
-                  break
-                }
+                days[i] = { ...days[i], date: shiftDate(patch.date, i - idx) }
               }
             }
             return { ...t, days }
@@ -549,7 +624,7 @@ export const useTripStore = create<TripState>()(
         const id = makeId('wish')
         set((s) => ({
           trips: s.trips.map((t) =>
-            t.id === s.activeTripId ? { ...t, wishPlaces: [...t.wishPlaces, { ...place, id }] } : t,
+            t.id === s.activeTripId ? { ...t, wishPlaces: [{ ...place, id }, ...t.wishPlaces] } : t,
           ),
         }))
         return id
@@ -559,38 +634,68 @@ export const useTripStore = create<TripState>()(
         set((s) => ({
           trips: s.trips.map((t) =>
             t.id === s.activeTripId
-              ? { ...t, wishPlaces: t.wishPlaces.filter((place) => place.id !== placeId) }
+              ? {
+                  ...t,
+                  wishPlaces: t.wishPlaces.filter((place) => place.id !== placeId),
+                  // 移出想去清单不应静默删除已排好的行程，只解除来源关联。
+                  activities: t.activities.map((activity) =>
+                    activity.sourceWishId === placeId
+                      ? { ...activity, sourceWishId: undefined }
+                      : activity,
+                  ),
+                }
               : t,
           ),
         })),
 
-      scheduleWishPlace: (placeId, dayId) => {
+      reorderWishPlace: (placeId, targetPlaceId) =>
+        set((s) => ({
+          trips: s.trips.map((trip) => {
+            if (trip.id !== s.activeTripId || placeId === targetPlaceId) return trip
+            const fromIndex = trip.wishPlaces.findIndex((place) => place.id === placeId)
+            const toIndex = trip.wishPlaces.findIndex((place) => place.id === targetPlaceId)
+            if (fromIndex < 0 || toIndex < 0) return trip
+            const wishPlaces = [...trip.wishPlaces]
+            const [moved] = wishPlaces.splice(fromIndex, 1)
+            wishPlaces.splice(toIndex, 0, moved)
+            return { ...trip, wishPlaces }
+          }),
+        })),
+
+      scheduleWishPlace: (placeId, dayId, values) => {
         const state = get()
         const trip = state.trips.find((item) => item.id === state.activeTripId)
         const place = trip?.wishPlaces.find((item) => item.id === placeId)
         if (!trip || !place || !trip.days.some((day) => day.id === dayId)) return null
-        const dayItems = activitiesByDay(trip, dayId)
-        const last = dayItems[dayItems.length - 1]
-        const time = last ? toHHMM(toMinutes(last.time) + schedulingDuration(last)) : '09:00'
         const activityId = makeId('activity')
         set((s) => ({
           trips: s.trips.map((item) =>
             item.id === s.activeTripId
               ? {
                   ...item,
-                  wishPlaces: item.wishPlaces.filter((wish) => wish.id !== placeId),
+                  wishPlaces: item.wishPlaces.map((wish) =>
+                    wish.id === placeId
+                      ? normalizeWishPlace({ ...wish, scheduledActivityIds: [...wishScheduledActivityIds(wish), activityId] })
+                      : wish,
+                  ),
                   activities: [
                     ...item.activities,
                     {
                       id: activityId,
                       dayId,
-                      time,
-                      title: place.title,
-                      category: place.category,
-                      location: place.location,
-                      note: place.note,
-                      geo: place.geo,
-                      costs: [],
+                      time: values.time,
+                      title: values.title,
+                      category: values.category,
+                      location: values.location,
+                      note: values.note,
+                      geo: values.geo,
+                      duration: values.duration,
+                      durationMinutes: values.durationMinutes,
+                      endTime: values.endTime,
+                      costs: values.firstCost != null
+                        ? [{ id: makeId('cost'), amount: values.firstCost }]
+                        : [],
+                      sourceWishId: placeId,
                     },
                   ],
                 }
@@ -599,15 +704,33 @@ export const useTripStore = create<TripState>()(
           activeDayId: dayId,
           selectedActivityId: activityId,
           editingActivityId: null,
-          view: 'plan',
-          planTab: 'timeline',
         }))
         return activityId
       },
+
+      cancelWishSchedule: (placeId, activityId) =>
+        set((s) => ({
+          trips: s.trips.map((trip) => {
+            if (trip.id !== s.activeTripId) return trip
+            const place = trip.wishPlaces.find((wish) => wish.id === placeId)
+            if (!place || !wishScheduledActivityIds(place).includes(activityId)) return trip
+            return {
+              ...trip,
+              activities: trip.activities.filter(
+                (activity) => activity.id !== activityId,
+              ),
+              wishPlaces: trip.wishPlaces.map((wish) =>
+                wish.id === placeId ? unlinkWishActivity(wish, activityId) : wish,
+              ),
+            }
+          }),
+          selectedActivityId: s.selectedActivityId === activityId ? null : s.selectedActivityId,
+          editingActivityId: s.editingActivityId === activityId ? null : s.editingActivityId,
+        })),
     }),
     {
       name: 'tripnote-store',
-      version: 5,
+      version: 8,
       migrate: (persisted: unknown) => {
         const state = persisted as
           | { trips?: Trip[]; activeTripId?: string; trip?: unknown; theme?: unknown }
@@ -626,7 +749,13 @@ export const useTripStore = create<TripState>()(
         }
         return stateWithoutTheme
       },
-      partialize: (s) => ({ trips: s.trips, activeTripId: s.activeTripId }),
+      partialize: (s) => ({
+        trips: s.trips,
+        activeTripId: s.activeTripId,
+        amapJsKey: s.amapJsKey,
+        amapWebServiceKey: s.amapWebServiceKey,
+        mapRouteMode: s.mapRouteMode,
+      }),
     },
   ),
 )

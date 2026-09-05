@@ -5,11 +5,11 @@ import { CATEGORY_ICONS, EditIcon } from './Icons'
 import { CATEGORY_META, type ActivityCategory } from '../types'
 
 const DONUT_COLORS: Record<ActivityCategory, string> = {
-  stay: '#0d9488',
-  traffic: '#f59e0b',
-  food: '#ec4899',
-  sight: '#8b5cf6',
-  shop: '#6b7280',
+  stay: '#7868a6',
+  traffic: '#3f83ab',
+  food: '#bd873d',
+  sight: '#d16d55',
+  shop: '#b35f87',
 }
 
 // 预算行：从行程条目的花费聚合而来（预算不可在此页添加，请到行程条目中添加花费）
@@ -59,9 +59,9 @@ export default function BudgetView() {
   const hasData = byCategory.length > 0
 
   return (
-    <div className="mx-auto max-w-[860px] px-8 pt-8 pb-10">
+    <div className="mx-auto max-w-[860px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8 lg:pb-10">
       {/* 头部 */}
-      <div className="mb-5 flex items-center justify-between">
+      <div className="mb-5 flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-[12px] leading-relaxed text-text-faint">
           预算自动聚合自各行程条目的花费（一个条目可记多笔）；要记账，请到行程中对应条目下添加。
         </p>
@@ -93,7 +93,7 @@ export default function BudgetView() {
       </div>
 
       {/* 概览三卡 */}
-      <div className="mb-8 grid grid-cols-3 gap-4">
+      <div className="mb-6 grid gap-2.5 sm:mb-8 sm:grid-cols-3 sm:gap-4">
         <div className="rounded-lg border border-border p-4">
           <div className="flex items-center justify-between">
             <span className="text-[12px] text-text-muted">总预算</span>
@@ -143,7 +143,7 @@ export default function BudgetView() {
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2">
             <div
               className="h-full rounded-full bg-accent transition-all"
-              style={{ width: `${Math.min(100, (totalPlanned / trip.totalBudget) * 100)}%` }}
+              style={{ width: `${trip.totalBudget > 0 ? Math.min(100, (totalPlanned / trip.totalBudget) * 100) : 0}%` }}
             />
           </div>
         </div>
@@ -155,7 +155,7 @@ export default function BudgetView() {
         </div>
       </div>
 
-      <div className="grid grid-cols-[300px_1fr] gap-6">
+      <div className="grid gap-4 lg:grid-cols-[300px_1fr] lg:gap-6">
         {/* 分类占比 */}
         <div className="rounded-lg border border-border p-4">
           <div className="mb-1 text-[13px] font-semibold">分类占比</div>
@@ -203,7 +203,7 @@ export default function BudgetView() {
         </div>
 
         {/* 明细表 */}
-        <div className="overflow-hidden rounded-lg border border-border">
+        <div className="hidden overflow-hidden rounded-lg border border-border sm:block">
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-border bg-surface text-left text-[12px] text-text-muted">
@@ -253,6 +253,48 @@ export default function BudgetView() {
               </tr>
             </tbody>
           </table>
+        </div>
+
+        {/* 手机上用卡片替代表格，避免横向滚动和列内容挤压。 */}
+        <div className="flex flex-col gap-2 sm:hidden">
+          <div className="flex items-center justify-between px-0.5 text-[12px] text-text-muted">
+            <span>花费明细</span>
+            <span>共 {rows.length} 笔</span>
+          </div>
+          {rows.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-[12px] text-text-faint">
+              暂无花费记录
+            </div>
+          ) : (
+            rows.map((row) => {
+              const meta = CATEGORY_META[row.category]
+              const Icon = CATEGORY_ICONS[row.category]
+              return (
+                <button
+                  key={row.costId}
+                  onClick={() => focusActivity(row.activityId)}
+                  className="flex w-full items-center gap-3 rounded-xl border border-border bg-white p-3 text-left active:border-accent"
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: meta.soft, color: meta.color }}>
+                    <Icon size={16} />
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-[13px] font-medium">{row.activityTitle}</span>
+                    <span className="mt-0.5 block truncate text-[11.5px] text-text-faint">
+                      {row.dayLabel} · {row.costTitle || meta.label}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[14px] font-semibold tabular-nums">¥{row.amount.toLocaleString()}</span>
+                </button>
+              )
+            })
+          )}
+          {rows.length > 0 && (
+            <div className="mt-1 flex items-center justify-between rounded-xl bg-surface px-3.5 py-3 text-[13px] font-medium">
+              <span>合计</span>
+              <span className="font-semibold tabular-nums text-accent">¥{totalPlanned.toLocaleString()}</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

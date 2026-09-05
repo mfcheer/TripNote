@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, Polyline, TileLayer, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -6,8 +6,20 @@ import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS } from './Icons'
 import { CATEGORY_META } from '../types'
 import { fetchWalkingRoute } from '../api/route'
+import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
 
-const DAY_COLORS = ['#0d9488', '#f59e0b', '#ec4899', '#8b5cf6', '#0ea5e9']
+// 路线采用暖珊瑚红，和 OSM 的蓝绿水系、浅灰道路有足够反差；深浅仍表示行程推进。
+const ROUTE_START_COLOR = '#ed8f79'
+const ROUTE_END_COLOR = '#ad3f38'
+
+function routeColor(dayIndex: number, totalDays: number) {
+  if (totalDays <= 1) return ROUTE_END_COLOR
+  const start = ROUTE_START_COLOR.match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
+  const end = ROUTE_END_COLOR.match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
+  const ratio = dayIndex / (totalDays - 1)
+  const channel = (index: number) => Math.round(start[index] + (end[index] - start[index]) * ratio).toString(16).padStart(2, '0')
+  return `#${channel(0)}${channel(1)}${channel(2)}`
+}
 
 function markerIcon(color: string, label: string) {
   return L.divIcon({
@@ -34,7 +46,7 @@ function FitBounds({ points }: { points: [number, number][] }) {
 }
 
 // 一天的真实步行路线（OSRM，失败回退直线）
-function DayRoute({ dayId, color }: { dayId: string; color: string }) {
+function DayRoute({ dayId, color, routeMode }: { dayId: string; color: string; routeMode: 'direct' | 'walking' }) {
   const trip = useActiveTrip()
   const geoItems = useMemo(
     () => activitiesByDay(trip, dayId).filter((a) => a.geo),
@@ -44,7 +56,7 @@ function DayRoute({ dayId, color }: { dayId: string; color: string }) {
 
   useEffect(() => {
     const pts = geoItems.map((a) => ({ lat: a.geo!.lat, lng: a.geo!.lng }))
-    if (pts.length < 2) {
+    if (pts.length < 2 || routeMode === 'direct') {
       setPath([])
       return
     }
@@ -54,16 +66,19 @@ function DayRoute({ dayId, color }: { dayId: string; color: string }) {
       if (!ctrl.signal.aborted) setPath(r.map((p) => [p.lat, p.lng]))
     })
     return () => ctrl.abort()
-  }, [geoItems.map((a) => `${a.id}@${a.geo!.lat},${a.geo!.lng}`).join('|')]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [geoItems.map((a) => `${a.id}@${a.geo!.lat},${a.geo!.lng}`).join('|'), routeMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (path.length < 2) return null
-  return <Polyline positions={path} pathOptions={{ color, weight: 3, opacity: 0.8 }} />
+  const directPath = geoItems.map((item) => [item.geo!.lat, item.geo!.lng] as [number, number])
+  const visiblePath = routeMode === 'walking' ? path : directPath
+  if (visiblePath.length < 2) return null
+  return <Polyline positions={visiblePath} pathOptions={{ color, weight: 4, opacity: 0.94 }} />
 }
 
 export default function MapView() {
-  const { setActiveDay } = useTripStore()
+  const { setActiveDay, amapJsKey, amapWebServiceKey, mapRouteMode } = useTripStore()
   const trip = useActiveTrip()
   const [filter, setFilter] = useState<'all' | string>('all')
+  const [amapUnavailable, setAmapUnavailable] = useState(false)
 
   const visibleDays = filter === 'all' ? trip.days : trip.days.filter((d) => d.id === filter)
 
@@ -73,11 +88,55 @@ export default function MapView() {
       .map((a) => [a.geo!.lat, a.geo!.lng] as [number, number]),
   )
 
+  // 总览中的跨日虚线把每天的路线串成完整旅程；虚线保留“过夜后继续”的语义。
+  const crossDaySegments = useMemo(() => {
+    if (filter !== 'all') return []
+    return trip.days.flatMap((day, index) => {
+      if (index === 0) return []
+      const previousItems = activitiesByDay(trip, trip.days[index - 1].id).filter((activity) => activity.geo)
+      const currentItems = activitiesByDay(trip, day.id).filter((activity) => activity.geo)
+      const from = previousItems.at(-1)
+      const to = currentItems.at(0)
+      if (!from?.geo || !to?.geo) return []
+      return [{ from, to, dayIndex: index }]
+    })
+  }, [filter, trip])
+
+  useEffect(() => setAmapUnavailable(false), [amapJsKey])
+  const handleAmapError = useCallback(() => setAmapUnavailable(true), [])
+  const useAmap = !!amapJsKey && !amapUnavailable
+  const amapWalkingEnabled = mapRouteMode === 'walking' && !!amapWebServiceKey
+  const amapLines = useMemo<AmapLine[]>(() => [
+    ...visibleDays.flatMap((day) => {
+      const points = activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => activity.geo!)
+      return points.length > 1 ? [{ id: `day-${day.id}`, points, color: routeColor(trip.days.indexOf(day), trip.days.length), route: amapWalkingEnabled }] : []
+    }),
+    ...crossDaySegments.map(({ from, to, dayIndex }) => ({
+      id: `cross-${from.id}-${to.id}`,
+      points: [from.geo!, to.geo!],
+      color: routeColor(dayIndex, trip.days.length),
+      dashed: true,
+      weight: 3,
+    })),
+  ], [visibleDays, trip, crossDaySegments, amapWalkingEnabled])
+  const amapMarkers = useMemo<AmapMarker[]>(() => visibleDays.flatMap((day) => {
+    const color = routeColor(trip.days.indexOf(day), trip.days.length)
+    return activitiesByDay(trip, day.id)
+      .filter((activity) => activity.geo)
+      .map((activity, index) => ({
+        id: activity.id,
+        point: activity.geo!,
+        label: String(index + 1),
+        color,
+        onClick: () => useTripStore.getState().focusActivity(activity.id),
+      }))
+  }), [visibleDays, trip])
+
   return (
-    <div className="relative h-full w-full">
+    <div className="trip-map-view relative h-full w-full">
       {/* 天数筛选 */}
-      <div className="absolute top-4 left-1/2 z-[500] -translate-x-1/2">
-        <div className="flex items-center gap-1 rounded-full border border-border bg-white p-1 shadow-[0_2px_10px_rgba(0,0,0,0.08)]">
+      <div className="absolute inset-x-3 top-3 z-[500] overflow-x-auto pb-1 md:inset-x-auto md:top-4 md:left-1/2 md:-translate-x-1/2">
+        <div className="mx-auto flex w-max items-center gap-1 rounded-full border border-border bg-white p-1 shadow-[0_2px_10px_rgba(0,0,0,0.08)]">
           {[{ id: 'all', label: '全部' }, ...trip.days.map((d) => ({ id: d.id, label: d.label }))].map((item) => {
             const active = filter === item.id
             return (
@@ -95,6 +154,9 @@ export default function MapView() {
         </div>
       </div>
 
+      {useAmap ? (
+        <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={amapLines} className="h-full w-full" zoom={9} routeKey={amapWalkingEnabled ? amapWebServiceKey : undefined} onError={handleAmapError} />
+      ) : (
       <MapContainer center={[34.9, 135.6]} zoom={9} className="h-full w-full">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -102,12 +164,20 @@ export default function MapView() {
         />
         <FitBounds points={allPoints} />
 
+        {crossDaySegments.map(({ from, to, dayIndex }) => (
+          <Polyline
+            key={`${from.id}-${to.id}`}
+            positions={[[from.geo!.lat, from.geo!.lng], [to.geo!.lat, to.geo!.lng]]}
+            pathOptions={{ color: routeColor(dayIndex, trip.days.length), weight: 3, opacity: 0.9, dashArray: '7 8' }}
+          />
+        ))}
+
         {visibleDays.map((day) => {
-          const color = DAY_COLORS[trip.days.indexOf(day) % DAY_COLORS.length]
+          const color = routeColor(trip.days.indexOf(day), trip.days.length)
           const geoItems = activitiesByDay(trip, day.id).filter((a) => a.geo)
           return (
             <div key={day.id}>
-              <DayRoute dayId={day.id} color={color} />
+              <DayRoute dayId={day.id} color={color} routeMode={mapRouteMode} />
               {geoItems.map((a, i) => {
                 const Icon = CATEGORY_ICONS[a.category]
                 return (
@@ -140,10 +210,16 @@ export default function MapView() {
           )
         })}
       </MapContainer>
+      )}
 
       {/* 图例 */}
-      <div className="absolute right-4 bottom-6 z-[500] rounded-lg border border-border bg-white/95 px-3.5 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur">
-        <div className="mb-1.5 text-[11px] font-semibold text-text-muted">按天路线</div>
+      <div className="absolute right-4 bottom-6 z-[500] hidden rounded-lg border border-border bg-white/95 px-3.5 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:block">
+        <div className="mb-1.5 text-[11px] font-semibold text-text-muted">行程进度</div>
+        <div className="mb-2 flex items-center gap-1 text-[10.5px] text-text-faint">
+          <span>第 1 天</span>
+          <span className="h-1 flex-1 rounded-full bg-[linear-gradient(90deg,#ed8f79,#ad3f38)]" />
+          <span>最后一天</span>
+        </div>
         {trip.days.map((d, i) => (
           <button
             key={d.id}
@@ -155,17 +231,23 @@ export default function MapView() {
               filter === d.id ? 'font-medium' : 'text-text-muted'
             }`}
           >
-            <span className="h-2 w-2 rounded-full" style={{ background: DAY_COLORS[i % DAY_COLORS.length] }} />
+            <span className="h-2 w-2 rounded-full" style={{ background: routeColor(i, trip.days.length) }} />
             {d.label} · {d.place}
           </button>
         ))}
+        {crossDaySegments.length > 0 && (
+          <div className="mt-2 border-t border-border pt-2 text-[11px] text-text-faint">
+            <span className="mr-1 inline-block w-5 align-middle border-t-2 border-dashed" style={{ borderColor: routeColor(1, Math.max(trip.days.length, 2)) }} />
+            虚线为跨日衔接；{mapRouteMode === 'walking' && (!useAmap || amapWalkingEnabled) ? '步行路线' : '直线连接'}由浅至深代表行程推进
+          </div>
+        )}
       </div>
 
       {/* 当前选中类别说明（保持设计系统中分类色一致） */}
-      <div className="absolute top-4 left-4 z-[500] rounded-lg border border-border bg-white/95 px-3 py-2 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur">
+      <div className="absolute top-4 left-[64px] z-[500] hidden rounded-lg border border-border bg-white/95 px-3 py-2 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:block">
         <div className="text-[12px] font-semibold">{trip.name}</div>
         <div className="mt-0.5 text-[11px] text-text-muted">
-          {filter === 'all' ? `${trip.daysCount} 天行程` : trip.days.find((d) => d.id === filter)?.place}
+          {filter === 'all' ? `${trip.daysCount} 天行程${useAmap ? ' · 高德地图' : ''}` : trip.days.find((d) => d.id === filter)?.place}
         </div>
       </div>
       <span className="hidden">{CATEGORY_META.sight.label}</span>

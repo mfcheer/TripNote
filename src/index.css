@@ -1,28 +1,36 @@
 @import "tailwindcss";
 
-/* 清爽、稳定的浅色界面：页面层与内容卡片有明确的层次。 */
-@theme {
-  --color-bg: #f6f8f8;
-  --color-surface: #ffffff;
-  --color-surface-2: #f0f4f3;
-  --color-border: #e0e7e5;
-  --color-text: #17212b;
-  --color-text-muted: #5d6b78;
-  --color-text-faint: #8b98a5;
-  --color-accent: #0f766e;
-  --color-accent-soft: #d8f3ee;
-  --color-accent-hover: #0b635d;
+.mobile-safe-top {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
 
-  --color-cat-traffic: #0ea5e9;
-  --color-cat-traffic-soft: #e0f2fe;
-  --color-cat-sight: #0d9488;
-  --color-cat-sight-soft: #ccfbf1;
-  --color-cat-food: #f59e0b;
-  --color-cat-food-soft: #fef3c7;
-  --color-cat-stay: #8b5cf6;
-  --color-cat-stay-soft: #ede9fe;
-  --color-cat-shop: #ec4899;
-  --color-cat-shop-soft: #fce7f3;
+.mobile-safe-bottom {
+  padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
+}
+
+/* 雾蓝旅行册：冷白底、深海军蓝主色，以低饱和分类色组织信息层级。 */
+@theme {
+  --color-bg: #f5f7fb;
+  --color-surface: #ffffff;
+  --color-surface-2: #edf2f7;
+  --color-border: #dbe3ed;
+  --color-text: #172033;
+  --color-text-muted: #637287;
+  --color-text-faint: #94a1b2;
+  --color-accent: #415f88;
+  --color-accent-soft: #e8eff8;
+  --color-accent-hover: #2e496f;
+
+  --color-cat-traffic: #3f83ab;
+  --color-cat-traffic-soft: #e4f2fa;
+  --color-cat-sight: #d16d55;
+  --color-cat-sight-soft: #fbeae5;
+  --color-cat-food: #bd873d;
+  --color-cat-food-soft: #fbf1e1;
+  --color-cat-stay: #7868a6;
+  --color-cat-stay-soft: #edeaf7;
+  --color-cat-shop: #b35f87;
+  --color-cat-shop-soft: #f8e9f0;
 
   --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
 }
@@ -49,14 +57,14 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
 
 /* 细滚动条 */
 *::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: #d6dade; border-radius: 4px; }
-*::-webkit-scrollbar-thumb:hover { background: #b8bdc2; }
+*::-webkit-scrollbar-thumb { background: #cbd6e3; border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: #aebdce; }
 *::-webkit-scrollbar-track { background: transparent; }
 
 /* Leaflet 融入浅色设计 */
 .leaflet-container {
   font-family: var(--font-sans);
-  background: #eef1f3;
+  background: #edf2f7;
 }
 .leaflet-control-zoom {
   border: 1px solid var(--color-border) !important;
@@ -77,6 +85,13 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
 .leaflet-bar a.leaflet-disabled {
   color: var(--color-text-faint) !important;
 }
+
+/* 手机地图顶部是横向日期筛选，缩放控件下移，避免两组浮层相互遮挡。 */
+@media (max-width: 767px) {
+  .trip-map-view .leaflet-control-zoom {
+    display: none;
+  }
+}
 .map-marker {
   display: flex;
   align-items: center;
@@ -90,4 +105,20 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
   font-weight: 600;
   color: var(--color-accent);
   box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+}
+
+/* 想去清单的地图只表达地点分布，避免编号暗示不存在的游览顺序。 */
+.wish-map-marker {
+  box-sizing: border-box;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #ffffff;
+  border-radius: 50%;
+  background: var(--wish-marker-color, var(--color-accent));
+  box-shadow: 0 1px 5px rgba(38, 61, 86, 0.34);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+.wish-map-marker.is-active {
+  transform: scale(1.28);
+  box-shadow: 0 0 0 4px rgba(65, 95, 136, 0.2), 0 2px 6px rgba(38, 61, 86, 0.35);
 }

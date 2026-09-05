@@ -3,6 +3,7 @@ import { searchPlaces, type GeoResult } from '../api/geocode'
 import { CATEGORY_ICONS } from './Icons'
 import MapPicker from './MapPicker'
 import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint } from '../types'
+import { useTripStore } from '../store'
 
 export interface ActivityFormValues {
   time: string
@@ -55,6 +56,7 @@ export default function ActivityForm({
   // 编辑模式：表单变化/卸载时上报草稿（防切换丢输入）
   onDraftChange?: (values: ActivityFormValues) => void
 }) {
+  const amapWebServiceKey = useTripStore((state) => state.amapWebServiceKey)
   const [form, setForm] = useState({
     time: initial?.time ?? '09:00',
     title: initial?.title ?? '',
@@ -91,7 +93,7 @@ export default function ActivityForm({
       abortRef.current = ctrl
       setGeoLoading(true)
       try {
-        const results = await searchPlaces(value.trim(), ctrl.signal)
+        const results = await searchPlaces(value.trim(), ctrl.signal, amapWebServiceKey)
         setGeoResults(results)
       } catch (e) {
         if ((e as Error).name !== 'AbortError') setGeoResults([])
@@ -257,7 +259,7 @@ export default function ActivityForm({
         <input
           value={form.cost}
           onChange={(e) => onCostChange(e.target.value)}
-          placeholder="首笔花费 ¥（选填）"
+          placeholder="花费 ¥（选填）"
           type="number"
           min="0"
           className={`${inputCls} w-[130px] tabular-nums`}
