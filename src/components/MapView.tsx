@@ -24,10 +24,14 @@ function routeColor(dayIndex: number, totalDays: number) {
 function markerIcon(color: string, label: string) {
   return L.divIcon({
     className: '',
-    html: `<div class="map-marker" style="border-color:${color};color:${color}">${label}</div>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
+    html: `<div class="map-place-marker" style="border-color:${color};color:${color}">${escapeHtml(label)}</div>`,
+    iconSize: [140, 28],
+    iconAnchor: [70, 14],
   })
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]!))
 }
 
 // 视角跟随筛选结果
@@ -129,11 +133,12 @@ export default function MapView() {
     const color = routeColor(trip.days.indexOf(day), trip.days.length)
     return activitiesByDay(trip, day.id)
       .filter((activity) => activity.geo)
-      .map((activity, index) => ({
+      .map((activity) => ({
         id: activity.id,
         point: activity.geo!,
-        label: String(index + 1),
+        label: activity.title,
         color,
+        wide: true,
         onClick: () => useTripStore.getState().focusActivity(activity.id),
       }))
   }), [visibleDays, trip])
@@ -184,13 +189,13 @@ export default function MapView() {
           return (
             <div key={day.id}>
               <DayRoute dayId={day.id} color={color} routeMode={mapRouteMode} onRouteFallback={handleRouteFallback} />
-              {geoItems.map((a, i) => {
+              {geoItems.map((a) => {
                 const Icon = CATEGORY_ICONS[a.category]
                 return (
                   <Marker
                     key={a.id}
                     position={[a.geo!.lat, a.geo!.lng]}
-                    icon={markerIcon(color, String(i + 1))}
+                    icon={markerIcon(color, a.title)}
                     eventHandlers={{
                       click: () => {
                         useTripStore.getState().focusActivity(a.id)

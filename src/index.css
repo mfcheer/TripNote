@@ -107,6 +107,27 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
   box-shadow: 0 1px 4px rgba(0,0,0,0.18);
 }
 
+/* 行程地图直接展示安排名称，名称过长时截断，避免遮住相邻路线与地点。 */
+.map-place-marker {
+  display: block;
+  box-sizing: border-box;
+  max-width: 140px;
+  height: 28px;
+  overflow: hidden;
+  border: 2px solid var(--color-accent);
+  border-radius: 14px;
+  background: #ffffff;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.18);
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 24px;
+  padding: 0 9px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* 想去清单的地图只表达地点分布，避免编号暗示不存在的游览顺序。 */
 .wish-map-marker {
   box-sizing: border-box;

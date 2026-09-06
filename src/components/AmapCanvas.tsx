@@ -54,7 +54,12 @@ export interface AmapMarker {
   color?: string
   active?: boolean
   simple?: boolean
+  wide?: boolean
   onClick?: () => void
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]!))
 }
 
 export interface AmapLine {
@@ -153,14 +158,14 @@ export default function AmapCanvas({
     for (const marker of markers) {
       const point = wgs84ToGcj02(marker.point)
       const color = marker.color ?? '#415f88'
-      const className = marker.simple ? `wish-map-marker${marker.active ? ' is-active' : ''}` : 'map-marker'
+      const className = marker.simple ? `wish-map-marker${marker.active ? ' is-active' : ''}` : marker.wide ? 'map-place-marker' : 'map-marker'
       const content = marker.simple
         ? `<div class="${className}" style="--wish-marker-color:${color}"></div>`
-        : `<div class="${className}" style="border-color:${color};color:${color};${marker.active ? 'background:#e8eff8;' : ''}">${marker.label ?? ''}</div>`
+        : `<div class="${className}" style="border-color:${color};color:${color};${marker.active ? 'background:#e8eff8;' : ''}">${escapeHtml(marker.label ?? '')}</div>`
       const markerOverlay = new AMap.Marker({
         position: [point.lng, point.lat],
         content,
-        offset: new AMap.Pixel(marker.simple ? -9 : -13, marker.simple ? -9 : -13),
+        offset: new AMap.Pixel(marker.simple ? -9 : marker.wide ? -70 : -13, marker.simple ? -9 : marker.wide ? -14 : -13),
         zIndex: marker.active ? 200 : 100,
       })
       if (marker.onClick) markerOverlay.on('click', marker.onClick)
