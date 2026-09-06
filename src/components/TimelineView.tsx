@@ -738,7 +738,7 @@ function DaySection({ dayId, onQuickAdd }: { dayId: string; onQuickAdd: () => vo
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           <div className="relative pl-[44px] sm:pl-[52px]">
             {/* 竖线 */}
-            <div className="absolute top-2 bottom-2 left-[64px] w-px bg-border sm:left-[76px]" />
+            <div className="absolute top-2 bottom-[60px] left-[64px] w-px bg-border sm:left-[76px]" />
             <div className="flex flex-col gap-2.5">
               {items.map((a, index) => (
                 <div key={a.id} className="relative flex min-w-0 items-start gap-2 sm:gap-3" data-activity-id={a.id}>
