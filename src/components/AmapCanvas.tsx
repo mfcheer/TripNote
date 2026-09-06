@@ -142,18 +142,28 @@ export default function AmapCanvas({
     const overlays: AmapOverlay[] = []
     for (const line of resolvedLines) {
       if (line.points.length < 2) continue
-      const polyline = new AMap.Polyline({
-        path: line.points.map((point) => {
+      const path = line.points.map((point) => {
           const converted = wgs84ToGcj02(point)
           return [converted.lng, converted.lat]
-        }),
-        strokeColor: line.color,
-        strokeWeight: line.weight ?? 4,
-        strokeOpacity: 0.94,
+        })
+      // 先画白色底描边，再叠加日期色；保证路线不会被复杂底图吞没。
+      const outline = new AMap.Polyline({
+        path,
+        strokeColor: '#fffdf9',
+        strokeWeight: (line.weight ?? 4) + 5,
+        strokeOpacity: 0.9,
         strokeStyle: line.dashed ? 'dashed' : 'solid',
         strokeDasharray: line.dashed ? [8, 8] : undefined,
       })
-      overlays.push(polyline)
+      const polyline = new AMap.Polyline({
+        path,
+        strokeColor: line.color,
+        strokeWeight: line.weight ?? 4,
+        strokeOpacity: 0.98,
+        strokeStyle: line.dashed ? 'dashed' : 'solid',
+        strokeDasharray: line.dashed ? [8, 8] : undefined,
+      })
+      overlays.push(outline, polyline)
     }
     for (const marker of markers) {
       const point = wgs84ToGcj02(marker.point)

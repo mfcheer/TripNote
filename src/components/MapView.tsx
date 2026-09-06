@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import { MapContainer, Marker, Polyline, TileLayer, Popup, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -8,16 +8,18 @@ import { CATEGORY_META } from '../types'
 import { fetchWalkingRouteInfo } from '../api/route'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
 
-// 路线采用暖珊瑚红，和 OSM 的蓝绿水系、浅灰道路有足够反差；深浅仍表示行程推进。
-const ROUTE_START_COLOR = '#ed8f79'
-const ROUTE_END_COLOR = '#ad3f38'
+// 高对比暖色阶：金橙至酒红表达行程推进，配合白色底描边确保在不同地图底色上清晰可见。
+const ROUTE_COLORS = ['#E9A668', '#EA795A', '#D9534F', '#B63E44', '#7F344A']
 
 function routeColor(dayIndex: number, totalDays: number) {
-  if (totalDays <= 1) return ROUTE_END_COLOR
-  const start = ROUTE_START_COLOR.match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
-  const end = ROUTE_END_COLOR.match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
-  const ratio = dayIndex / (totalDays - 1)
-  const channel = (index: number) => Math.round(start[index] + (end[index] - start[index]) * ratio).toString(16).padStart(2, '0')
+  if (totalDays <= 1) return ROUTE_COLORS.at(-1)!
+  const position = (dayIndex / (totalDays - 1)) * (ROUTE_COLORS.length - 1)
+  const lowerIndex = Math.floor(position)
+  const upperIndex = Math.min(lowerIndex + 1, ROUTE_COLORS.length - 1)
+  const ratio = position - lowerIndex
+  const lower = ROUTE_COLORS[lowerIndex].match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
+  const upper = ROUTE_COLORS[upperIndex].match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
+  const channel = (index: number) => Math.round(lower[index] + (upper[index] - lower[index]) * ratio).toString(16).padStart(2, '0')
   return `#${channel(0)}${channel(1)}${channel(2)}`
 }
 
@@ -78,7 +80,10 @@ function DayRoute({ dayId, color, routeMode, onRouteFallback }: { dayId: string;
   const directPath = geoItems.map((item) => [item.geo!.lat, item.geo!.lng] as [number, number])
   const visiblePath = routeMode === 'walking' ? path : directPath
   if (visiblePath.length < 2) return null
-  return <Polyline positions={visiblePath} pathOptions={{ color, weight: 4, opacity: 0.94 }} />
+  return <>
+    <Polyline positions={visiblePath} pathOptions={{ color: '#fffdf9', weight: 9, opacity: 0.9 }} />
+    <Polyline positions={visiblePath} pathOptions={{ color, weight: 4, opacity: 0.98 }} />
+  </>
 }
 
 export default function MapView() {
@@ -175,13 +180,13 @@ export default function MapView() {
         />
         <FitBounds points={allPoints} />
 
-        {crossDaySegments.map(({ from, to, dayIndex }) => (
-          <Polyline
-            key={`${from.id}-${to.id}`}
-            positions={[[from.geo!.lat, from.geo!.lng], [to.geo!.lat, to.geo!.lng]]}
-            pathOptions={{ color: routeColor(dayIndex, trip.days.length), weight: 3, opacity: 0.9, dashArray: '7 8' }}
-          />
-        ))}
+        {crossDaySegments.map(({ from, to, dayIndex }) => {
+          const positions = [[from.geo!.lat, from.geo!.lng], [to.geo!.lat, to.geo!.lng]] as [number, number][]
+          return <Fragment key={`${from.id}-${to.id}`}>
+            <Polyline positions={positions} pathOptions={{ color: '#fffdf9', weight: 7, opacity: 0.86, dashArray: '7 8' }} />
+            <Polyline positions={positions} pathOptions={{ color: routeColor(dayIndex, trip.days.length), weight: 3, opacity: 0.96, dashArray: '7 8' }} />
+          </Fragment>
+        })}
 
         {visibleDays.map((day) => {
           const color = routeColor(trip.days.indexOf(day), trip.days.length)
@@ -228,7 +233,7 @@ export default function MapView() {
         <div className="mb-1.5 text-[11px] font-semibold text-text-muted">行程进度</div>
         <div className="mb-2 flex items-center gap-1 text-[10.5px] text-text-faint">
           <span>第 1 天</span>
-          <span className="h-1 flex-1 rounded-full bg-[linear-gradient(90deg,#ed8f79,#ad3f38)]" />
+          <span className="h-1 flex-1 rounded-full" style={{ background: `linear-gradient(90deg, ${ROUTE_COLORS.join(', ')})` }} />
           <span>最后一天</span>
         </div>
         {trip.days.map((d, i) => (
