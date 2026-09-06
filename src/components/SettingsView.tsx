@@ -32,11 +32,21 @@ export default function SettingsView({
   }
 
   function exportTrip() {
-    const blob = new Blob([JSON.stringify(trip, null, 2)], { type: 'application/json' })
+    const backup = {
+      version: 2,
+      exportedAt: new Date().toISOString(),
+      trip,
+      mapSettings: {
+        amapJsKey,
+        amapWebServiceKey,
+        mapRouteMode,
+      },
+    }
+    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `trip-${trip.id}.json`
+    a.download = `tripnote-backup-${trip.id}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -46,14 +56,41 @@ export default function SettingsView({
     reader.onload = () => {
       try {
         const data = JSON.parse(String(reader.result))
-        if (!importTrip(data)) {
+        const backup = data as {
+          trip?: unknown
+          mapSettings?: { amapJsKey?: unknown; amapWebServiceKey?: unknown; mapRouteMode?: unknown }
+        }
+        const tripData = backup.trip ?? data
+        if (!importTrip(tripData)) {
           info({ title: '导入失败', message: '文件格式不正确：需要包含 days 和 activities 的旅程数据。' })
+          return
+        }
+        if (backup.mapSettings) {
+          const nextJsKey = typeof backup.mapSettings.amapJsKey === 'string' ? backup.mapSettings.amapJsKey : ''
+          const nextWebServiceKey = typeof backup.mapSettings.amapWebServiceKey === 'string' ? backup.mapSettings.amapWebServiceKey : ''
+          const nextRouteMode = backup.mapSettings.mapRouteMode === 'walking' ? 'walking' : 'direct'
+          setAmapKeys({ jsKey: nextJsKey, webServiceKey: nextWebServiceKey })
+          setMapRouteMode(nextRouteMode)
+          setJsKey(nextJsKey)
+          setWebServiceKey(nextWebServiceKey)
+          useToastStore.getState().show('已导入旅程和地图配置')
         }
       } catch {
         info({ title: '导入失败', message: '文件不是有效的 JSON。' })
       }
     }
     reader.readAsText(file)
+  }
+
+  function saveMapConfig() {
+    setAmapKeys({ jsKey, webServiceKey })
+    const hasJsKey = !!jsKey.trim()
+    const hasWebServiceKey = !!webServiceKey.trim()
+    useToastStore.getState().show(
+      hasJsKey || hasWebServiceKey
+        ? `高德配置已保存${hasJsKey ? '，地图页将优先使用高德' : ''}${hasWebServiceKey ? '，地点搜索将优先使用高德' : ''}`
+        : '已清除高德配置，现已切回默认地图与搜索服务',
+    )
   }
 
   return (
@@ -88,67 +125,21 @@ export default function SettingsView({
           )}
           {isStandalone && <div className="mt-3 text-[11.5px] text-accent-hover">途记已安装到此设备。</div>}
         </div>
-        <div className="rounded-lg border border-border p-4">
-          <div className="mb-1 text-[13px] font-medium">高德地图（可选）</div>
-          <p className="mb-3 text-[12px] leading-relaxed text-text-muted">
-            填写后，地图展示和地点搜索会优先使用高德；留空则继续使用当前的 OSM、Nominatim。步行路线始终使用 OSRM，行程地点始终保存为通用坐标，旧数据可直接切换。
-          </p>
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <label className="text-[12px] text-text-muted">
-              JS API Key（地图展示）
-              <input value={jsKey} onChange={(event) => setJsKey(event.target.value)} placeholder="留空则使用 OSM 地图" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] text-text outline-none focus:border-accent" />
-            </label>
-            <label className="text-[12px] text-text-muted">
-              Web 服务 Key（地点搜索）
-              <input value={webServiceKey} onChange={(event) => setWebServiceKey(event.target.value)} placeholder="留空则使用原地点搜索" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] text-text outline-none focus:border-accent" />
-            </label>
-          </div>
-          <div className="mt-3 flex items-center justify-between gap-3">
-            <span className="text-[11px] leading-relaxed text-text-faint">Key 仅保存在此浏览器；对外部署时建议在高德控制台限制可用域名。</span>
-            <button
-              onClick={() => {
-                setAmapKeys({ jsKey, webServiceKey })
-                const hasJsKey = !!jsKey.trim()
-                const hasWebServiceKey = !!webServiceKey.trim()
-                useToastStore.getState().show(
-                  hasJsKey || hasWebServiceKey
-                    ? `高德配置已保存${hasJsKey ? '，地图页将优先使用高德' : ''}${hasWebServiceKey ? '，地点搜索将优先使用高德' : ''}`
-                    : '已清除高德配置，现已切回默认地图与搜索服务',
-                )
-              }}
-              className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-accent-hover"
-            >
-              保存配置
-            </button>
-          </div>
-          <div className="mt-4 border-t border-border pt-3">
-            <div className="text-[12px] font-medium text-text-muted">地图连线</div>
-            <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-              <button onClick={() => setMapRouteMode('direct')} className={`flex-1 rounded-md border px-3 py-2 text-left text-[12px] transition-colors ${mapRouteMode === 'direct' ? 'border-accent bg-accent-soft text-accent-hover' : 'border-border text-text-muted hover:border-accent/50'}`}>
-                <span className="font-medium">直线连接</span><span className="ml-1.5 text-text-faint">推荐，不调用路线服务</span>
-              </button>
-              <button onClick={() => setMapRouteMode('walking')} className={`flex-1 rounded-md border px-3 py-2 text-left text-[12px] transition-colors ${mapRouteMode === 'walking' ? 'border-accent bg-accent-soft text-accent-hover' : 'border-border text-text-muted hover:border-accent/50'}`}>
-                <span className="font-medium">步行路线</span><span className="ml-1.5 text-text-faint">按相邻地点请求路线</span>
-              </button>
-            </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-text-faint">步行路线始终使用 OSRM 服务，打开地图时才会请求；失败时会显示直线，并在地图图例处提示。</p>
-          </div>
-        </div>
         {/* 数据管理 */}
         <div className="rounded-lg border border-border p-4">
           <div className="mb-1 text-[13px] font-medium">数据管理</div>
           <p className="mb-3 text-[12px] leading-relaxed text-text-muted">
-            数据保存在浏览器本地（localStorage）。导出的是当前旅程 JSON；导入会作为新旅程加入列表。
+            数据保存在浏览器本地（localStorage）。备份包含当前旅程、高德地图配置和地图连线方式；导入会作为新旅程加入列表并恢复配置。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
               onClick={exportTrip}
               className="rounded-md border border-border px-3.5 py-2 text-[13px] text-text-muted transition-colors hover:border-accent hover:text-accent"
             >
-              导出当前旅程
+              导出备份
             </button>
             <label className="cursor-pointer rounded-md border border-border px-3.5 py-2 text-center text-[13px] text-text-muted transition-colors hover:border-accent hover:text-accent">
-              导入旅程
+              导入备份 / 旅程
               <input
                 type="file"
                 accept="application/json"
@@ -168,6 +159,40 @@ export default function SettingsView({
             >
               重置数据
             </button>
+          </div>
+          <div className="mt-5 border-t border-border pt-4">
+            <div className="mb-1 text-[13px] font-medium">地图配置（随备份导入导出）</div>
+            <p className="mb-3 text-[12px] leading-relaxed text-text-muted">
+              填写后，地图展示和地点搜索会优先使用高德；留空则继续使用 OSM、Nominatim。步行路线始终使用 OSRM，已有行程地点可直接切换地图。
+            </p>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <label className="text-[12px] text-text-muted">
+                JS API Key（地图展示）
+                <input value={jsKey} onChange={(event) => setJsKey(event.target.value)} placeholder="留空则使用 OSM 地图" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] text-text outline-none focus:border-accent" />
+              </label>
+              <label className="text-[12px] text-text-muted">
+                Web 服务 Key（地点搜索）
+                <input value={webServiceKey} onChange={(event) => setWebServiceKey(event.target.value)} placeholder="留空则使用原地点搜索" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] text-text outline-none focus:border-accent" />
+              </label>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-3">
+              <span className="text-[11px] leading-relaxed text-text-faint">Key 会明文写入导出文件，请勿把备份发送给不可信的人；建议在高德控制台限制可用域名。</span>
+              <button onClick={saveMapConfig} className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-accent-hover">
+                保存配置
+              </button>
+            </div>
+            <div className="mt-4 border-t border-border pt-3">
+              <div className="text-[12px] font-medium text-text-muted">地图连线</div>
+              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+                <button onClick={() => setMapRouteMode('direct')} className={`flex-1 rounded-md border px-3 py-2 text-left text-[12px] transition-colors ${mapRouteMode === 'direct' ? 'border-accent bg-accent-soft text-accent-hover' : 'border-border text-text-muted hover:border-accent/50'}`}>
+                  <span className="font-medium">直线连接</span><span className="ml-1.5 text-text-faint">推荐，不调用路线服务</span>
+                </button>
+                <button onClick={() => setMapRouteMode('walking')} className={`flex-1 rounded-md border px-3 py-2 text-left text-[12px] transition-colors ${mapRouteMode === 'walking' ? 'border-accent bg-accent-soft text-accent-hover' : 'border-border text-text-muted hover:border-accent/50'}`}>
+                  <span className="font-medium">步行路线</span><span className="ml-1.5 text-text-faint">按相邻地点请求路线</span>
+                </button>
+              </div>
+              <p className="mt-2 text-[11px] leading-relaxed text-text-faint">步行路线始终使用 OSRM 服务，打开地图时才会请求；失败时会显示直线，并在地图图例处提示。</p>
+            </div>
           </div>
         </div>
       </div>
