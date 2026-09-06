@@ -751,8 +751,6 @@ function DaySection({ dayId, onQuickAdd }: { dayId: string; onQuickAdd: () => vo
                     {a.time}
                   </div>
                   <div className="relative min-w-0 flex-1">
-                    {/* 时间轴圆点 */}
-                    <div className="absolute top-[18px] -left-[6px] h-[9px] w-[9px] rounded-full border-2 border-white bg-accent" />
                     <SortableActivity
                       activity={a}
                       selected={selectedActivityId === a.id}
