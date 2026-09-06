@@ -485,7 +485,7 @@ function ActivityCard({
   const askConfirm = useConfirmStore((s) => s.ask)
   return (
     <div
-      className={`relative flex w-full items-center gap-2 rounded-lg border bg-white py-3 pr-2 pl-3.5 transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] ${
+      className={`relative flex min-w-0 w-full items-center gap-2 rounded-lg border bg-white py-3 pr-2 pl-3.5 transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] ${
         selected ? 'border-accent shadow-[0_2px_8px_rgba(49,92,125,0.12)]' : 'border-border'
       }`}
     >
@@ -557,7 +557,7 @@ function SortableActivity({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={isDragging ? 'opacity-40' : ''}
+      className={`min-w-0 ${isDragging ? 'opacity-40' : ''}`}
       {...attributes}
       {...listeners}
     >
@@ -736,21 +736,21 @@ function DaySection({ dayId, onQuickAdd }: { dayId: string; onQuickAdd: () => vo
 
         {/* 时间轴 */}
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          <div className="relative pl-[52px]">
+          <div className="relative pl-[44px] sm:pl-[52px]">
             {/* 竖线 */}
-            <div className="absolute top-2 bottom-2 left-[76px] w-px bg-border" />
+            <div className="absolute top-2 bottom-2 left-[64px] w-px bg-border sm:left-[76px]" />
             <div className="flex flex-col gap-2.5">
               {items.map((a, index) => (
-                <div key={a.id} className="relative flex items-start gap-3" data-activity-id={a.id}>
+                <div key={a.id} className="relative flex min-w-0 items-start gap-2 sm:gap-3" data-activity-id={a.id}>
                   {(!items[index - 1] || periodLabel(items[index - 1].time) !== periodLabel(a.time)) && (
-                    <div className="absolute -left-[51px] mt-0.5 w-[42px] text-right text-[10.5px] font-medium text-text-faint">
+                    <div className="absolute -left-[43px] mt-0.5 w-[35px] text-right text-[10px] font-medium text-text-faint sm:-left-[51px] sm:w-[42px] sm:text-[10.5px]">
                       {periodLabel(a.time)}
                     </div>
                   )}
-                  <div className="w-[48px] pt-3 text-right text-[12px] font-medium tabular-nums text-text-muted">
+                  <div className="w-[40px] shrink-0 pt-3 text-right text-[11px] font-medium tabular-nums text-text-muted sm:w-[48px] sm:text-[12px]">
                     {a.time}
                   </div>
-                  <div className="relative flex-1">
+                  <div className="relative min-w-0 flex-1">
                     {/* 时间轴圆点 */}
                     <div className="absolute top-[18px] -left-[6px] h-[9px] w-[9px] rounded-full border-2 border-white bg-accent" />
                     <SortableActivity
