@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { gcj02ToWgs84, wgs84ToGcj02 } from '../api/coordinates'
-import { fetchAmapWalkingRoute } from '../api/route'
+import { fetchWalkingRouteInfo } from '../api/route'
 import type { GeoPoint } from '../types'
 
 interface AmapLngLat {
@@ -72,18 +72,18 @@ export default function AmapCanvas({
   lines = [],
   className,
   zoom = 11,
-  routeKey,
   onMapPick,
   onError,
+  onRouteFallback,
 }: {
   apiKey: string
   markers: AmapMarker[]
   lines?: AmapLine[]
   className: string
   zoom?: number
-  routeKey?: string
   onMapPick?: (point: GeoPoint) => void
   onError?: () => void
+  onRouteFallback?: () => void
 }) {
   const elementRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<AmapMapInstance | null>(null)
@@ -124,13 +124,15 @@ export default function AmapCanvas({
     const render = async () => {
     const AMap = window.AMap
     if (!AMap || !mapRef.current) return
-    const resolvedLines = await Promise.all(lines.map(async (line) => ({
-      ...line,
-      points: line.route && routeKey
-        ? await fetchAmapWalkingRoute(line.points, routeKey, controller.signal).catch(() => line.points)
-        : line.points,
-    })))
+    let didFallback = false
+    const resolvedLines = await Promise.all(lines.map(async (line) => {
+      if (!line.route) return line
+      const route = await fetchWalkingRouteInfo(line.points, controller.signal)
+      didFallback ||= route.fallback
+      return { ...line, points: route.points }
+    }))
     if (controller.signal.aborted || !mapRef.current) return
+    if (didFallback) onRouteFallback?.()
     mapRef.current.clearMap()
     const overlays: AmapOverlay[] = []
     for (const line of resolvedLines) {
@@ -174,7 +176,7 @@ export default function AmapCanvas({
     }
     void render()
     return () => controller.abort()
-  }, [ready, markers, lines, zoom, routeKey])
+  }, [ready, markers, lines, zoom, onRouteFallback])
 
   return <div ref={elementRef} className={className}>{!ready && <div className="flex h-full items-center justify-center bg-surface text-[12px] text-text-faint">正在加载高德地图…</div>}</div>
 }

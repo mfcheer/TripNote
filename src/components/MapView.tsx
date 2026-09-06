@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS } from './Icons'
 import { CATEGORY_META } from '../types'
-import { fetchWalkingRoute } from '../api/route'
+import { fetchWalkingRouteInfo } from '../api/route'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
 
 // 路线采用暖珊瑚红，和 OSM 的蓝绿水系、浅灰道路有足够反差；深浅仍表示行程推进。
@@ -46,7 +46,7 @@ function FitBounds({ points }: { points: [number, number][] }) {
 }
 
 // 一天的真实步行路线（OSRM，失败回退直线）
-function DayRoute({ dayId, color, routeMode }: { dayId: string; color: string; routeMode: 'direct' | 'walking' }) {
+function DayRoute({ dayId, color, routeMode, onRouteFallback }: { dayId: string; color: string; routeMode: 'direct' | 'walking'; onRouteFallback: () => void }) {
   const trip = useActiveTrip()
   const geoItems = useMemo(
     () => activitiesByDay(trip, dayId).filter((a) => a.geo),
@@ -62,8 +62,11 @@ function DayRoute({ dayId, color, routeMode }: { dayId: string; color: string; r
     }
     const ctrl = new AbortController()
     setPath(pts.map((p) => [p.lat, p.lng]))
-    fetchWalkingRoute(pts, ctrl.signal).then((r) => {
-      if (!ctrl.signal.aborted) setPath(r.map((p) => [p.lat, p.lng]))
+    fetchWalkingRouteInfo(pts, ctrl.signal).then((route) => {
+      if (!ctrl.signal.aborted) {
+        if (route.fallback) onRouteFallback()
+        setPath(route.points.map((p) => [p.lat, p.lng]))
+      }
     })
     return () => ctrl.abort()
   }, [geoItems.map((a) => `${a.id}@${a.geo!.lat},${a.geo!.lng}`).join('|'), routeMode]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -75,12 +78,14 @@ function DayRoute({ dayId, color, routeMode }: { dayId: string; color: string; r
 }
 
 export default function MapView() {
-  const { setActiveDay, amapJsKey, amapWebServiceKey, mapRouteMode } = useTripStore()
+  const { setActiveDay, amapJsKey, mapRouteMode } = useTripStore()
   const trip = useActiveTrip()
   const [filter, setFilter] = useState<'all' | string>('all')
   const [amapUnavailable, setAmapUnavailable] = useState(false)
+  const [routeFallback, setRouteFallback] = useState(false)
 
   const visibleDays = filter === 'all' ? trip.days : trip.days.filter((d) => d.id === filter)
+  const routeRequestKey = visibleDays.flatMap((day) => activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => `${activity.id}@${activity.geo!.lat},${activity.geo!.lng}`)).join('|')
 
   const allPoints = visibleDays.flatMap((d) =>
     activitiesByDay(trip, d.id)
@@ -103,13 +108,14 @@ export default function MapView() {
   }, [filter, trip])
 
   useEffect(() => setAmapUnavailable(false), [amapJsKey])
+  useEffect(() => setRouteFallback(false), [mapRouteMode, routeRequestKey])
   const handleAmapError = useCallback(() => setAmapUnavailable(true), [])
+  const handleRouteFallback = useCallback(() => setRouteFallback(true), [])
   const useAmap = !!amapJsKey && !amapUnavailable
-  const amapWalkingEnabled = mapRouteMode === 'walking' && !!amapWebServiceKey
   const amapLines = useMemo<AmapLine[]>(() => [
     ...visibleDays.flatMap((day) => {
       const points = activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => activity.geo!)
-      return points.length > 1 ? [{ id: `day-${day.id}`, points, color: routeColor(trip.days.indexOf(day), trip.days.length), route: amapWalkingEnabled }] : []
+      return points.length > 1 ? [{ id: `day-${day.id}`, points, color: routeColor(trip.days.indexOf(day), trip.days.length), route: mapRouteMode === 'walking' }] : []
     }),
     ...crossDaySegments.map(({ from, to, dayIndex }) => ({
       id: `cross-${from.id}-${to.id}`,
@@ -118,7 +124,7 @@ export default function MapView() {
       dashed: true,
       weight: 3,
     })),
-  ], [visibleDays, trip, crossDaySegments, amapWalkingEnabled])
+  ], [visibleDays, trip, crossDaySegments, mapRouteMode])
   const amapMarkers = useMemo<AmapMarker[]>(() => visibleDays.flatMap((day) => {
     const color = routeColor(trip.days.indexOf(day), trip.days.length)
     return activitiesByDay(trip, day.id)
@@ -155,7 +161,7 @@ export default function MapView() {
       </div>
 
       {useAmap ? (
-        <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={amapLines} className="h-full w-full" zoom={9} routeKey={amapWalkingEnabled ? amapWebServiceKey : undefined} onError={handleAmapError} />
+        <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={amapLines} className="h-full w-full" zoom={9} onError={handleAmapError} onRouteFallback={handleRouteFallback} />
       ) : (
       <MapContainer center={[34.9, 135.6]} zoom={9} className="h-full w-full">
         <TileLayer
@@ -177,7 +183,7 @@ export default function MapView() {
           const geoItems = activitiesByDay(trip, day.id).filter((a) => a.geo)
           return (
             <div key={day.id}>
-              <DayRoute dayId={day.id} color={color} routeMode={mapRouteMode} />
+              <DayRoute dayId={day.id} color={color} routeMode={mapRouteMode} onRouteFallback={handleRouteFallback} />
               {geoItems.map((a, i) => {
                 const Icon = CATEGORY_ICONS[a.category]
                 return (
@@ -238,9 +244,10 @@ export default function MapView() {
         {crossDaySegments.length > 0 && (
           <div className="mt-2 border-t border-border pt-2 text-[11px] text-text-faint">
             <span className="mr-1 inline-block w-5 align-middle border-t-2 border-dashed" style={{ borderColor: routeColor(1, Math.max(trip.days.length, 2)) }} />
-            虚线为跨日衔接；{mapRouteMode === 'walking' && (!useAmap || amapWalkingEnabled) ? '步行路线' : '直线连接'}由浅至深代表行程推进
+            虚线为跨日衔接；{mapRouteMode === 'walking' ? '步行路线' : '直线连接'}由浅至深代表行程推进
           </div>
         )}
+        {routeFallback && mapRouteMode === 'walking' && <div className="mt-1.5 text-[11px] text-amber-700">步行路线请求失败，已显示直线连线。</div>}
       </div>
 
       {/* 当前选中类别说明（保持设计系统中分类色一致） */}

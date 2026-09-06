@@ -91,7 +91,7 @@ export default function SettingsView({
         <div className="rounded-lg border border-border p-4">
           <div className="mb-1 text-[13px] font-medium">高德地图（可选）</div>
           <p className="mb-3 text-[12px] leading-relaxed text-text-muted">
-            填写后，地图展示和地点搜索会优先使用高德；留空则继续使用当前的 OSM、Nominatim 与 OSRM。行程地点始终保存为通用坐标，旧数据可直接切换。
+            填写后，地图展示和地点搜索会优先使用高德；留空则继续使用当前的 OSM、Nominatim。步行路线始终使用 OSRM，行程地点始终保存为通用坐标，旧数据可直接切换。
           </p>
           <div className="grid gap-2.5 sm:grid-cols-2">
             <label className="text-[12px] text-text-muted">
@@ -131,7 +131,7 @@ export default function SettingsView({
                 <span className="font-medium">步行路线</span><span className="ml-1.5 text-text-faint">按相邻地点请求路线</span>
               </button>
             </div>
-            <p className="mt-2 text-[11px] leading-relaxed text-text-faint">步行路线会产生服务调用：高德模式使用 Web 服务 Key；未配置高德时使用原有 OSRM 服务。打开地图时才会请求，失败时自动显示直线。</p>
+            <p className="mt-2 text-[11px] leading-relaxed text-text-faint">步行路线始终使用 OSRM 服务，打开地图时才会请求；失败时会显示直线，并在地图图例处提示。</p>
           </div>
         </div>
         {/* 数据管理 */}
