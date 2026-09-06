@@ -46,7 +46,14 @@ export default function SettingsView({
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    a.download = `tripnote-backup-${trip.id}.json`
+    const now = new Date()
+    const stamp = [
+      now.getFullYear(),
+      String(now.getMonth() + 1).padStart(2, '0'),
+      String(now.getDate()).padStart(2, '0'),
+    ].join('-') + `-${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`
+    const safeName = (trip.name.trim() || '未命名行程').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ')
+    a.download = `TripNote-${safeName}-备份-${stamp}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
