@@ -12,6 +12,13 @@ export interface TripCreateInput {
   totalBudget?: number
 }
 
+export interface SyncSnapshot {
+  schemaVersion: 1
+  updatedAt: string
+  trips: Trip[]
+  activeTripId: string
+}
+
 interface TripState {
   trips: Trip[]
   activeTripId: string
@@ -24,8 +31,12 @@ interface TripState {
   amapJsKey: string
   amapWebServiceKey: string
   mapRouteMode: 'direct' | 'walking'
+  dropboxAppKey: string
   setAmapKeys: (keys: { jsKey: string; webServiceKey: string }) => void
   setMapRouteMode: (mode: 'direct' | 'walking') => void
+  setDropboxAppKey: (appKey: string) => void
+  exportSyncSnapshot: () => SyncSnapshot
+  restoreSyncSnapshot: (snapshot: unknown) => boolean
   // 编辑表单草稿（切换天/视图/旅程时暂存，回来恢复，避免丢输入）
   activityDraft: { activityId: string; values: ActivityFormValues } | null
   saveActivityDraft: (draft: { activityId: string; values: ActivityFormValues } | null) => void
@@ -184,6 +195,19 @@ function normalizeWishPlace(wish: WishPlace): WishPlace {
   return ids.length > 0 ? { ...rest, scheduledActivityIds: ids } : rest
 }
 
+function normalizeSyncSnapshot(raw: unknown): SyncSnapshot | null {
+  const value = raw as Partial<SyncSnapshot>
+  if (!value || value.schemaVersion !== 1 || !Array.isArray(value.trips)) return null
+  const trips = value.trips.flatMap((trip) => {
+    const candidate = trip as Partial<Trip>
+    if (!candidate.id || !Array.isArray(candidate.days) || !Array.isArray(candidate.activities)) return []
+    return [migrateTrip(candidate)]
+  })
+  if (!trips.length) return null
+  const activeTripId = trips.some((trip) => trip.id === value.activeTripId) ? value.activeTripId! : trips[0].id
+  return { schemaVersion: 1, updatedAt: typeof value.updatedAt === 'string' ? value.updatedAt : new Date().toISOString(), trips, activeTripId }
+}
+
 function unlinkWishActivity(wish: WishPlace, activityId: string): WishPlace {
   const ids = wishScheduledActivityIds(wish).filter((id) => id !== activityId)
   const { scheduledActivityId: _legacyScheduledActivityId, ...rest } = wish
@@ -260,11 +284,32 @@ export const useTripStore = create<TripState>()(
       amapJsKey: '',
       amapWebServiceKey: '',
       mapRouteMode: 'direct',
+      dropboxAppKey: '',
       setAmapKeys: ({ jsKey, webServiceKey }) => set({
         amapJsKey: jsKey.trim(),
         amapWebServiceKey: webServiceKey.trim(),
       }),
       setMapRouteMode: (mapRouteMode) => set({ mapRouteMode }),
+      setDropboxAppKey: (dropboxAppKey) => set({ dropboxAppKey: dropboxAppKey.trim() }),
+      exportSyncSnapshot: () => {
+        const state = get()
+        return { schemaVersion: 1, updatedAt: new Date().toISOString(), trips: state.trips, activeTripId: state.activeTripId }
+      },
+      restoreSyncSnapshot: (raw) => {
+        const snapshot = normalizeSyncSnapshot(raw)
+        if (!snapshot) return false
+        const active = snapshot.trips.find((trip) => trip.id === snapshot.activeTripId) ?? snapshot.trips[0]
+        set({
+          trips: snapshot.trips,
+          activeTripId: active.id,
+          activeDayId: active.days[0]?.id ?? '',
+          selectedActivityId: null,
+          editingActivityId: null,
+          view: 'plan',
+          planTab: 'timeline',
+        })
+        return true
+      },
       activityDraft: null,
       saveActivityDraft: (activityDraft) => set({ activityDraft }),
 
@@ -730,7 +775,7 @@ export const useTripStore = create<TripState>()(
     }),
     {
       name: 'tripnote-store',
-      version: 8,
+      version: 9,
       migrate: (persisted: unknown) => {
         const state = persisted as
           | { trips?: Trip[]; activeTripId?: string; trip?: unknown; theme?: unknown }
@@ -755,6 +800,7 @@ export const useTripStore = create<TripState>()(
         amapJsKey: s.amapJsKey,
         amapWebServiceKey: s.amapWebServiceKey,
         mapRouteMode: s.mapRouteMode,
+        dropboxAppKey: s.dropboxAppKey,
       }),
     },
   ),

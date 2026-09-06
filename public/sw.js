@@ -1,5 +1,5 @@
-const CACHE_NAME = 'tripnote-shell-v2'
-const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/app-icon.svg', '/apple-touch-icon.png', '/icon-192.png', '/icon-512.png']
+const CACHE_NAME = 'tripnote-shell-v3'
+const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './app-icon.svg', './apple-touch-icon.png', './icon-192.png', './icon-512.png']
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL)))
@@ -19,7 +19,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return
   const request = event.request
   if (request.mode === 'navigate') {
-    event.respondWith(fetch(request).catch(() => caches.match('/index.html')))
+    event.respondWith(fetch(request).catch(() => caches.match(new URL('index.html', self.registration.scope).toString())))
     return
   }
   if (new URL(request.url).origin !== self.location.origin) return
