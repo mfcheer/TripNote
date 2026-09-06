@@ -110,19 +110,6 @@ http://NAS_IP:8080
 
 路线展示也可在设置中选择直线连接或步行路线；直线连接不额外消耗路线 API 配额。
 
-## Dropbox 个人同步（可选）
-
-TripNote 默认本地优先；连接 Dropbox 后，可将完整旅行数据同步到你自己的 `Apps/TripNote/tripnote-v1.json`。应用只会申请 Dropbox 的 App Folder 权限，不会读取网盘中的其他文件。
-
-首次配置需要创建一个 Dropbox App，并将 **App Key** 填入“设置 → Dropbox 同步”：
-
-1. 在 [Dropbox App Console](https://www.dropbox.com/developers/apps) 创建应用，选择 **Scoped access** 与 **App folder**。
-2. 在权限页启用 `files.content.read` 与 `files.content.write`。
-3. 在 OAuth 2 的 Redirect URIs 中加入 `https://mfcheer.github.io/TripNote/`。
-4. 将 App Key（不是 App Secret）填入 TripNote，点击“连接 Dropbox”完成授权。
-
-> 当前版本使用短期授权令牌：关闭浏览器或令牌过期后，数据仍在本地和 Dropbox 中，只需重新连接即可继续同步。不要将 App Secret 填入网页或提交到仓库。
-
 ## GitHub Pages 发布
 
 仓库包含 `.github/workflows/deploy-pages.yml`。在 GitHub 仓库的 **Settings → Pages → Build and deployment** 中选择 **GitHub Actions**；之后每次推送 `main` 都会自动发布到：
@@ -131,7 +118,7 @@ TripNote 默认本地优先；连接 Dropbox 后，可将完整旅行数据同�
 https://mfcheer.github.io/TripNote/
 ```
 
-这个固定 HTTPS 地址也可用于 Dropbox OAuth 回调及 PWA 安装。
+这个固定 HTTPS 地址可用于直接访问和 PWA 安装。
 
 ## macOS 桌面版
 
