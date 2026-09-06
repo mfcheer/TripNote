@@ -22,14 +22,25 @@ import { useToastStore } from './toastStore'
 import MapPicker from './MapPicker'
 import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 
-function wishMarker(active: boolean) {
+const WISHLIST_MAP_WIDTH_KEY = 'tripnote-wishlist-map-width-v1'
+
+function readMapPanelWidth() {
+  const saved = Number(localStorage.getItem(WISHLIST_MAP_WIDTH_KEY))
+  return Number.isFinite(saved) ? Math.max(340, Math.min(720, saved)) : 440
+}
+
+function wishMarker(active: boolean, label: string) {
   const color = active ? '#2e496f' : '#415f88'
   return L.divIcon({
     className: '',
-    html: `<div class="wish-map-marker${active ? ' is-active' : ''}" style="--wish-marker-color:${color}"></div>`,
-    iconSize: [18, 18],
-    iconAnchor: [9, 9],
+    html: `<div class="map-place-marker" style="border-color:${color};color:${color};${active ? 'background:#e8eff8;' : ''}">${escapeHtml(label)}</div>`,
+    iconSize: [140, 28],
+    iconAnchor: [70, 14],
   })
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&gt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]!))
 }
 
 function FitPlaces({ points }: { points: [number, number][] }) {
@@ -396,11 +407,34 @@ export default function WishlistView() {
   const [searching, setSearching] = useState('')
   const [results, setResults] = useState<GeoResult[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [mapPanelWidth, setMapPanelWidth] = useState(readMapPanelWidth)
   const [manualCategory, setManualCategory] = useState<ActivityCategory>('sight')
   const [schedulingPlaceId, setSchedulingPlaceId] = useState<string | null>(null)
   const [showCustomMap, setShowCustomMap] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+
+  useEffect(() => {
+    localStorage.setItem(WISHLIST_MAP_WIDTH_KEY, String(mapPanelWidth))
+  }, [mapPanelWidth])
+
+  function startMapResize(event: React.PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = mapPanelWidth
+    const onMove = (moveEvent: PointerEvent) => {
+      // 拖动分隔条向左扩展地图，向右收回地图；始终为清单保留足够的阅读空间。
+      const maxWidth = Math.min(720, Math.max(340, window.innerWidth - 360))
+      setMapPanelWidth(Math.max(340, Math.min(maxWidth, startWidth + startX - moveEvent.clientX)))
+    }
+    const onEnd = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onEnd)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onEnd, { once: true })
+  }
 
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event
@@ -459,8 +493,10 @@ export default function WishlistView() {
   const amapMarkers: AmapMarker[] = mapped.map((place) => ({
     id: place.id,
     point: place.geo!,
+    label: place.title,
+    color: activeId === place.id ? '#2e496f' : '#415f88',
     active: activeId === place.id,
-    simple: true,
+    wide: true,
     onClick: () => setActiveId(place.id),
   }))
 
@@ -643,7 +679,16 @@ export default function WishlistView() {
         </div>
       </section>
 
-      <aside className="sticky top-0 hidden h-full w-[clamp(380px,32vw,520px)] shrink-0 border-l border-border bg-white p-4 lg:block">
+      <div
+        role="separator"
+        aria-label="调整地点清单与地图宽度"
+        aria-orientation="vertical"
+        onPointerDown={startMapResize}
+        className="group hidden w-2 shrink-0 cursor-col-resize touch-none items-center justify-center lg:flex"
+      >
+        <span className="h-10 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
+      </div>
+      <aside className="sticky top-0 hidden h-full shrink-0 border-l border-border bg-white p-4 lg:block" style={{ width: mapPanelWidth }}>
         <div className="mb-2 text-[13px] font-semibold">地点分布</div>
         <div className="mb-3 text-[11.5px] text-text-faint">地图标记与清单卡片联动</div>
         {mapped.length > 0 ? (
@@ -655,7 +700,7 @@ export default function WishlistView() {
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <FitPlaces points={points} />
               {mapped.map((place) => (
-                <Marker key={place.id} position={[place.geo!.lat, place.geo!.lng]} icon={wishMarker(activeId === place.id)} eventHandlers={{ click: () => setActiveId(place.id) }} />
+                <Marker key={place.id} position={[place.geo!.lat, place.geo!.lng]} icon={wishMarker(activeId === place.id, place.title)} eventHandlers={{ click: () => setActiveId(place.id) }} />
               ))}
             </MapContainer>
             )}
