@@ -574,7 +574,17 @@ export const useTripStore = create<TripState>()(
           const removedIndex = previous.days.findIndex((d) => d.id === dayId)
           const trips = s.trips.map((t) => {
             if (t.id !== s.activeTripId) return t
+            const removedDay = t.days[removedIndex]
             const days = renumberDays(t.days.filter((d) => d.id !== dayId))
+            // 删除有日期的一天后，用被删除日期补上下一天，后面的标准日期依次前移；
+            // 没有日期的天仍保留“待定”，不强行替用户填写。
+            if (removedDay && isDate(removedDay.date)) {
+              for (let index = removedIndex; index < days.length; index++) {
+                if (isDate(days[index].date)) {
+                  days[index] = { ...days[index], date: shiftDate(removedDay.date, index - removedIndex) }
+                }
+              }
+            }
             const removedWishActivityIds = new Map<string, string[]>()
             t.activities
               .filter((activity) => activity.dayId === dayId && activity.sourceWishId)
