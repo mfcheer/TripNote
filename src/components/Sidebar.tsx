@@ -327,7 +327,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="hidden h-full w-[240px] shrink-0 flex-col border-r border-border bg-surface md:flex">
+    <aside className="hidden h-full w-[252px] shrink-0 flex-col border-r border-border bg-surface md:flex">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 pt-5 pb-4">
         <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-border bg-[#f8fafd] text-accent-hover shadow-[0_4px_12px_rgba(31,50,76,0.08)]">
@@ -343,9 +343,21 @@ export default function Sidebar() {
       <TripSwitcher />
 
       {/* 天列表 */}
-      <nav className="mt-4 flex-1 overflow-y-auto px-3">
-        {trip.days.map((d) => {
+      <nav className="mt-3 flex-1 overflow-y-auto px-3">
+        <div className="mb-2 flex items-center justify-between px-2">
+          <span className="text-[10.5px] font-semibold tracking-[0.12em] text-text-faint">行程目录</span>
+          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-medium text-text-muted">{trip.days.length} 天</span>
+        </div>
+        <div className="relative">
+          {trip.days.length > 1 && <div className="absolute top-5 bottom-6 left-[23px] w-px bg-border" />}
+        {trip.days.map((d, index) => {
           const active = d.id === activeDayId && view === 'plan' && planTab === 'timeline'
+          const activityCount = trip.activities.filter((activity) => activity.dayId === d.id).length
+          const date = /^\d{4}-\d{2}-\d{2}$/.test(d.date)
+            ? displayDate(d.date).split(' ')[0]
+            : d.date !== '待定'
+              ? d.date
+              : '待定日期'
           return (
             <button
               key={d.id}
@@ -362,28 +374,36 @@ export default function Sidebar() {
               }}
               onDragLeave={() => setDropDayId((id) => (id === d.id ? null : id))}
               onDrop={(event) => scheduleDroppedWish(event, d)}
-              className={`mb-0.5 flex w-full items-center justify-between rounded-md px-2.5 py-2 text-left text-[13px] transition-colors ${
+              className={`relative mb-1 flex w-full min-w-0 items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors ${
                 dropDayId === d.id
                   ? 'bg-accent text-white shadow-[0_2px_8px_rgba(65,95,136,0.22)]'
                   : active
-                  ? 'bg-accent-soft font-medium text-accent-hover'
+                  ? 'bg-accent-soft text-accent-hover'
                   : 'text-text-muted hover:bg-surface-2'
               }`}
             >
-              <span>
-                {d.label}
-                <span className={`ml-2 text-[12px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>{d.place}</span>
+              <span className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold tabular-nums ${
+                dropDayId === d.id
+                  ? 'border-white/45 bg-white/15 text-white'
+                  : active
+                    ? 'border-accent bg-accent text-white'
+                    : 'border-border bg-white text-text-muted'
+              }`}>
+                {index + 1}
               </span>
-              <span className={`text-[11px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>
-                {/^\d{4}-\d{2}-\d{2}$/.test(d.date)
-                  ? displayDate(d.date).split(' ')[0]
-                  : d.date !== '待定'
-                    ? d.date
-                    : ''}
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-2">
+                  <span className="truncate text-[12.5px] font-medium">{d.place || '待定地点'}</span>
+                  <span className={`shrink-0 text-[10.5px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>{date}</span>
+                </span>
+                <span className={`mt-0.5 block text-[10.5px] ${dropDayId === d.id ? 'text-white/75' : active ? 'text-accent/75' : 'text-text-faint'}`}>
+                  {d.label} · {activityCount} 个安排
+                </span>
               </span>
             </button>
           )
         })}
+        </div>
         <button
           onClick={() => {
             const previousLastDay = trip.days.at(-1)
@@ -397,7 +417,7 @@ export default function Sidebar() {
                 : '已添加一天，可继续设置日期和地点',
             )
           }}
-          className="mt-1 flex w-full items-center gap-2.5 rounded-md border border-dashed border-border px-2.5 py-2 text-[13px] text-text-muted transition-colors hover:border-accent hover:text-accent"
+          className="mt-2 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-border px-3 py-2 text-[12.5px] text-text-muted transition-colors hover:border-accent hover:text-accent"
         >
           <PlusIcon size={15} /> 添加一天
         </button>
