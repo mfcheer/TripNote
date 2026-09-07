@@ -285,7 +285,7 @@ function ScheduleDragButton({ place, onSchedule }: { place: WishPlace; onSchedul
       draggable
       onDragStart={(event) => startWishScheduleDrag(event, place)}
       onClick={onSchedule}
-      className="hidden items-center gap-1 rounded-md border border-border px-2.5 py-1.5 text-[11.5px] text-text-muted transition-colors hover:border-accent hover:text-accent md:flex"
+      className="hidden items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-muted transition-colors hover:border-accent hover:text-accent md:flex"
       title="拖到左侧日期即可快速安排（点击仍可手动选择日期）"
       aria-label={`拖动「${place.title}」到左侧日期安排`}
     >
@@ -321,34 +321,34 @@ function SortableWishCard({
     <article
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`group rounded-lg border bg-white p-3.5 transition-colors ${
+      className={`group rounded-lg border bg-white p-2.5 transition-colors ${
         active ? 'border-accent shadow-[0_2px_8px_rgba(49,92,125,0.12)]' : 'border-border'
       } ${isDragging ? 'relative z-30 opacity-70 shadow-lg' : ''}`}
       onMouseEnter={onActivate}
     >
-      <div className="flex items-start gap-2.5">
+      <div className="flex items-start gap-2">
         <button
           {...attributes}
           {...listeners}
           onFocus={onActivate}
-          className="mt-0.5 flex h-8 w-5 shrink-0 cursor-grab touch-none items-center justify-center rounded text-[17px] leading-none text-text-faint opacity-35 transition-[opacity,color,background] group-hover:opacity-100 hover:bg-surface hover:text-accent focus:opacity-100 active:cursor-grabbing"
+          className="mt-0.5 flex h-7 w-4 shrink-0 cursor-grab touch-none items-center justify-center rounded text-[16px] leading-none text-text-faint opacity-35 transition-[opacity,color,background] group-hover:opacity-100 hover:bg-surface hover:text-accent focus:opacity-100 active:cursor-grabbing"
           aria-label={`拖动排序 ${place.title}`}
           title="仅用于调整想去清单顺序"
         >
           ⠿
         </button>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: meta.soft, color: meta.color }}>
-          <Icon size={16} />
+        <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ background: meta.soft, color: meta.color }}>
+          <Icon size={15} />
         </div>
         <div
           draggable
           onDragStart={(event) => startWishScheduleDrag(event, place)}
-          className="min-w-0 flex-1 cursor-grab rounded px-1 py-0.5 active:cursor-grabbing"
+          className="min-w-0 flex-1 cursor-grab rounded py-0.5 active:cursor-grabbing"
           title="拖动地点名称到左侧日期，即可快速安排"
         >
-          <div className="truncate text-[13.5px] font-medium">{place.title}</div>
-          {place.location && <div className="mt-0.5 truncate text-[12px] text-text-muted">{place.location}</div>}
-          {place.note && <div className="mt-1 text-[12px] text-text-faint">{place.note}</div>}
+          <div className="truncate text-[13px] font-medium">{place.title}</div>
+          {place.location && <div className="mt-px truncate text-[11.5px] text-text-muted">{place.location}</div>}
+          {place.note && <div className="mt-0.5 truncate text-[11px] text-text-faint">{place.note}</div>}
         </div>
         <button
           onClick={onRemove}
@@ -358,23 +358,23 @@ function SortableWishCard({
           <TrashIcon size={14} />
         </button>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border pt-2.5">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
         {scheduledItems.length > 0 ? (
           <>
-            <span className="mr-auto text-[11.5px] font-medium text-accent-hover">已安排 {scheduledItems.length} 次</span>
+            <span className="mr-auto text-[11px] font-medium text-accent-hover">已安排 {scheduledItems.length} 次</span>
             <ScheduleDragButton place={place} onSchedule={onSchedule} />
-            <button onClick={onSchedule} className="rounded-md border border-accent/40 px-2.5 py-1.5 text-[11.5px] font-medium text-accent-hover hover:bg-accent-soft">
+            <button onClick={onSchedule} className="rounded-md border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent-hover hover:bg-accent-soft">
               再安排
             </button>
-            <div className="flex w-full flex-wrap gap-1.5 pt-0.5">
+            <div className="flex w-full flex-wrap gap-1 pt-0.5">
               {scheduledItems.map((item) => (
-                <span key={item.id} className="inline-flex items-center overflow-hidden rounded-full border border-border bg-white text-[11.5px]">
-                  <button onClick={() => onFocus(item.id)} className="px-2 py-1 text-text-muted hover:bg-surface-2 hover:text-accent">
+                <span key={item.id} className="inline-flex items-center overflow-hidden rounded-full border border-border bg-white text-[11px]">
+                  <button onClick={() => onFocus(item.id)} className="px-1.5 py-0.5 text-text-muted hover:bg-surface-2 hover:text-accent">
                     {item.dayLabel} · {item.time}
                   </button>
                   <button
                     onClick={() => onCancel(item.id)}
-                    className="border-l border-border px-1.5 py-1 text-text-faint hover:bg-red-50 hover:text-red-500"
+                    className="border-l border-border px-1.5 py-0.5 text-text-faint hover:bg-red-50 hover:text-red-500"
                     title={`取消 ${item.dayLabel} · ${item.time} 的安排`}
                     aria-label={`取消 ${item.dayLabel} ${item.time} 的安排`}
                   >
@@ -386,9 +386,9 @@ function SortableWishCard({
           </>
         ) : (
           <>
-            <span className="mr-auto text-[11.5px] text-text-faint">尚未安排日期</span>
+            <span className="mr-auto text-[11px] text-text-faint">尚未安排日期</span>
             <ScheduleDragButton place={place} onSchedule={onSchedule} />
-            <button onClick={onSchedule} className="rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-accent-hover">
+            <button onClick={onSchedule} className="rounded-md bg-accent px-2.5 py-1 text-[11.5px] font-medium text-white hover:bg-accent-hover">
               安排到行程
             </button>
           </>
@@ -646,7 +646,7 @@ export default function WishlistView() {
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={filtered.map((place) => place.id)} strategy={verticalListSortingStrategy}>
-                <div className="flex flex-col gap-2.5">
+                <div className="flex flex-col gap-2">
                   {filtered.map((place, index) => {
                     const scheduledItems = scheduledItemsFor(place)
                     const startsScheduledSection = scheduledItems.length > 0 && !filtered.slice(0, index).some(isPlaceScheduled)
