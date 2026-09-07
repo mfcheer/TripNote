@@ -9,10 +9,14 @@ function pointIcon(label: string, active: boolean) {
   const color = active ? '#2e496f' : '#415f88'
   return L.divIcon({
     className: '',
-    html: `<div class="map-marker" style="border-color:${color};color:${color};${active ? 'background:#e8eff8;' : ''}">${label}</div>`,
-    iconSize: [26, 26],
-    iconAnchor: [13, 13],
+    html: `<div class="map-place-marker" style="border-color:${color};color:${color};${active ? 'background:#e8eff8;' : ''}">${escapeHtml(label)}</div>`,
+    iconSize: [140, 28],
+    iconAnchor: [70, 14],
   })
+}
+
+function escapeHtml(value: string) {
+  return value.replace(/[&<>'"]/g, (character) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[character]!))
 }
 
 function FitPreview({ points }: { points: [number, number][] }) {
@@ -33,11 +37,12 @@ export default function DayMapPreview({ dayId, selectedActivityId }: { dayId: st
     () => items.map((activity) => [activity.geo!.lat, activity.geo!.lng] as [number, number]),
     [items],
   )
-  const amapMarkers: AmapMarker[] = items.map((activity, index) => ({
+  const amapMarkers: AmapMarker[] = items.map((activity) => ({
     id: activity.id,
     point: activity.geo!,
-    label: String(index + 1),
+    label: activity.title,
     active: selectedActivityId === activity.id,
+    wide: true,
     onClick: () => selectActivity(activity.id),
   }))
 
@@ -58,11 +63,11 @@ export default function DayMapPreview({ dayId, selectedActivityId }: { dayId: st
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <FitPreview points={points} />
         {points.length > 1 && <Polyline positions={points} pathOptions={{ color: '#415f88', weight: 3, opacity: 0.65 }} />}
-        {items.map((activity, index) => (
+        {items.map((activity) => (
           <Marker
             key={activity.id}
             position={[activity.geo!.lat, activity.geo!.lng]}
-            icon={pointIcon(String(index + 1), selectedActivityId === activity.id)}
+            icon={pointIcon(activity.title, selectedActivityId === activity.id)}
             eventHandlers={{ click: () => selectActivity(activity.id) }}
           />
         ))}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import {
   DndContext,
   DragOverlay,
@@ -26,6 +26,14 @@ import { CATEGORY_META, type Activity, type ActivityCategory, type Trip } from '
 import { searchPlaces, type GeoResult } from '../api/geocode'
 import { fetchWalkingRouteInfo } from '../api/route'
 import DayMapPreview from './DayMapPreview'
+
+const PLANNER_PANEL_WIDTH_KEY = 'tripnote-planner-panel-width-v1'
+const BUDGET_DRAWER_WIDTH_KEY = 'tripnote-budget-drawer-width-v1'
+
+function readPanelWidth(key: string, fallback: number, min: number, max: number) {
+  const saved = Number(localStorage.getItem(key))
+  return Number.isFinite(saved) ? Math.max(min, Math.min(max, saved)) : fallback
+}
 
 function timeToMinutes(time: string) {
   const [hours, minutes] = time.split(':').map(Number)
@@ -165,6 +173,7 @@ function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => void }) {
   const { setBudget, focusActivity } = useTripStore()
   const [editingBudget, setEditingBudget] = useState(false)
   const [budgetDraft, setBudgetDraft] = useState(String(trip.totalBudget))
+  const [drawerWidth, setDrawerWidth] = useState(() => readPanelWidth(BUDGET_DRAWER_WIDTH_KEY, 420, 340, 680))
   const rows = trip.activities.flatMap((activity) => activity.costs.map((cost) => ({
     id: cost.id,
     activityId: activity.id,
@@ -191,6 +200,27 @@ function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => void }) {
       .reduce((sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0), 0),
   }))
 
+  useEffect(() => {
+    localStorage.setItem(BUDGET_DRAWER_WIDTH_KEY, String(drawerWidth))
+  }, [drawerWidth])
+
+  function startDrawerResize(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = drawerWidth
+    const onMove = (moveEvent: PointerEvent) => {
+      const maxWidth = Math.min(680, Math.max(340, window.innerWidth - 240))
+      setDrawerWidth(Math.max(340, Math.min(maxWidth, startWidth + startX - moveEvent.clientX)))
+    }
+    const onEnd = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onEnd)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onEnd, { once: true })
+  }
+
   function commitBudget() {
     setBudget(Math.max(0, Number(budgetDraft) || 0))
     setEditingBudget(false)
@@ -215,7 +245,10 @@ function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => void }) {
 
   return (
     <div className="fixed inset-0 z-[800] bg-black/25 backdrop-blur-[1px]" role="dialog" aria-modal="true" aria-label="预算详情" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="mobile-safe-bottom absolute inset-x-0 bottom-0 max-h-[84vh] overflow-y-auto rounded-t-[22px] bg-white px-4 pt-3 shadow-[0_-12px_36px_rgba(15,23,42,0.18)] sm:inset-y-0 sm:left-auto sm:w-[420px] sm:max-h-none sm:rounded-none sm:border-l sm:border-border sm:px-5 sm:pt-5">
+      <aside className="mobile-safe-bottom absolute inset-x-0 bottom-0 max-h-[84vh] overflow-y-auto rounded-t-[22px] bg-white px-4 pt-3 shadow-[0_-12px_36px_rgba(15,23,42,0.18)] sm:inset-y-0 sm:left-auto sm:max-h-none sm:rounded-none sm:border-l sm:border-border sm:px-5 sm:pt-5 sm:w-[var(--budget-drawer-width)]" style={{ '--budget-drawer-width': `${drawerWidth}px` } as CSSProperties}>
+        <div role="separator" aria-label="调整预算详情宽度" aria-orientation="vertical" onPointerDown={startDrawerResize} className="group absolute inset-y-0 -left-2 hidden w-3 cursor-col-resize touch-none items-center justify-center sm:flex">
+          <span className="h-11 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
+        </div>
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border sm:hidden" />
         <div className="flex items-start justify-between gap-4 border-b border-border pb-3">
           <div>
@@ -948,12 +981,39 @@ function PlannerInspector({
 }) {
   const trip = useActiveTrip()
   const { selectActivity, setEditingActivity } = useTripStore()
+  const [panelWidth, setPanelWidth] = useState(() => readPanelWidth(PLANNER_PANEL_WIDTH_KEY, 440, 360, 680))
   const day = trip.days.find((item) => item.id === dayId)
   const activityId = editingActivityId ?? selectedActivityId
   const activity = trip.activities.find((item) => item.id === activityId)
 
+  useEffect(() => {
+    localStorage.setItem(PLANNER_PANEL_WIDTH_KEY, String(panelWidth))
+  }, [panelWidth])
+
+  function startPanelResize(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = panelWidth
+    const onMove = (moveEvent: PointerEvent) => {
+      // 右侧面板可加宽，但始终给时间轴保留最少可读宽度。
+      const maxWidth = Math.min(680, Math.max(360, window.innerWidth - 620))
+      setPanelWidth(Math.max(360, Math.min(maxWidth, startWidth + startX - moveEvent.clientX)))
+    }
+    const onEnd = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onEnd)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onEnd, { once: true })
+  }
+
   return (
-    <aside className="sticky top-0 hidden h-[calc(100vh-44px)] w-[clamp(380px,32vw,520px)] shrink-0 overflow-y-auto border-l border-border bg-white lg:block">
+    <>
+      <div role="separator" aria-label="调整行程地图与详情宽度" aria-orientation="vertical" onPointerDown={startPanelResize} className="group hidden w-2 shrink-0 cursor-col-resize touch-none items-center justify-center lg:flex">
+        <span className="h-11 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
+      </div>
+      <aside className="sticky top-0 hidden h-[calc(100vh-44px)] shrink-0 overflow-y-auto border-l border-border bg-white lg:block" style={{ width: panelWidth }}>
       <div className="border-b border-border p-4">
         <div className="mb-2 flex items-center justify-between">
           <div>
@@ -1002,7 +1062,8 @@ function PlannerInspector({
           </div>
         )}
       </div>
-    </aside>
+      </aside>
+    </>
   )
 }
 

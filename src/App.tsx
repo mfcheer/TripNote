@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import Sidebar, { MobileHeader } from './components/Sidebar'
 import TimelineView from './components/TimelineView'
 import MapView from './components/MapView'
-import BudgetView from './components/BudgetView'
 import WishlistView from './components/WishlistView'
 import SettingsView from './components/SettingsView'
 import ConfirmDialog from './components/ConfirmDialog'
@@ -11,13 +10,12 @@ import { useActiveTrip, useTripStore } from './store'
 import type { PlanTab } from './types'
 import { exportTripImage } from './utils/exportTripImage'
 import { useToastStore } from './components/toastStore'
-import { CalendarIcon, DownloadIcon, HeartIcon, MapIcon, WalletIcon } from './components/Icons'
+import { CalendarIcon, DownloadIcon, HeartIcon, MapIcon } from './components/Icons'
 
 const PLAN_TABS: { key: PlanTab; label: string; Icon: typeof CalendarIcon }[] = [
   { key: 'timeline', label: '行程', Icon: CalendarIcon },
   { key: 'places', label: '想去', Icon: HeartIcon },
   { key: 'map', label: '地图', Icon: MapIcon },
-  { key: 'budget', label: '预算', Icon: WalletIcon },
 ]
 
 interface BeforeInstallPromptEvent extends Event {
@@ -47,6 +45,11 @@ export default function App() {
       window.removeEventListener('appinstalled', onInstalled)
     }
   }, [])
+
+  // 兼容已保存的旧状态：预算已并入行程页，曾停留在预算标签时回到行程。
+  useEffect(() => {
+    if (planTab === 'budget') setPlanTab('timeline')
+  }, [planTab, setPlanTab])
 
   async function downloadImage() {
     setExportingImage(true)
@@ -120,11 +123,6 @@ export default function App() {
               )}
               {planTab === 'places' && <WishlistView />}
               {planTab === 'map' && <MapView />}
-              {planTab === 'budget' && (
-                <div className="h-full overflow-y-auto">
-                  <BudgetView />
-                </div>
-              )}
             </div>
           </>
         )}
