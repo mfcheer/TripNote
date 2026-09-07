@@ -24,11 +24,18 @@ import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import { CATEGORY_META, type Activity, type ActivityCategory, type Trip } from '../types'
 import { searchPlaces, type GeoResult } from '../api/geocode'
-import { fetchWalkingRouteInfo } from '../api/route'
+import { fetchWalkingRouteInfo, straightLineDistanceMeters, WALKING_DISTANCE_THRESHOLD_METERS } from '../api/route'
 import DayMapPreview from './DayMapPreview'
 
 const PLANNER_PANEL_WIDTH_KEY = 'tripnote-planner-panel-width-v1'
 const BUDGET_DRAWER_WIDTH_KEY = 'tripnote-budget-drawer-width-v1'
+const TRAVEL_MODE_LABELS = {
+  walk: '步行',
+  drive: '自驾',
+  train: '火车 / 高铁',
+  flight: '飞机',
+  charter: '包车 / 打车',
+} as const
 
 function readPanelWidth(key: string, fallback: number, min: number, max: number) {
   const saved = Number(localStorage.getItem(key))
@@ -133,7 +140,7 @@ function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => 
   )
 }
 
-function DayOverview({ items }: { items: Activity[] }) {
+function DayOverview({ items, scheduleWarningCount }: { items: Activity[]; scheduleWarningCount: number }) {
   const plannedMinutes = items.reduce((total, activity) => total + (activityDurationMinutes(activity) ?? 0), 0)
   const dayCost = items.reduce((total, activity) => total + activity.costs.reduce((sum, cost) => sum + cost.amount, 0), 0)
   const geoItems = useMemo(() => items.filter((activity) => activity.geo), [items])
@@ -155,6 +162,17 @@ function DayOverview({ items }: { items: Activity[] }) {
   }, [walkingItems])
 
   const visibleWalking = walkingItems.length >= 2 ? walking : null
+  const travelPairs = items.slice(1).map((to, index) => ({ from: items[index], to }))
+  const crossCityPending = travelPairs.filter(({ from, to }) => from.geo && to.geo && from.category !== 'traffic' && to.category !== 'traffic'
+    && straightLineDistanceMeters(from.geo, to.geo) > WALKING_DISTANCE_THRESHOLD_METERS && !to.travelMode).length
+  const insufficientTransit = travelPairs.filter(({ from, to }) => {
+    if (!from.geo || !to.geo || from.category === 'traffic' || to.category === 'traffic') return false
+    const distance = straightLineDistanceMeters(from.geo, to.geo)
+    const shouldWalk = to.travelMode === 'walk' || (!to.travelMode && distance <= WALKING_DISTANCE_THRESHOLD_METERS)
+    const previousEnd = activityEndMinutes(from)
+    return shouldWalk && distance <= WALKING_DISTANCE_THRESHOLD_METERS && previousEnd !== undefined
+      && timeToMinutes(to.time) - previousEnd >= 0 && timeToMinutes(to.time) - previousEnd < Math.round(distance / 80)
+  }).length
 
   return (
     <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-0.5 text-[11.5px] text-text-faint">
@@ -164,6 +182,15 @@ function DayOverview({ items }: { items: Activity[] }) {
       <span>{geoItems.length} 个已定位地点</span>
       {visibleWalking?.durationMinutes && <span>步行约 {visibleWalking.durationMinutes} 分钟</span>}
       {visibleWalking?.distanceMeters && <span>{(visibleWalking.distanceMeters / 1000).toFixed(visibleWalking.distanceMeters >= 1000 ? 1 : 2)} km</span>}
+      {(scheduleWarningCount > 0 || crossCityPending > 0 || insufficientTransit > 0) && (
+        <span className="w-full rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+          {scheduleWarningCount > 0 && `${scheduleWarningCount} 处时间重叠`}
+          {scheduleWarningCount > 0 && (crossCityPending > 0 || insufficientTransit > 0) && ' · '}
+          {crossCityPending > 0 && `${crossCityPending} 段跨城移动待补充交通`}
+          {crossCityPending > 0 && insufficientTransit > 0 && ' · '}
+          {insufficientTransit > 0 && `${insufficientTransit} 段步行时间不足`}
+        </span>
+      )}
     </div>
   )
 }
@@ -329,9 +356,16 @@ function TransitHint({ from, to }: { from: Activity; to: Activity }) {
   const [route, setRoute] = useState<{ durationMinutes: number | null; distanceMeters: number | null } | null>(null)
   const fromGeo = from.geo
   const toGeo = to.geo
+  const directDistance = fromGeo && toGeo ? straightLineDistanceMeters(fromGeo, toGeo) : null
+  const isShortWalk = !!directDistance && directDistance <= WALKING_DISTANCE_THRESHOLD_METERS
+  const hasManualTransit = !!to.travelMode && to.travelMode !== 'walk'
+  const shouldRequestWalking = !!fromGeo && !!toGeo && !hasManualTransit && (to.travelMode === 'walk' || isShortWalk)
 
   useEffect(() => {
-    if (from.category === 'traffic' || to.category === 'traffic' || !fromGeo || !toGeo) return
+    if (from.category === 'traffic' || to.category === 'traffic' || !shouldRequestWalking || !fromGeo || !toGeo) {
+      setRoute(null)
+      return
+    }
     const ctrl = new AbortController()
     fetchWalkingRouteInfo([fromGeo, toGeo], ctrl.signal).then((result) => {
       if (!ctrl.signal.aborted) {
@@ -339,9 +373,16 @@ function TransitHint({ from, to }: { from: Activity; to: Activity }) {
       }
     })
     return () => ctrl.abort()
-  }, [from.category, fromGeo, to.category, toGeo])
+  }, [from.category, fromGeo, shouldRequestWalking, to.category, toGeo])
 
-  if (from.category === 'traffic' || to.category === 'traffic' || !from.geo || !to.geo || !route?.durationMinutes) return null
+  if (from.category === 'traffic' || to.category === 'traffic' || !from.geo || !to.geo) return null
+  if (hasManualTransit) {
+    return <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-accent-hover"><span>{TRAVEL_MODE_LABELS[to.travelMode!]}</span>{directDistance && <span>· 相距 {(directDistance / 1000).toFixed(directDistance >= 1000 ? 1 : 2)} km</span>}</div>
+  }
+  if (!isShortWalk) {
+    return <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-amber-700"><span>跨城移动</span>{directDistance && <span>· 相距 {(directDistance / 1000).toFixed(1)} km</span>}<span>· 建议补充交通安排</span></div>
+  }
+  if (!route?.durationMinutes) return null
   const previousEnd = activityEndMinutes(from)
   const available = previousEnd === undefined ? undefined : timeToMinutes(to.time) - previousEnd
   const insufficient = available !== undefined && available >= 0 && available < route.durationMinutes
@@ -828,7 +869,7 @@ function DayHeaderInfo({ day }: { day: { id: string; date: string; place: string
 
 // 一天的分组
 function DaySection({ dayId, onQuickAdd }: { dayId: string; onQuickAdd: () => void }) {
-  const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay } =
+  const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
   const askConfirm = useConfirmStore((s) => s.ask)
   const trip = useActiveTrip()
@@ -869,8 +910,24 @@ function DaySection({ dayId, onQuickAdd }: { dayId: string; onQuickAdd: () => vo
         <header className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 px-0.5">
           <h2 className="text-[16px] font-semibold">{day.label}</h2>
           <DayHeaderInfo day={day} />
-          {trip.days.length > 1 && (
+          {(
             <div className="flex w-full items-center justify-end gap-1 sm:ml-auto sm:w-auto">
+              {trip.days.length > 1 && <button
+                onClick={() => moveDay(dayId, -1)}
+                disabled={trip.days.findIndex((item) => item.id === dayId) === 0}
+                className="rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
+                title="整天前移"
+              >
+                ↑ 前移
+              </button>}
+              {trip.days.length > 1 && <button
+                onClick={() => moveDay(dayId, 1)}
+                disabled={trip.days.findIndex((item) => item.id === dayId) === trip.days.length - 1}
+                className="rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
+                title="整天后移"
+              >
+                ↓ 后移
+              </button>}
               <button
                 onClick={() => {
                   addDay(dayId)
@@ -884,11 +941,21 @@ function DaySection({ dayId, onQuickAdd }: { dayId: string; onQuickAdd: () => vo
                   )
                 }}
                 className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent"
-                title="在这天后插入一天"
+                title="在这天后插入空白一天"
               >
-                <PlusIcon size={13} /> 插入一天
+                <PlusIcon size={13} /> 空白一天
               </button>
               <button
+                onClick={() => {
+                  copyDay(dayId)
+                  useToastStore.getState().show(`已复制${day.label}的安排到下一天`)
+                }}
+                className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent"
+                title="复制当天的安排、地点和花费到下一天"
+              >
+                复制当天
+              </button>
+              {trip.days.length > 1 && <button
                 onClick={() =>
                   askConfirm({
                   title: `删除${day.label}？`,
@@ -906,12 +973,12 @@ function DaySection({ dayId, onQuickAdd }: { dayId: string; onQuickAdd: () => vo
                 title="删除该天"
               >
                 <TrashIcon size={13} /> 删除该天
-              </button>
+              </button>}
             </div>
           )}
         </header>
 
-        <DayOverview items={items} />
+        <DayOverview items={items} scheduleWarningCount={warnings.size} />
 
         {/* 时间轴 */}
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>

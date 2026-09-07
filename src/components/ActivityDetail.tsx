@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from 'react'
-import { useActiveTrip, useTripStore } from '../store'
+import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS, ClockIcon, CoinIcon, EditIcon, NoteIcon, PinIcon, TrashIcon } from './Icons'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
-import { CATEGORY_META, type Activity } from '../types'
+import { CATEGORY_META, type Activity, type TravelMode } from '../types'
+
+const TRAVEL_MODE_LABELS: Record<TravelMode, string> = {
+  walk: '步行',
+  drive: '自驾',
+  train: '火车 / 高铁',
+  flight: '飞机',
+  charter: '包车 / 打车',
+}
 
 // 备注输入：本地草稿，失焦或卸载时写入 store（避免每次按键触发整树重渲染）
 function NoteField({ value, onSave }: { value: string; onSave: (note: string) => void }) {
@@ -106,6 +114,9 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
   const askConfirm = useConfirmStore((s) => s.ask)
   const meta = CATEGORY_META[activity.category]
   const Icon = CATEGORY_ICONS[activity.category]
+  const dayItems = activitiesByDay(trip, activity.dayId)
+  const activityIndex = dayItems.findIndex((item) => item.id === activity.id)
+  const previousActivity = activityIndex > 0 ? dayItems[activityIndex - 1] : undefined
 
   return (
     <div className="rounded-lg border border-border bg-surface px-3.5 py-3">
@@ -144,6 +155,21 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
           </span>
         )}
       </div>
+
+      {previousActivity?.geo && activity.geo && (
+        <label className="mt-2.5 flex items-center justify-between gap-3 rounded-lg border border-border bg-white px-2.5 py-2 text-[11.5px] text-text-muted">
+          <span className="min-w-0 truncate">从「{previousActivity.title}」前往这里</span>
+          <select
+            value={activity.travelMode ?? ''}
+            onChange={(event) => updateActivity(activity.id, { travelMode: (event.target.value || undefined) as TravelMode | undefined })}
+            className="shrink-0 rounded border border-border bg-white px-1.5 py-1 text-[11.5px] text-text outline-none focus:border-accent"
+            title="选择到达当前安排的交通方式"
+          >
+            <option value="">智能判断</option>
+            {Object.entries(TRAVEL_MODE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+        </label>
+      )}
 
       {/* 花费管理：一个条目可记多笔 */}
       <div className="mt-3 rounded-lg border border-border bg-white p-2.5">

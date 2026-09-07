@@ -6,6 +6,9 @@ export type PlanTab = 'timeline' | 'places' | 'map' | 'budget'
 
 export type ActivityCategory = 'traffic' | 'sight' | 'food' | 'stay' | 'shop'
 
+// 到达当前安排所采用的交通方式；留空时根据地点距离智能判断步行或跨城移动。
+export type TravelMode = 'walk' | 'drive' | 'train' | 'flight' | 'charter'
+
 export interface GeoPoint {
   lat: number
   lng: number
@@ -31,6 +34,7 @@ export interface Activity {
   duration?: string // 展示用："2小时"
   durationMinutes?: number // 用于排程与冲突检测的结构化时长（分钟）
   geo?: GeoPoint
+  travelMode?: TravelMode
   sourceWishId?: string // 从想去清单安排时保留来源，便于同步状态
 }
 

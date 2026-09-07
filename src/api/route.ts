@@ -3,6 +3,21 @@ const OSRM_BASE = 'https://router.project-osrm.org/route/v1/foot'
 const ROUTE_CACHE_KEY = 'tripnote-walking-route-cache-v1'
 const ROUTE_CACHE_TTL = 30 * 24 * 60 * 60 * 1000
 const ROUTE_CACHE_MAX_ENTRIES = 80
+export const WALKING_DISTANCE_THRESHOLD_METERS = 15_000
+
+export function straightLineDistanceMeters(from: { lat: number; lng: number }, to: { lat: number; lng: number }) {
+  const earthRadius = 6_371_000
+  const toRadians = (value: number) => (value * Math.PI) / 180
+  const latitudeDelta = toRadians(to.lat - from.lat)
+  const longitudeDelta = toRadians(to.lng - from.lng)
+  const a = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(toRadians(from.lat)) * Math.cos(toRadians(to.lat)) * Math.sin(longitudeDelta / 2) ** 2
+  return Math.round(earthRadius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
+}
+
+export function isWalkableRoute(points: { lat: number; lng: number }[]) {
+  return points.every((point, index) => index === 0 || straightLineDistanceMeters(points[index - 1], point) <= WALKING_DISTANCE_THRESHOLD_METERS)
+}
 
 export interface WalkingRoute {
   points: { lat: number; lng: number }[]
@@ -71,6 +86,15 @@ export async function fetchWalkingRouteInfo(
   signal?: AbortSignal,
 ): Promise<WalkingRoute> {
   if (points.length < 2) return { points, durationMinutes: 0, distanceMeters: 0, fallback: false }
+  // 公共步行服务不适合跨城段：不请求、不缓存，交给界面提示用户补充交通方式。
+  if (!isWalkableRoute(points)) {
+    return {
+      points,
+      durationMinutes: null,
+      distanceMeters: points.slice(1).reduce((total, point, index) => total + straightLineDistanceMeters(points[index], point), 0),
+      fallback: false,
+    }
+  }
   const routeKey = cacheKeyFor(points)
   const cached = readCachedRoute(routeKey)
   if (cached) return { ...cached, fallback: false }

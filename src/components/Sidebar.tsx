@@ -299,10 +299,11 @@ export function MobileHeader({ onExport, exporting }: { onExport: () => void; ex
 }
 
 export default function Sidebar() {
-  const { view, setView, planTab, setPlanTab, activeDayId, setActiveDay, selectActivity, scheduleWishPlace } =
+  const { view, setView, planTab, setPlanTab, activeDayId, setActiveDay, selectActivity, scheduleWishPlace, addDay, copyDay } =
     useTripStore()
   const trip = useActiveTrip()
   const [dropDayId, setDropDayId] = useState<string | null>(null)
+  const [showAddDayOptions, setShowAddDayOptions] = useState(false)
 
   function scheduleDroppedWish(event: DragEvent<HTMLButtonElement>, day: TripDay) {
     event.preventDefault()
@@ -353,6 +354,10 @@ export default function Sidebar() {
         {trip.days.map((d, index) => {
           const active = d.id === activeDayId && view === 'plan' && planTab === 'timeline'
           const activityCount = trip.activities.filter((activity) => activity.dayId === d.id).length
+          const geoCount = trip.activities.filter((activity) => activity.dayId === d.id && activity.geo).length
+          const dayCost = trip.activities
+            .filter((activity) => activity.dayId === d.id)
+            .reduce((sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0), 0)
           const date = /^\d{4}-\d{2}-\d{2}$/.test(d.date)
             ? displayDate(d.date).split(' ')[0]
             : d.date !== '待定'
@@ -397,30 +402,47 @@ export default function Sidebar() {
                   <span className={`shrink-0 text-[10.5px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>{date}</span>
                 </span>
                 <span className={`mt-0.5 block text-[10.5px] ${dropDayId === d.id ? 'text-white/75' : active ? 'text-accent/75' : 'text-text-faint'}`}>
-                  {d.label} · {activityCount} 个安排
+                  {d.label} · {geoCount} 个地点{dayCost > 0 ? ` · ¥${dayCost.toLocaleString()}` : ` · ${activityCount} 个安排`}
                 </span>
               </span>
             </button>
           )
         })}
         </div>
-        <button
-          onClick={() => {
-            const previousLastDay = trip.days.at(-1)
-            useTripStore.getState().addDay()
-            const newDay = useTripStore.getState().trips
-              .find((item) => item.id === trip.id)
-              ?.days.at(-1)
-            useToastStore.getState().show(
-              newDay?.date && newDay.date !== '待定'
-                ? `已在${previousLastDay?.label ?? '最后一天'}后添加 ${displayDate(newDay.date)}`
-                : '已添加一天，可继续设置日期和地点',
-            )
-          }}
-          className="mt-2 flex w-full items-center gap-2.5 rounded-lg border border-dashed border-border px-3 py-2 text-[12.5px] text-text-muted transition-colors hover:border-accent hover:text-accent"
-        >
-          <PlusIcon size={15} /> 添加一天
-        </button>
+        <div className="relative mt-2">
+          <button
+            onClick={() => setShowAddDayOptions((open) => !open)}
+            className="flex w-full items-center gap-2.5 rounded-lg border border-dashed border-border px-3 py-2 text-[12.5px] text-text-muted transition-colors hover:border-accent hover:text-accent"
+          >
+            <PlusIcon size={15} /> 添加一天
+          </button>
+          {showAddDayOptions && (
+            <div className="absolute bottom-[calc(100%+6px)] left-0 z-20 w-full rounded-lg border border-border bg-white p-1.5 shadow-lg">
+              <button
+                onClick={() => {
+                  addDay()
+                  setShowAddDayOptions(false)
+                  useToastStore.getState().show('已添加空白一天')
+                }}
+                className="flex w-full items-center rounded-md px-2.5 py-2 text-left text-[12px] text-text-muted hover:bg-surface-2"
+              >
+                空白一天
+              </button>
+              <button
+                disabled={!trip.days.length}
+                onClick={() => {
+                  const previousDay = trip.days.at(-1)
+                  if (previousDay) copyDay(previousDay.id)
+                  setShowAddDayOptions(false)
+                  useToastStore.getState().show('已复制上一天的地点与安排')
+                }}
+                className="flex w-full items-center rounded-md px-2.5 py-2 text-left text-[12px] text-text-muted hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                复制上一天
+              </button>
+            </div>
+          )}
+        </div>
       </nav>
 
       {/* 底部导航 */}

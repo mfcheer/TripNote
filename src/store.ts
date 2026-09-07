@@ -50,6 +50,8 @@ interface TripState {
   addActivity: (activity: Omit<Activity, 'id'>) => string
   removeActivity: (activityId: string) => void
   addDay: (afterDayId?: string) => void
+  copyDay: (dayId: string) => void
+  moveDay: (dayId: string, direction: -1 | 1) => void
   removeDay: (dayId: string) => void
   updateDay: (dayId: string, patch: Partial<Pick<TripDay, 'date' | 'place'>>) => void
   updateActivity: (id: string, patch: Partial<Activity>) => void
@@ -499,6 +501,72 @@ export const useTripStore = create<TripState>()(
           activeDayId: newId,
         }))
       },
+
+      copyDay: (dayId) => {
+        const newDayId = makeId('day')
+        set((s) => ({
+          trips: s.trips.map((trip) => {
+            if (trip.id !== s.activeTripId) return trip
+            const sourceIndex = trip.days.findIndex((day) => day.id === dayId)
+            if (sourceIndex === -1) return trip
+            const sourceDay = trip.days[sourceIndex]
+            const insertIndex = sourceIndex + 1
+            const copiedActivities = trip.activities
+              .filter((activity) => activity.dayId === dayId)
+              .map((activity) => ({
+                ...activity,
+                id: makeId('activity'),
+                dayId: newDayId,
+                costs: activity.costs.map((cost) => ({ ...cost, id: makeId('cost') })),
+              }))
+            const copiedWishIds = copiedActivities.reduce<Map<string, string[]>>((result, activity) => {
+              if (!activity.sourceWishId) return result
+              result.set(activity.sourceWishId, [...(result.get(activity.sourceWishId) ?? []), activity.id])
+              return result
+            }, new Map())
+            const copiedDay: TripDay = {
+              id: newDayId,
+              label: '',
+              date: isDate(sourceDay.date) ? shiftDate(sourceDay.date, 1) : '待定',
+              place: sourceDay.place,
+            }
+            const shiftedTail = trip.days.slice(insertIndex).map((day) => isDate(day.date) ? { ...day, date: shiftDate(day.date, 1) } : day)
+            const days = renumberDays([...trip.days.slice(0, insertIndex), copiedDay, ...shiftedTail])
+            return {
+              ...trip,
+              days,
+              daysCount: days.length,
+              activities: [...trip.activities, ...copiedActivities],
+              wishPlaces: copiedWishIds.size > 0
+                ? trip.wishPlaces.map((wish) => copiedWishIds.has(wish.id)
+                  ? normalizeWishPlace({ ...wish, scheduledActivityIds: [...wishScheduledActivityIds(wish), ...copiedWishIds.get(wish.id)!] })
+                  : wish)
+                : trip.wishPlaces,
+            }
+          }),
+          activeDayId: newDayId,
+          selectedActivityId: null,
+          editingActivityId: null,
+        }))
+      },
+
+      moveDay: (dayId, direction) =>
+        set((s) => ({
+          trips: s.trips.map((trip) => {
+            if (trip.id !== s.activeTripId) return trip
+            const fromIndex = trip.days.findIndex((day) => day.id === dayId)
+            const toIndex = fromIndex + direction
+            if (fromIndex < 0 || toIndex < 0 || toIndex >= trip.days.length) return trip
+            const days = [...trip.days]
+            const [moved] = days.splice(fromIndex, 1)
+            days.splice(toIndex, 0, moved)
+            const standardDates = trip.days.filter((day) => isDate(day.date)).map((day) => day.date).sort()
+            const normalizedDays = standardDates.length === trip.days.length
+              ? days.map((day, index) => ({ ...day, date: shiftDate(standardDates[0], index) }))
+              : days
+            return { ...trip, days: renumberDays(normalizedDays) }
+          }),
+        })),
 
       removeDay: (dayId) =>
         set((s) => {

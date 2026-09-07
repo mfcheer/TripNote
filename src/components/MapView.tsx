@@ -4,8 +4,8 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS } from './Icons'
-import { CATEGORY_META } from '../types'
-import { fetchWalkingRouteInfo } from '../api/route'
+import { CATEGORY_META, type Activity, type TripDay } from '../types'
+import { fetchWalkingRouteInfo, isWalkableRoute, straightLineDistanceMeters } from '../api/route'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
 
 // 高对比暖色阶：金橙至酒红表达行程推进，配合白色底描边确保在不同地图底色上清晰可见。
@@ -30,6 +30,43 @@ function markerIcon(color: string, label: string) {
     iconSize: [140, 28],
     iconAnchor: [70, 14],
   })
+}
+
+function clusterIcon(count: number) {
+  return L.divIcon({
+    className: '',
+    html: `<div class="map-marker" style="border-color:#415f88;color:#415f88">${count}</div>`,
+    iconSize: [26, 26],
+    iconAnchor: [13, 13],
+  })
+}
+
+interface MapMarkerItem {
+  activity: Activity
+  day: TripDay
+  color: string
+}
+interface MapMarkerGroup {
+  id: string
+  point: { lat: number; lng: number }
+  items: MapMarkerItem[]
+}
+
+function groupNearbyMarkers(items: MapMarkerItem[]) {
+  const groups: MapMarkerGroup[] = []
+  for (const item of items) {
+    const existing = groups.find((group) => straightLineDistanceMeters(group.point, item.activity.geo!) <= 80)
+    if (existing) {
+      existing.items.push(item)
+      existing.point = {
+        lat: existing.items.reduce((sum, entry) => sum + entry.activity.geo!.lat, 0) / existing.items.length,
+        lng: existing.items.reduce((sum, entry) => sum + entry.activity.geo!.lng, 0) / existing.items.length,
+      }
+    } else {
+      groups.push({ id: item.activity.id, point: item.activity.geo!, items: [item] })
+    }
+  }
+  return groups
 }
 
 function escapeHtml(value: string) {
@@ -59,10 +96,12 @@ function DayRoute({ dayId, color, routeMode, onRouteFallback }: { dayId: string;
     [trip, dayId],
   )
   const [path, setPath] = useState<[number, number][]>([])
+  const hasManualTransit = geoItems.slice(1).some((item) => item.travelMode && item.travelMode !== 'walk')
+  const canUseWalkingRoute = isWalkableRoute(geoItems.map((item) => ({ lat: item.geo!.lat, lng: item.geo!.lng }))) && !hasManualTransit
 
   useEffect(() => {
     const pts = geoItems.map((a) => ({ lat: a.geo!.lat, lng: a.geo!.lng }))
-    if (pts.length < 2 || routeMode === 'direct') {
+    if (pts.length < 2 || routeMode === 'direct' || !canUseWalkingRoute) {
       setPath([])
       return
     }
@@ -75,10 +114,11 @@ function DayRoute({ dayId, color, routeMode, onRouteFallback }: { dayId: string;
       }
     })
     return () => ctrl.abort()
-  }, [geoItems.map((a) => `${a.id}@${a.geo!.lat},${a.geo!.lng}`).join('|'), routeMode]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [geoItems.map((a) => `${a.id}@${a.geo!.lat},${a.geo!.lng}:${a.travelMode ?? ''}`).join('|'), routeMode, canUseWalkingRoute]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const directPath = geoItems.map((item) => [item.geo!.lat, item.geo!.lng] as [number, number])
-  const visiblePath = routeMode === 'walking' ? path : directPath
+  // 跨城或手动指定交通方式时，保留直线作为行程脉络，不伪装成步行路线。
+  const visiblePath = routeMode === 'walking' && canUseWalkingRoute ? path : directPath
   if (visiblePath.length < 2) return null
   return <>
     <Polyline positions={visiblePath} pathOptions={{ color: '#fffdf9', weight: 9, opacity: 0.9 }} />
@@ -92,6 +132,7 @@ export default function MapView() {
   const [filter, setFilter] = useState<'all' | string>('all')
   const [amapUnavailable, setAmapUnavailable] = useState(false)
   const [routeFallback, setRouteFallback] = useState(false)
+  const [openCluster, setOpenCluster] = useState<MapMarkerGroup | null>(null)
 
   const visibleDays = filter === 'all' ? trip.days : trip.days.filter((d) => d.id === filter)
   const routeRequestKey = visibleDays.flatMap((day) => activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => `${activity.id}@${activity.geo!.lat},${activity.geo!.lng}`)).join('|')
@@ -101,6 +142,10 @@ export default function MapView() {
       .filter((a) => a.geo)
       .map((a) => [a.geo!.lat, a.geo!.lng] as [number, number]),
   )
+  const markerGroups = useMemo(() => groupNearbyMarkers(visibleDays.flatMap((day) => {
+    const color = routeColor(trip.days.indexOf(day), trip.days.length)
+    return activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => ({ activity, day, color }))
+  })), [visibleDays, trip])
 
   // 总览中的跨日虚线把每天的路线串成完整旅程；虚线保留“过夜后继续”的语义。
   const crossDaySegments = useMemo(() => {
@@ -118,13 +163,14 @@ export default function MapView() {
 
   useEffect(() => setAmapUnavailable(false), [amapJsKey])
   useEffect(() => setRouteFallback(false), [mapRouteMode, routeRequestKey])
+  useEffect(() => setOpenCluster(null), [filter])
   const handleAmapError = useCallback(() => setAmapUnavailable(true), [])
   const handleRouteFallback = useCallback(() => setRouteFallback(true), [])
   const useAmap = !!amapJsKey && !amapUnavailable
   const amapLines = useMemo<AmapLine[]>(() => [
     ...visibleDays.flatMap((day) => {
       const points = activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => activity.geo!)
-      return points.length > 1 ? [{ id: `day-${day.id}`, points, color: routeColor(trip.days.indexOf(day), trip.days.length), route: mapRouteMode === 'walking' }] : []
+      return points.length > 1 ? [{ id: `day-${day.id}`, points, color: routeColor(trip.days.indexOf(day), trip.days.length), route: mapRouteMode === 'walking' && isWalkableRoute(points) }] : []
     }),
     ...crossDaySegments.map(({ from, to, dayIndex }) => ({
       id: `cross-${from.id}-${to.id}`,
@@ -134,19 +180,12 @@ export default function MapView() {
       weight: 3,
     })),
   ], [visibleDays, trip, crossDaySegments, mapRouteMode])
-  const amapMarkers = useMemo<AmapMarker[]>(() => visibleDays.flatMap((day) => {
-    const color = routeColor(trip.days.indexOf(day), trip.days.length)
-    return activitiesByDay(trip, day.id)
-      .filter((activity) => activity.geo)
-      .map((activity) => ({
-        id: activity.id,
-        point: activity.geo!,
-        label: activity.title,
-        color,
-        wide: true,
-        onClick: () => useTripStore.getState().focusActivity(activity.id),
-      }))
-  }), [visibleDays, trip])
+  const amapMarkers = useMemo<AmapMarker[]>(() => markerGroups.map((group) => {
+    const single = group.items[0]
+    return group.items.length === 1
+      ? { id: single.activity.id, point: group.point, label: single.activity.title, color: single.color, wide: true, onClick: () => useTripStore.getState().focusActivity(single.activity.id) }
+      : { id: `cluster-${group.id}`, point: group.point, label: String(group.items.length), onClick: () => setOpenCluster(group) }
+  }), [markerGroups])
 
   return (
     <div className="trip-map-view relative h-full w-full">
@@ -188,44 +227,26 @@ export default function MapView() {
           </Fragment>
         })}
 
-        {visibleDays.map((day) => {
-          const color = routeColor(trip.days.indexOf(day), trip.days.length)
-          const geoItems = activitiesByDay(trip, day.id).filter((a) => a.geo)
-          return (
-            <div key={day.id}>
-              <DayRoute dayId={day.id} color={color} routeMode={mapRouteMode} onRouteFallback={handleRouteFallback} />
-              {geoItems.map((a) => {
-                const Icon = CATEGORY_ICONS[a.category]
-                return (
-                  <Marker
-                    key={a.id}
-                    position={[a.geo!.lat, a.geo!.lng]}
-                    icon={markerIcon(color, a.title)}
-                    eventHandlers={{
-                      click: () => {
-                        useTripStore.getState().focusActivity(a.id)
-                      },
-                    }}
-                  >
-                    <Popup>
-                      <div className="min-w-[160px]">
-                        <div className="flex items-center gap-1.5 font-medium" style={{ color }}>
-                          <Icon size={13} />
-                          {a.title}
-                        </div>
-                        <div className="mt-1 text-[12px] text-text-muted">
-                          {day.label} {a.time}
-                          {a.location && ` · ${a.location}`}
-                        </div>
-                      </div>
-                    </Popup>
-                  </Marker>
-                )
-              })}
-            </div>
-          )
-        })}
+        {visibleDays.map((day) => <DayRoute key={day.id} dayId={day.id} color={routeColor(trip.days.indexOf(day), trip.days.length)} routeMode={mapRouteMode} onRouteFallback={handleRouteFallback} />)}
+        {markerGroups.map((group) => group.items.length === 1 ? (() => {
+          const { activity, day, color } = group.items[0]
+          const Icon = CATEGORY_ICONS[activity.category]
+          return <Marker key={activity.id} position={[group.point.lat, group.point.lng]} icon={markerIcon(color, activity.title)} eventHandlers={{ click: () => useTripStore.getState().focusActivity(activity.id) }}>
+            <Popup><div className="min-w-[160px]"><div className="flex items-center gap-1.5 font-medium" style={{ color }}><Icon size={13} />{activity.title}</div><div className="mt-1 text-[12px] text-text-muted">{day.label} {activity.time}{activity.location && ` · ${activity.location}`}</div></div></Popup>
+          </Marker>
+        })() : (
+          <Marker key={`cluster-${group.id}`} position={[group.point.lat, group.point.lng]} icon={clusterIcon(group.items.length)}>
+            <Popup><div className="min-w-[180px]"><div className="mb-1.5 text-[12px] font-semibold">{group.items.length} 个重叠地点</div>{group.items.map(({ activity, day }) => <button key={activity.id} onClick={() => useTripStore.getState().focusActivity(activity.id)} className="block w-full truncate rounded px-1 py-1 text-left text-[12px] hover:bg-surface">{day.label} · {activity.title}</button>)}</div></Popup>
+          </Marker>
+        ))}
       </MapContainer>
+      )}
+
+      {openCluster && (
+        <div className="absolute top-16 left-4 z-[600] w-[230px] rounded-lg border border-border bg-white p-2 shadow-[0_4px_16px_rgba(0,0,0,0.14)]">
+          <div className="mb-1 flex items-center justify-between px-1"><span className="text-[12px] font-semibold">{openCluster.items.length} 个重叠地点</span><button onClick={() => setOpenCluster(null)} className="text-[16px] leading-none text-text-faint">×</button></div>
+          {openCluster.items.map(({ activity, day }) => <button key={activity.id} onClick={() => useTripStore.getState().focusActivity(activity.id)} className="block w-full truncate rounded px-1.5 py-1.5 text-left text-[12px] hover:bg-surface"><span className="mr-1 text-text-faint">{day.label}</span>{activity.title}</button>)}
+        </div>
       )}
 
       {/* 图例 */}
