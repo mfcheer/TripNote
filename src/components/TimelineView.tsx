@@ -81,7 +81,7 @@ function periodLabel(time: string) {
   return '晚上'
 }
 
-function TripStatsBar({ trip }: { trip: Trip }) {
+function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => void }) {
   const totalCost = trip.activities.reduce(
     (sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0),
     0,
@@ -90,31 +90,44 @@ function TripStatsBar({ trip }: { trip: Trip }) {
     { label: '天数', value: `${trip.days.length} 天`, Icon: CalendarIcon },
     { label: '安排', value: `${trip.activities.length} 项`, Icon: OverviewIcon },
     { label: '已定位', value: `${trip.activities.filter((activity) => activity.geo).length} 个`, Icon: PinIcon },
-    { label: '总花费', value: `¥${totalCost.toLocaleString()}`, Icon: WalletIcon },
+    {
+      label: trip.totalBudget > 0 ? '预算' : '已规划',
+      value: trip.totalBudget > 0 ? `¥${totalCost.toLocaleString()} / ¥${trip.totalBudget.toLocaleString()}` : `¥${totalCost.toLocaleString()}`,
+      hint: trip.totalBudget > 0 ? `剩 ¥${(trip.totalBudget - totalCost).toLocaleString()}` : '点击设置预算',
+      Icon: WalletIcon,
+      onClick: onOpenBudget,
+    },
   ]
 
   return (
     <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-white shadow-[0_2px_10px_rgba(45,55,65,0.035)] sm:grid-cols-4 sm:divide-x sm:divide-border">
-      {stats.map(({ label, value, Icon }, index) => (
-        <div
-          key={label}
-          className={`flex min-w-0 items-center gap-2.5 px-3 py-2.5 ${index < 2 ? 'border-b border-border sm:border-b-0' : ''} ${index % 2 === 0 ? 'border-r border-border sm:border-r-0' : ''}`}
-        >
+      {stats.map(({ label, value, hint, Icon, onClick }, index) => {
+        const className = `flex min-w-0 items-center gap-2.5 px-3 py-2.5 text-left ${index < 2 ? 'border-b border-border sm:border-b-0' : ''} ${index % 2 === 0 ? 'border-r border-border sm:border-r-0' : ''} ${onClick ? 'transition-colors hover:bg-surface' : ''}`
+        const content = <>
           <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-hover">
             <Icon size={14} />
           </span>
           <span className="min-w-0">
             <span className="block text-[10.5px] leading-none text-text-faint">{label}</span>
             <span className="mt-1 block truncate text-[13px] font-semibold leading-none text-text">{value}</span>
+            {hint && <span className={`mt-1 block truncate text-[10px] leading-none ${trip.totalBudget > 0 && trip.totalBudget < totalCost ? 'text-red-500' : 'text-text-faint'}`}>{hint}</span>}
           </span>
-        </div>
-      ))}
+        </>
+        return onClick ? (
+          <button key={label} onClick={onClick} className={className} title="查看预算详情">
+            {content}
+          </button>
+        ) : (
+          <div key={label} className={className}>{content}</div>
+        )
+      })}
     </div>
   )
 }
 
 function DayOverview({ items }: { items: Activity[] }) {
   const plannedMinutes = items.reduce((total, activity) => total + (activityDurationMinutes(activity) ?? 0), 0)
+  const dayCost = items.reduce((total, activity) => total + activity.costs.reduce((sum, cost) => sum + cost.amount, 0), 0)
   const geoItems = useMemo(() => items.filter((activity) => activity.geo), [items])
   const walkingItems = useMemo(
     () => geoItems.filter((activity) => activity.category !== 'traffic'),
@@ -138,10 +151,143 @@ function DayOverview({ items }: { items: Activity[] }) {
   return (
     <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-0.5 text-[11.5px] text-text-faint">
       <span>{items.length} 个安排</span>
+      {dayCost > 0 && <span className="font-medium text-accent-hover">当天 ¥{dayCost.toLocaleString()}</span>}
       {plannedMinutes > 0 && <span>已安排 {formatMinutes(plannedMinutes)}</span>}
       <span>{geoItems.length} 个已定位地点</span>
       {visibleWalking?.durationMinutes && <span>步行约 {visibleWalking.durationMinutes} 分钟</span>}
       {visibleWalking?.distanceMeters && <span>{(visibleWalking.distanceMeters / 1000).toFixed(visibleWalking.distanceMeters >= 1000 ? 1 : 2)} km</span>}
+    </div>
+  )
+}
+
+// 预算抽屉：把高频的预算判断留在行程上下文中，明细按需展开，不额外打断排程。
+function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => void }) {
+  const { setBudget, focusActivity } = useTripStore()
+  const [editingBudget, setEditingBudget] = useState(false)
+  const [budgetDraft, setBudgetDraft] = useState(String(trip.totalBudget))
+  const rows = trip.activities.flatMap((activity) => activity.costs.map((cost) => ({
+    id: cost.id,
+    activityId: activity.id,
+    category: activity.category,
+    activityTitle: activity.title,
+    costTitle: cost.title,
+    amount: cost.amount,
+    dayLabel: trip.days.find((day) => day.id === activity.dayId)?.label ?? '未分配日期',
+  })))
+  const totalPlanned = rows.reduce((sum, row) => sum + row.amount, 0)
+  const remain = trip.totalBudget - totalPlanned
+  const byCategory = (Object.keys(CATEGORY_META) as ActivityCategory[])
+    .map((category) => ({
+      category,
+      total: rows.filter((row) => row.category === category).reduce((sum, row) => sum + row.amount, 0),
+    }))
+    .filter((item) => item.total > 0)
+  const byDay = trip.days.map((day) => ({
+    id: day.id,
+    label: day.label,
+    place: day.place,
+    total: trip.activities
+      .filter((activity) => activity.dayId === day.id)
+      .reduce((sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0), 0),
+  }))
+
+  function commitBudget() {
+    setBudget(Math.max(0, Number(budgetDraft) || 0))
+    setEditingBudget(false)
+  }
+
+  function exportDetails() {
+    const data = JSON.stringify(rows.map((row) => ({
+      分类: CATEGORY_META[row.category].label,
+      条目: row.activityTitle,
+      花费: row.costTitle ?? '',
+      金额: row.amount,
+      日程: row.dayLabel,
+    })), null, 2)
+    const blob = new Blob([data], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = 'TripNote-预算明细.json'
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
+  return (
+    <div className="fixed inset-0 z-[800] bg-black/25 backdrop-blur-[1px]" role="dialog" aria-modal="true" aria-label="预算详情" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <aside className="mobile-safe-bottom absolute inset-x-0 bottom-0 max-h-[84vh] overflow-y-auto rounded-t-[22px] bg-white px-4 pt-3 shadow-[0_-12px_36px_rgba(15,23,42,0.18)] sm:inset-y-0 sm:left-auto sm:w-[420px] sm:max-h-none sm:rounded-none sm:border-l sm:border-border sm:px-5 sm:pt-5">
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border sm:hidden" />
+        <div className="flex items-start justify-between gap-4 border-b border-border pb-3">
+          <div>
+            <div className="text-[16px] font-semibold">预算详情</div>
+            <div className="mt-0.5 text-[11.5px] text-text-muted">花费来自行程中的每一条安排</div>
+          </div>
+          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-[20px] leading-none text-text-muted transition-colors hover:bg-surface-2 hover:text-text" aria-label="关闭预算详情">×</button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2.5 py-4">
+          <div className="rounded-lg bg-surface px-2.5 py-2.5">
+            <div className="text-[10.5px] text-text-faint">总预算</div>
+            {editingBudget ? (
+              <input autoFocus type="number" value={budgetDraft} onChange={(event) => setBudgetDraft(event.target.value)} onBlur={commitBudget} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setEditingBudget(false) }} className="mt-1 w-full rounded border border-accent bg-white px-1 py-0.5 text-[13px] font-semibold tabular-nums outline-none" />
+            ) : (
+              <button onClick={() => { setBudgetDraft(String(trip.totalBudget)); setEditingBudget(true) }} className="mt-1 text-left text-[13px] font-semibold tabular-nums hover:text-accent" title="点击修改总预算">¥{trip.totalBudget.toLocaleString()}</button>
+            )}
+          </div>
+          <div className="rounded-lg bg-accent-soft px-2.5 py-2.5">
+            <div className="text-[10.5px] text-accent/80">已规划</div>
+            <div className="mt-1 text-[13px] font-semibold tabular-nums text-accent-hover">¥{totalPlanned.toLocaleString()}</div>
+          </div>
+          <div className="rounded-lg bg-surface px-2.5 py-2.5">
+            <div className="text-[10.5px] text-text-faint">剩余</div>
+            <div className={`mt-1 text-[13px] font-semibold tabular-nums ${remain < 0 ? 'text-red-500' : ''}`}>¥{remain.toLocaleString()}</div>
+          </div>
+        </div>
+        {trip.totalBudget > 0 && <div className="-mt-1 mb-4 h-1.5 overflow-hidden rounded-full bg-surface-2"><div className={`h-full rounded-full ${remain < 0 ? 'bg-red-400' : 'bg-accent'}`} style={{ width: `${Math.min(100, (totalPlanned / trip.totalBudget) * 100)}%` }} /></div>}
+
+        <section className="border-t border-border py-4">
+          <div className="mb-2 text-[12px] font-semibold">分类占比</div>
+          {byCategory.length === 0 ? <div className="py-2 text-[11.5px] text-text-faint">还没有花费记录</div> : (
+            <div className="flex flex-col gap-2.5">
+              {byCategory.map(({ category, total }) => {
+                const meta = CATEGORY_META[category]
+                const Icon = CATEGORY_ICONS[category]
+                return <div key={category}>
+                  <div className="flex items-center gap-1.5 text-[11.5px]">
+                    <span className="flex h-5 w-5 items-center justify-center rounded" style={{ background: meta.soft, color: meta.color }}><Icon size={11} /></span>
+                    <span className="text-text-muted">{meta.label}</span>
+                    <span className="ml-auto font-medium tabular-nums">¥{total.toLocaleString()}</span>
+                    <span className="w-8 text-right text-text-faint">{Math.round((total / totalPlanned) * 100)}%</span>
+                  </div>
+                  <div className="mt-1 h-1 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full" style={{ width: `${(total / totalPlanned) * 100}%`, background: meta.color }} /></div>
+                </div>
+              })}
+            </div>
+          )}
+        </section>
+
+        <section className="border-t border-border py-4">
+          <div className="mb-2 text-[12px] font-semibold">按天花费</div>
+          <div className="flex flex-col gap-1">
+            {byDay.map((day) => <div key={day.id} className="flex items-center gap-2 rounded-md px-1 py-1 text-[11.5px] hover:bg-surface">
+              <span className="font-medium">{day.label}</span><span className="min-w-0 flex-1 truncate text-text-faint">{day.place || '待定地点'}</span><span className="font-medium tabular-nums">¥{day.total.toLocaleString()}</span>
+            </div>)}
+          </div>
+        </section>
+
+        <section className="border-t border-border pt-4 pb-5">
+          <div className="mb-2 flex items-center justify-between"><span className="text-[12px] font-semibold">花费明细</span><button onClick={exportDetails} className="text-[11.5px] text-accent hover:text-accent-hover">导出 JSON</button></div>
+          <div className="flex flex-col gap-1.5">
+            {rows.length === 0 ? <div className="py-2 text-[11.5px] text-text-faint">暂无花费记录</div> : rows.map((row) => (
+              <button key={row.id} onClick={() => { focusActivity(row.activityId); onClose() }} className="flex w-full min-w-0 items-center gap-2 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-surface">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: CATEGORY_META[row.category].color }} />
+                <span className="min-w-0 flex-1"><span className="block truncate text-[11.5px] font-medium">{row.activityTitle}</span><span className="block truncate text-[10.5px] text-text-faint">{row.dayLabel}{row.costTitle ? ` · ${row.costTitle}` : ''}</span></span>
+                <span className="shrink-0 text-[12px] font-semibold tabular-nums">¥{row.amount.toLocaleString()}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      </aside>
     </div>
   )
 }
@@ -916,6 +1062,7 @@ export default function TimelineView() {
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [quickAddKey, setQuickAddKey] = useState(0)
   const [mobileQuickAddOpen, setMobileQuickAddOpen] = useState(false)
+  const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const draggingActivity = trip.activities.find((activity) => activity.id === draggingId)
   const activeDay = trip.days.find((day) => day.id === activeDayId)
@@ -989,7 +1136,7 @@ export default function TimelineView() {
         <div className="min-w-0 flex-1">
           <div className="mr-auto max-w-[900px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
             <MobileDayStrip trip={trip} />
-            <TripStatsBar trip={trip} />
+            <TripStatsBar trip={trip} onOpenBudget={() => setBudgetDrawerOpen(true)} />
             {/* 空旅程引导：还没有任何行程时给出第一步指引 */}
             {trip.activities.length === 0 && (
               <div className="mb-6 rounded-xl border border-accent/30 bg-[linear-gradient(135deg,rgba(232,239,248,0.92),rgba(248,250,253,0.96))] px-5 py-5 sm:px-6 sm:py-6">
@@ -1086,6 +1233,7 @@ export default function TimelineView() {
           </div>
         </div>
       )}
+      {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     </DndContext>
   )
 }
