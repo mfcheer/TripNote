@@ -48,14 +48,14 @@ export default function DayMapPreview({ dayId, selectedActivityId }: { dayId: st
 
   if (items.length === 0) {
     return (
-      <div className="flex h-[176px] items-center justify-center rounded-lg border border-dashed border-border bg-surface text-center text-[12px] leading-relaxed text-text-faint">
+      <div className="flex h-[240px] items-center justify-center rounded-lg border border-dashed border-border bg-surface text-center text-[12px] leading-relaxed text-text-faint">
         选择地点后会在这里显示当天路线
       </div>
     )
   }
 
   return (
-    <div className="h-[176px] overflow-hidden rounded-lg border border-border">
+    <div className="h-[240px] overflow-hidden rounded-lg border border-border">
       {amapJsKey ? (
         <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={points.length > 1 ? [{ id: dayId, points: items.map((activity) => activity.geo!), color: '#415f88', weight: 3 }] : []} className="h-full w-full" zoom={13} />
       ) : (
