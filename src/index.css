@@ -117,6 +117,16 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
   transform: scale(1.18);
   box-shadow: 0 0 0 4px rgba(61, 99, 130, 0.16), 0 2px 6px rgba(31, 50, 76, 0.25);
 }
+.map-picked-marker {
+  width: 30px;
+  height: 30px;
+  border-color: #c55e4e;
+  background: #fff;
+  color: #c55e4e;
+  font-size: 20px;
+  line-height: 1;
+  box-shadow: 0 0 0 4px rgba(197, 94, 78, 0.16), 0 2px 7px rgba(88, 43, 40, 0.28);
+}
 
 /* 行程地图直接展示安排名称，名称过长时截断，避免遮住相邻路线与地点。 */
 .map-place-marker {

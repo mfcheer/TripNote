@@ -1,12 +1,14 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
-import { MapContainer, Marker, Polyline, TileLayer, Popup, useMap } from 'react-leaflet'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { MapContainer, Marker, Polyline, TileLayer, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS } from './Icons'
-import { CATEGORY_META, type Activity, type TripDay } from '../types'
+import { CATEGORY_ICONS, MapIcon, PlusIcon } from './Icons'
+import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint, type TripDay } from '../types'
 import { fetchWalkingRouteInfo, isWalkableRoute, straightLineDistanceMeters } from '../api/route'
+import { reverseGeocode } from '../api/geocode'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
+import { useToastStore } from './toastStore'
 
 // 高对比暖色阶：金橙至酒红表达行程推进，配合白色底描边确保在不同地图底色上清晰可见。
 const ROUTE_COLORS = ['#E9A668', '#EA795A', '#D9534F', '#B63E44', '#7F344A']
@@ -40,6 +42,13 @@ function clusterIcon(count: number) {
     iconAnchor: [13, 13],
   })
 }
+
+const pickedPointIcon = L.divIcon({
+  className: '',
+  html: '<div class="map-marker map-picked-marker">+</div>',
+  iconSize: [30, 30],
+  iconAnchor: [15, 15],
+})
 
 interface MapMarkerItem {
   activity: Activity
@@ -88,6 +97,15 @@ function FitBounds({ points }: { points: [number, number][] }) {
   return null
 }
 
+function MapPickHandler({ enabled, onPick }: { enabled: boolean; onPick: (point: GeoPoint) => void }) {
+  useMapEvents({
+    click: (event) => {
+      if (enabled) onPick({ lat: event.latlng.lat, lng: event.latlng.lng })
+    },
+  })
+  return null
+}
+
 // 一天的真实步行路线（OSRM，失败回退直线）
 function DayRoute({ dayId, color, routeMode, onRouteFallback }: { dayId: string; color: string; routeMode: 'direct' | 'walking'; onRouteFallback: () => void }) {
   const trip = useActiveTrip()
@@ -127,12 +145,19 @@ function DayRoute({ dayId, color, routeMode, onRouteFallback }: { dayId: string;
 }
 
 export default function MapView() {
-  const { setActiveDay, amapJsKey, mapRouteMode } = useTripStore()
+  const { setActiveDay, amapJsKey, amapWebServiceKey, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
   const [filter, setFilter] = useState<'all' | string>('all')
   const [amapUnavailable, setAmapUnavailable] = useState(false)
   const [routeFallback, setRouteFallback] = useState(false)
   const [openCluster, setOpenCluster] = useState<MapMarkerGroup | null>(null)
+  const [isPicking, setIsPicking] = useState(false)
+  const [pickedPoint, setPickedPoint] = useState<GeoPoint | null>(null)
+  const [pickedName, setPickedName] = useState('')
+  const [pickedLocation, setPickedLocation] = useState('')
+  const [pickedCategory, setPickedCategory] = useState<ActivityCategory>('sight')
+  const [resolvingPoint, setResolvingPoint] = useState(false)
+  const pickRequestRef = useRef(0)
 
   const visibleDays = filter === 'all' ? trip.days : trip.days.filter((d) => d.id === filter)
   const routeRequestKey = visibleDays.flatMap((day) => activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => `${activity.id}@${activity.geo!.lat},${activity.geo!.lng}`)).join('|')
@@ -166,6 +191,43 @@ export default function MapView() {
   useEffect(() => setOpenCluster(null), [filter])
   const handleAmapError = useCallback(() => setAmapUnavailable(true), [])
   const handleRouteFallback = useCallback(() => setRouteFallback(true), [])
+  const handleMapPick = useCallback(async (point: GeoPoint) => {
+    setPickedPoint(point)
+    setPickedLocation(`${point.lat.toFixed(5)}, ${point.lng.toFixed(5)}`)
+    const requestId = ++pickRequestRef.current
+    setResolvingPoint(true)
+    try {
+      const location = await reverseGeocode(point.lat, point.lng, amapWebServiceKey)
+      if (requestId !== pickRequestRef.current) return
+      if (!location) return
+      setPickedLocation(location)
+      setPickedName((current) => current || location.split(',')[0])
+    } finally {
+      if (requestId === pickRequestRef.current) setResolvingPoint(false)
+    }
+  }, [amapWebServiceKey])
+  const stopPicking = useCallback(() => {
+    pickRequestRef.current += 1
+    setIsPicking(false)
+    setPickedPoint(null)
+    setPickedName('')
+    setPickedLocation('')
+    setResolvingPoint(false)
+  }, [])
+  const savePickedPlace = useCallback(() => {
+    if (!pickedPoint || !pickedName.trim()) return
+    const title = pickedName.trim()
+    const id = addWishPlace({
+      title,
+      category: pickedCategory,
+      location: pickedLocation.trim() || `${pickedPoint.lat.toFixed(5)}, ${pickedPoint.lng.toFixed(5)}`,
+      geo: pickedPoint,
+    })
+    stopPicking()
+    useToastStore.getState().show(`已收藏「${title}」到想去清单`, {
+      undo: () => removeWishPlace(id),
+    })
+  }, [addWishPlace, pickedCategory, pickedLocation, pickedName, pickedPoint, removeWishPlace, stopPicking])
   const useAmap = !!amapJsKey && !amapUnavailable
   const amapLines = useMemo<AmapLine[]>(() => [
     ...visibleDays.flatMap((day) => {
@@ -180,15 +242,15 @@ export default function MapView() {
       weight: 3,
     })),
   ], [visibleDays, trip, crossDaySegments, mapRouteMode])
-  const amapMarkers = useMemo<AmapMarker[]>(() => markerGroups.map((group) => {
+  const amapMarkers = useMemo<AmapMarker[]>(() => [...markerGroups.map((group) => {
     const single = group.items[0]
     return group.items.length === 1
       ? { id: single.activity.id, point: group.point, label: single.activity.title, color: single.color, wide: true, onClick: () => useTripStore.getState().focusActivity(single.activity.id) }
       : { id: `cluster-${group.id}`, point: group.point, label: String(group.items.length), onClick: () => setOpenCluster(group) }
-  }), [markerGroups])
+  }), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [markerGroups, pickedPoint])
 
   return (
-    <div className="trip-map-view relative h-full w-full">
+    <div className={`trip-map-view relative h-full w-full ${isPicking ? 'cursor-crosshair' : ''}`}>
       {/* 天数筛选 */}
       <div className="absolute inset-x-3 top-3 z-[500] overflow-x-auto pb-1 md:inset-x-auto md:top-4 md:left-1/2 md:-translate-x-1/2">
         <div className="mx-auto flex w-max items-center gap-1 rounded-full border border-border bg-white p-1 shadow-[0_2px_10px_rgba(0,0,0,0.08)]">
@@ -209,8 +271,23 @@ export default function MapView() {
         </div>
       </div>
 
+      <button
+        onClick={() => isPicking ? stopPicking() : setIsPicking(true)}
+        className={`absolute top-3 right-3 z-[550] flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium shadow-[0_2px_10px_rgba(0,0,0,0.08)] transition-colors md:top-4 md:right-4 ${
+          isPicking ? 'border-accent bg-accent text-white' : 'border-border bg-white/95 text-text-muted hover:border-accent hover:text-accent'
+        }`}
+      >
+        {isPicking ? '取消选点' : <><PlusIcon size={14} /> 选点收藏</>}
+      </button>
+
+      {isPicking && !pickedPoint && (
+        <div className="absolute top-16 left-3 z-[550] rounded-lg border border-accent/30 bg-white/95 px-3 py-2 text-[12px] text-text-muted shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:top-[64px] md:left-4">
+          点击地图空白处，收藏一个想去地点
+        </div>
+      )}
+
       {useAmap ? (
-        <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={amapLines} className="h-full w-full" zoom={9} onError={handleAmapError} onRouteFallback={handleRouteFallback} />
+        <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={amapLines} className="h-full w-full" zoom={9} onMapPick={isPicking ? handleMapPick : undefined} onError={handleAmapError} onRouteFallback={handleRouteFallback} />
       ) : (
       <MapContainer center={[34.9, 135.6]} zoom={9} className="h-full w-full">
         <TileLayer
@@ -218,6 +295,7 @@ export default function MapView() {
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <FitBounds points={allPoints} />
+        <MapPickHandler enabled={isPicking} onPick={handleMapPick} />
 
         {crossDaySegments.map(({ from, to, dayIndex }) => {
           const positions = [[from.geo!.lat, from.geo!.lng], [to.geo!.lat, to.geo!.lng]] as [number, number][]
@@ -239,7 +317,22 @@ export default function MapView() {
             <Popup><div className="min-w-[180px]"><div className="mb-1.5 text-[12px] font-semibold">{group.items.length} 个重叠地点</div>{group.items.map(({ activity, day }) => <button key={activity.id} onClick={() => useTripStore.getState().focusActivity(activity.id)} className="block w-full truncate rounded px-1 py-1 text-left text-[12px] hover:bg-surface">{day.label} · {activity.title}</button>)}</div></Popup>
           </Marker>
         ))}
+        {pickedPoint && <Marker position={[pickedPoint.lat, pickedPoint.lng]} icon={pickedPointIcon} interactive={false} />}
       </MapContainer>
+      )}
+
+      {isPicking && pickedPoint && (
+        <div className="absolute inset-x-3 bottom-3 z-[600] rounded-xl border border-border bg-white p-3 shadow-[0_8px_24px_rgba(20,34,52,0.18)] md:inset-x-auto md:right-4 md:bottom-5 md:w-[310px]">
+          <div className="mb-2 flex items-center justify-between gap-1.5 text-[12px] font-semibold text-text"><span className="flex items-center gap-1.5"><MapIcon size={14} /> 已选位置</span><button onClick={stopPicking} className="font-normal text-text-faint hover:text-text-muted">取消</button></div>
+          <input value={pickedName} onChange={(event) => setPickedName(event.target.value)} placeholder="给这个地点起个名称" className="w-full rounded-md border border-border px-2.5 py-2 text-[12.5px] outline-none focus:border-accent" autoFocus />
+          <div className="mt-2 flex gap-2">
+            <select value={pickedCategory} onChange={(event) => setPickedCategory(event.target.value as ActivityCategory)} className="min-w-0 flex-1 rounded-md border border-border bg-white px-2 py-1.5 text-[12px] text-text-muted outline-none focus:border-accent">
+              {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((category) => <option key={category} value={category}>{CATEGORY_META[category].label}</option>)}
+            </select>
+            <button onClick={savePickedPlace} disabled={!pickedName.trim()} className="rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40">收藏到想去</button>
+          </div>
+          <div className="mt-2 truncate text-[11px] text-text-faint">{resolvingPoint ? '正在识别附近位置…' : pickedLocation}</div>
+        </div>
       )}
 
       {openCluster && (
