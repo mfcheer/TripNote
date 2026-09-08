@@ -6,10 +6,10 @@ import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
 import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 
 function pointIcon(label: string, active: boolean) {
-  const color = active ? '#223b56' : '#304a67'
+  const color = active ? '#294f6e' : '#3d6382'
   return L.divIcon({
     className: '',
-    html: `<div class="map-place-marker" style="border-color:${color};color:${color};${active ? 'background:#e8edf1;' : ''}">${escapeHtml(label)}</div>`,
+    html: `<div class="map-place-marker" style="border-color:${color};color:${color};${active ? 'background:#e9f1f7;' : ''}">${escapeHtml(label)}</div>`,
     iconSize: [140, 28],
     iconAnchor: [70, 14],
   })
@@ -57,12 +57,12 @@ export default function DayMapPreview({ dayId, selectedActivityId }: { dayId: st
   return (
     <div className="h-[240px] overflow-hidden rounded-lg border border-border">
       {amapJsKey ? (
-        <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={points.length > 1 ? [{ id: dayId, points: items.map((activity) => activity.geo!), color: '#b95543', weight: 3 }] : []} className="h-full w-full" zoom={13} />
+        <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={points.length > 1 ? [{ id: dayId, points: items.map((activity) => activity.geo!), color: '#c55e4e', weight: 3 }] : []} className="h-full w-full" zoom={13} />
       ) : (
       <MapContainer center={points[0]} zoom={13} className="h-full w-full" zoomControl={false} attributionControl={false}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
         <FitPreview points={points} />
-        {points.length > 1 && <Polyline positions={points} pathOptions={{ color: '#b95543', weight: 3, opacity: 0.7 }} />}
+        {points.length > 1 && <Polyline positions={points} pathOptions={{ color: '#c55e4e', weight: 3, opacity: 0.7 }} />}
         {items.map((activity) => (
           <Marker
             key={activity.id}

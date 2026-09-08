@@ -273,7 +273,7 @@ export function MobileHeader({ onExport, exporting }: { onExport: () => void; ex
 
   return (
     <header className="mobile-safe-top flex shrink-0 items-center gap-1.5 border-b border-border bg-surface/95 px-3 pb-2 backdrop-blur md:hidden">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-[#faf7f1] text-accent-hover shadow-[0_2px_8px_rgba(38,49,59,0.06)]" aria-label="途记">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-[#f7f9fb] text-accent-hover shadow-[0_2px_8px_rgba(31,50,76,0.06)]" aria-label="途记">
         <LogoIcon size={21} />
       </div>
       <TripSwitcher compact />
@@ -331,7 +331,7 @@ export default function Sidebar() {
     <aside className="hidden h-full w-[252px] shrink-0 flex-col border-r border-border bg-surface md:flex">
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 pt-5 pb-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-border bg-[#faf7f1] text-accent-hover shadow-[0_4px_12px_rgba(38,49,59,0.08)]">
+        <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-border bg-[#f7f9fb] text-accent-hover shadow-[0_4px_12px_rgba(31,50,76,0.08)]">
           <LogoIcon size={23} />
         </div>
         <div>
