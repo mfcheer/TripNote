@@ -691,12 +691,16 @@ function EditActivityForm({ activity, onDone }: { activity: Activity; onDone: ()
 function ActivityCard({
   activity,
   selected,
+  highlighted,
   onClick,
+  onHoverChange,
   warning,
 }: {
   activity: Activity
   selected: boolean
+  highlighted?: boolean
   onClick: () => void
+  onHoverChange?: (hovered: boolean) => void
   warning?: string
 }) {
   const meta = CATEGORY_META[activity.category]
@@ -705,8 +709,10 @@ function ActivityCard({
   const askConfirm = useConfirmStore((s) => s.ask)
   return (
     <div
-      className={`relative flex min-w-0 w-full items-center gap-2 rounded-lg border bg-white py-3 pr-2 pl-3.5 transition-shadow hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] ${
-        selected ? 'border-accent shadow-[0_2px_8px_rgba(49,92,125,0.12)]' : 'border-border'
+      onMouseEnter={() => onHoverChange?.(true)}
+      onMouseLeave={() => onHoverChange?.(false)}
+      className={`relative flex min-w-0 w-full items-center gap-2 rounded-lg border bg-white py-3 pr-2 pl-3.5 transition-[box-shadow,border-color,background-color] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] ${
+        selected ? 'border-accent shadow-[0_2px_8px_rgba(49,92,125,0.12)]' : highlighted ? 'border-accent/50 bg-accent-soft/40 shadow-[0_1px_5px_rgba(49,92,125,0.06)]' : 'border-border'
       }`}
     >
       <div
@@ -761,12 +767,16 @@ function ActivityCard({
 function SortableActivity({
   activity,
   selected,
+  highlighted,
   onClick,
+  onHoverChange,
   warning,
 }: {
   activity: Activity
   selected: boolean
+  highlighted?: boolean
   onClick: () => void
+  onHoverChange?: (hovered: boolean) => void
   warning?: string
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -781,7 +791,7 @@ function SortableActivity({
       {...attributes}
       {...listeners}
     >
-      <ActivityCard activity={activity} selected={selected} onClick={onClick} warning={warning} />
+      <ActivityCard activity={activity} selected={selected} highlighted={highlighted} onClick={onClick} onHoverChange={onHoverChange} warning={warning} />
     </div>
   )
 }
@@ -868,7 +878,17 @@ function DayHeaderInfo({ day }: { day: { id: string; date: string; place: string
 }
 
 // 一天的分组
-function DaySection({ dayId, onQuickAdd }: { dayId: string; onQuickAdd: () => void }) {
+function DaySection({
+  dayId,
+  onQuickAdd,
+  highlightedActivityId,
+  onActivityHover,
+}: {
+  dayId: string
+  onQuickAdd: () => void
+  highlightedActivityId: string | null
+  onActivityHover: (activityId: string | null) => void
+}) {
   const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
   const askConfirm = useConfirmStore((s) => s.ask)
@@ -1000,7 +1020,9 @@ function DaySection({ dayId, onQuickAdd }: { dayId: string; onQuickAdd: () => vo
                     <SortableActivity
                       activity={a}
                       selected={selectedActivityId === a.id}
+                      highlighted={highlightedActivityId === a.id}
                       onClick={() => selectActivity(selectedActivityId === a.id ? null : a.id)}
+                      onHoverChange={(hovered) => onActivityHover(hovered ? a.id : null)}
                       warning={warnings.get(a.id)}
                     />
                     {/* 小屏幕没有右侧栏时，保留内嵌详情与编辑作为降级交互。 */}
@@ -1041,10 +1063,12 @@ function PlannerInspector({
   dayId,
   selectedActivityId,
   editingActivityId,
+  highlightedActivityId,
 }: {
   dayId: string
   selectedActivityId: string | null
   editingActivityId: string | null
+  highlightedActivityId: string | null
 }) {
   const trip = useActiveTrip()
   const { selectActivity, setEditingActivity } = useTripStore()
@@ -1094,7 +1118,7 @@ function PlannerInspector({
             收起详情
           </button>
         </div>
-        <DayMapPreview dayId={dayId} selectedActivityId={activityId ?? null} />
+        <DayMapPreview dayId={dayId} selectedActivityId={activityId ?? null} highlightedActivityId={highlightedActivityId} showLabels={panelWidth >= 420} />
       </div>
       <div className="p-4">
         {activity ? (
@@ -1191,6 +1215,8 @@ export default function TimelineView() {
   const [quickAddKey, setQuickAddKey] = useState(0)
   const [mobileQuickAddOpen, setMobileQuickAddOpen] = useState(false)
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
+  const [hoveredActivityId, setHoveredActivityId] = useState<string | null>(null)
+  const [visibleActivityId, setVisibleActivityId] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
   const draggingActivity = trip.activities.find((activity) => activity.id === draggingId)
   const activeDay = trip.days.find((day) => day.id === activeDayId)
@@ -1252,6 +1278,23 @@ export default function TimelineView() {
       ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }, [selectedActivityId])
 
+  // 时间轴滚动时，用视口中最靠近中心的安排给地图一个轻量提示；
+  // 鼠标悬停优先级更高，因此不会抢走正在查看的地点。
+  useEffect(() => {
+    const nodes = [...document.querySelectorAll<HTMLElement>('[data-activity-id]')]
+    if (!nodes.length || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+      if (visible) setVisibleActivityId(visible.target.getAttribute('data-activity-id'))
+    }, { threshold: [0.25, 0.5, 0.75] })
+    nodes.forEach((node) => observer.observe(node))
+    return () => observer.disconnect()
+  }, [activeDayId, trip.activities.length])
+
+  const mapHighlightedActivityId = hoveredActivityId ?? visibleActivityId
+
   return (
     <DndContext
       sensors={sensors}
@@ -1292,7 +1335,7 @@ export default function TimelineView() {
               </div>
             )}
             {trip.days.map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} />
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} />
             ))}
           </div>
           <div data-quick-add className="sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block lg:px-8">
@@ -1321,6 +1364,7 @@ export default function TimelineView() {
           dayId={activeDayId}
           selectedActivityId={selectedActivityId}
           editingActivityId={editingActivityId}
+          highlightedActivityId={mapHighlightedActivityId}
         />
       </div>
       <DragOverlay>

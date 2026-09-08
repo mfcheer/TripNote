@@ -5,13 +5,16 @@ import 'leaflet/dist/leaflet.css'
 import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
 import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 
-function pointIcon(label: string, active: boolean) {
-  const color = active ? '#294f6e' : '#3d6382'
+function pointIcon(label: string, selected: boolean, highlighted: boolean, showLabels: boolean) {
+  const color = selected ? '#294f6e' : '#3d6382'
+  const activeStyle = selected ? 'background:#e9f1f7;' : highlighted ? 'background:#f2f7fb;' : ''
   return L.divIcon({
     className: '',
-    html: `<div class="map-place-marker" style="border-color:${color};color:${color};${active ? 'background:#e9f1f7;' : ''}">${escapeHtml(label)}</div>`,
-    iconSize: [140, 28],
-    iconAnchor: [70, 14],
+    html: showLabels
+      ? `<div class="map-place-marker" style="border-color:${color};color:${color};${activeStyle}">${escapeHtml(label)}</div>`
+      : `<div class="map-marker map-dot${highlighted || selected ? ' is-highlighted' : ''}" style="border-color:${color};color:${color};${activeStyle}"></div>`,
+    iconSize: showLabels ? [140, 28] : [26, 26],
+    iconAnchor: showLabels ? [70, 14] : [13, 13],
   })
 }
 
@@ -28,9 +31,19 @@ function FitPreview({ points }: { points: [number, number][] }) {
   return null
 }
 
-export default function DayMapPreview({ dayId, selectedActivityId }: { dayId: string; selectedActivityId: string | null }) {
+export default function DayMapPreview({
+  dayId,
+  selectedActivityId,
+  highlightedActivityId,
+  showLabels = true,
+}: {
+  dayId: string
+  selectedActivityId: string | null
+  highlightedActivityId?: string | null
+  showLabels?: boolean
+}) {
   const trip = useActiveTrip()
-  const selectActivity = useTripStore((s) => s.selectActivity)
+  const focusActivity = useTripStore((s) => s.focusActivity)
   const amapJsKey = useTripStore((s) => s.amapJsKey)
   const items = activitiesByDay(trip, dayId).filter((activity) => activity.geo)
   const points = useMemo(
@@ -40,10 +53,11 @@ export default function DayMapPreview({ dayId, selectedActivityId }: { dayId: st
   const amapMarkers: AmapMarker[] = items.map((activity) => ({
     id: activity.id,
     point: activity.geo!,
-    label: activity.title,
-    active: selectedActivityId === activity.id,
-    wide: true,
-    onClick: () => selectActivity(activity.id),
+    label: showLabels ? activity.title : '',
+    active: selectedActivityId === activity.id || highlightedActivityId === activity.id,
+    simple: !showLabels,
+    wide: showLabels,
+    onClick: () => focusActivity(activity.id),
   }))
 
   if (items.length === 0) {
@@ -67,8 +81,8 @@ export default function DayMapPreview({ dayId, selectedActivityId }: { dayId: st
           <Marker
             key={activity.id}
             position={[activity.geo!.lat, activity.geo!.lng]}
-            icon={pointIcon(activity.title, selectedActivityId === activity.id)}
-            eventHandlers={{ click: () => selectActivity(activity.id) }}
+            icon={pointIcon(activity.title, selectedActivityId === activity.id, highlightedActivityId === activity.id, showLabels)}
+            eventHandlers={{ click: () => focusActivity(activity.id) }}
           />
         ))}
       </MapContainer>
