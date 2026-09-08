@@ -56,6 +56,8 @@ export interface AmapMarker {
   simple?: boolean
   wide?: boolean
   onClick?: () => void
+  onMouseEnter?: () => void
+  onMouseLeave?: () => void
 }
 
 function escapeHtml(value: string) {
@@ -179,6 +181,8 @@ export default function AmapCanvas({
         zIndex: marker.active ? 200 : 100,
       })
       if (marker.onClick) markerOverlay.on('click', marker.onClick)
+      if (marker.onMouseEnter) markerOverlay.on('mouseover', marker.onMouseEnter)
+      if (marker.onMouseLeave) markerOverlay.on('mouseout', marker.onMouseLeave)
       overlays.push(markerOverlay)
     }
     mapRef.current.add(overlays)

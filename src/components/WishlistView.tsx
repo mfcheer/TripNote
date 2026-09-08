@@ -297,8 +297,10 @@ function ScheduleDragButton({ place, onSchedule }: { place: WishPlace; onSchedul
 function SortableWishCard({
   place,
   active,
+  highlighted,
   scheduledItems,
   onActivate,
+  onHoverChange,
   onRemove,
   onFocus,
   onCancel,
@@ -306,8 +308,10 @@ function SortableWishCard({
 }: {
   place: WishPlace
   active: boolean
+  highlighted: boolean
   scheduledItems: Array<{ id: string; time: string; dayLabel: string }>
   onActivate: () => void
+  onHoverChange: (hovered: boolean) => void
   onRemove: () => void
   onFocus: (activityId: string) => void
   onCancel: (activityId: string) => void
@@ -321,10 +325,13 @@ function SortableWishCard({
     <article
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`group rounded-lg border bg-white p-2.5 transition-colors ${
-        active ? 'border-accent shadow-[0_2px_8px_rgba(49,92,125,0.12)]' : 'border-border'
+      data-wish-id={place.id}
+      onClick={onActivate}
+      onMouseEnter={() => onHoverChange(true)}
+      onMouseLeave={() => onHoverChange(false)}
+      className={`group rounded-lg border bg-white p-2.5 transition-[border-color,box-shadow,background-color] ${
+        active ? 'border-accent shadow-[0_2px_8px_rgba(49,92,125,0.12)]' : highlighted ? 'border-accent/50 bg-accent-soft/35 shadow-[0_1px_5px_rgba(49,92,125,0.06)]' : 'border-border'
       } ${isDragging ? 'relative z-30 opacity-70 shadow-lg' : ''}`}
-      onMouseEnter={onActivate}
     >
       <div className="flex items-start gap-2">
         <button
@@ -407,6 +414,8 @@ export default function WishlistView() {
   const [searching, setSearching] = useState('')
   const [results, setResults] = useState<GeoResult[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [hoveredId, setHoveredId] = useState<string | null>(null)
+  const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'empty' | 'results'>('idle')
   const [mapPanelWidth, setMapPanelWidth] = useState(readMapPanelWidth)
   const [manualCategory, setManualCategory] = useState<ActivityCategory>('sight')
   const [schedulingPlaceId, setSchedulingPlaceId] = useState<string | null>(null)
@@ -444,6 +453,7 @@ export default function WishlistView() {
   useEffect(() => {
     const query = searching.trim()
     if (query.length < 2) {
+      setSearchStatus('idle')
       return
     }
     const timer = setTimeout(async () => {
@@ -451,9 +461,16 @@ export default function WishlistView() {
       const ctrl = new AbortController()
       abortRef.current = ctrl
       try {
-        setResults(await searchPlaces(query, ctrl.signal, amapWebServiceKey))
+        setSearchStatus('loading')
+        const nextResults = await searchPlaces(query, ctrl.signal, amapWebServiceKey)
+        if (ctrl.signal.aborted) return
+        setResults(nextResults)
+        setSearchStatus(nextResults.length > 0 ? 'results' : 'empty')
       } catch (error) {
-        if ((error as Error).name !== 'AbortError') setResults([])
+        if ((error as Error).name !== 'AbortError') {
+          setResults([])
+          setSearchStatus('empty')
+        }
       }
     }, 450)
     return () => {
@@ -461,6 +478,13 @@ export default function WishlistView() {
       abortRef.current?.abort()
     }
   }, [searching, amapWebServiceKey])
+
+  // 从地图点选地点后，让清单自动滚到对应卡片，避免地图与列表脱节。
+  useEffect(() => {
+    if (!activeId) return
+    document.querySelector<HTMLElement>(`[data-wish-id="${activeId}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [activeId])
 
   function isPlaceScheduled(place: WishPlace) {
     return scheduledItemsFor(place).length > 0
@@ -495,9 +519,11 @@ export default function WishlistView() {
     point: place.geo!,
     label: place.title,
     color: activeId === place.id ? '#294f6e' : '#3d6382',
-    active: activeId === place.id,
+    active: activeId === place.id || hoveredId === place.id,
     wide: true,
     onClick: () => setActiveId(place.id),
+    onMouseEnter: () => setHoveredId(place.id),
+    onMouseLeave: () => setHoveredId(null),
   }))
 
   function addFromResult(result: GeoResult) {
@@ -510,6 +536,7 @@ export default function WishlistView() {
     setActiveId(id)
     setSearching('')
     setResults([])
+    setSearchStatus('idle')
     useToastStore.getState().show(`已收藏「${result.label.split(',')[0]}」`)
   }
 
@@ -520,6 +547,7 @@ export default function WishlistView() {
     setActiveId(id)
     setSearching('')
     setResults([])
+    setSearchStatus('idle')
     useToastStore.getState().show(`已收藏「${title}」`)
   }
 
@@ -582,6 +610,7 @@ export default function WishlistView() {
                   value={searching}
                   onChange={(event) => {
                     setSearching(event.target.value)
+                    setSearchStatus('idle')
                     if (event.target.value.trim().length < 2) setResults([])
                   }}
                   onKeyDown={(event) => event.key === 'Enter' && addManual()}
@@ -599,6 +628,18 @@ export default function WishlistView() {
                       </li>
                     ))}
                   </ul>
+                )}
+                {searchStatus === 'empty' && searching.trim().length >= 2 && (
+                  <div className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-border bg-white p-3 shadow-lg">
+                    <div className="text-[12px] font-medium text-text-muted">没有找到「{searching.trim()}」</div>
+                    <p className="mt-1 text-[11.5px] leading-relaxed text-text-faint">可能是小众地点、临时地标或地图未收录的位置。你可以直接在地图上点选并自定义名称。</p>
+                    <button
+                      onClick={() => setShowCustomMap(true)}
+                      className="mt-2 flex items-center gap-1.5 rounded-md bg-accent-soft px-2.5 py-1.5 text-[11.5px] font-medium text-accent-hover transition-colors hover:bg-accent hover:text-white"
+                    >
+                      <MapIcon size={13} /> 在地图上选点
+                    </button>
+                  </div>
                 )}
               </div>
               <button
@@ -662,8 +703,10 @@ export default function WishlistView() {
                         <SortableWishCard
                           place={place}
                           active={activeId === place.id}
+                          highlighted={hoveredId === place.id}
                           scheduledItems={scheduledItems}
                           onActivate={() => setActiveId(place.id)}
+                          onHoverChange={(hovered) => setHoveredId(hovered ? place.id : null)}
                           onRemove={() => removePlace(place.id, place.title, scheduledItems.length > 0)}
                           onFocus={focusActivity}
                           onCancel={(activityId) => cancelSchedule(place, activityId)}
@@ -700,7 +743,16 @@ export default function WishlistView() {
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <FitPlaces points={points} />
               {mapped.map((place) => (
-                <Marker key={place.id} position={[place.geo!.lat, place.geo!.lng]} icon={wishMarker(activeId === place.id, place.title)} eventHandlers={{ click: () => setActiveId(place.id) }} />
+                <Marker
+                  key={place.id}
+                  position={[place.geo!.lat, place.geo!.lng]}
+                  icon={wishMarker(activeId === place.id || hoveredId === place.id, place.title)}
+                  eventHandlers={{
+                    click: () => setActiveId(place.id),
+                    mouseover: () => setHoveredId(place.id),
+                    mouseout: () => setHoveredId(null),
+                  }}
+                />
               ))}
             </MapContainer>
             )}
