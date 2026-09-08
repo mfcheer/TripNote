@@ -46,12 +46,14 @@ function CostRow({
   onTitleChange,
   onAmountChange,
   onRemove,
+  onSave,
 }: {
   title: string
   amount: number
   onTitleChange: (t: string) => void
   onAmountChange: (a: number) => void
   onRemove: () => void
+  onSave: () => void
 }) {
   const [titleDraft, setTitleDraft] = useState(title)
   const [amountDraft, setAmountDraft] = useState(String(amount))
@@ -70,11 +72,13 @@ function CostRow({
     [], // eslint-disable-line react-hooks/exhaustive-deps
   )
 
-  function commitAmount() {
+  function commit(showFeedback = false) {
+    if (titleDraft !== title) onTitleChange(titleDraft)
     const v = parseFloat(amountDraft)
     const n = isNaN(v) ? 0 : v
     if (n !== amount) onAmountChange(n)
     if (amountDraft !== String(n)) setAmountDraft(String(n))
+    if (showFeedback) onSave()
   }
 
   return (
@@ -90,11 +94,23 @@ function CostRow({
       <input
         value={amountDraft}
         onChange={(e) => setAmountDraft(e.target.value)}
-        onBlur={commitAmount}
-        onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
+        onBlur={() => commit()}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault()
+            commit(true)
+          }
+        }}
         inputMode="decimal"
         className="w-[72px] rounded border border-transparent bg-white/70 px-2 py-1 text-right text-[12.5px] tabular-nums outline-none focus:border-accent"
       />
+      <button
+        onClick={() => commit(true)}
+        className="rounded px-1.5 py-1 text-[11.5px] font-medium text-accent transition-colors hover:bg-accent-soft"
+        title="保存这笔花费"
+      >
+        保存
+      </button>
       <button
         onClick={onRemove}
         className="rounded p-1 text-text-faint transition-colors hover:text-red-500"
@@ -190,10 +206,14 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
               onTitleChange={(t) => updateCost(activity.id, c.id, { title: t })}
               onAmountChange={(a) => updateCost(activity.id, c.id, { amount: a })}
               onRemove={() => removeCost(activity.id, c.id)}
+              onSave={() => useToastStore.getState().show('花费已保存')}
             />
           ))}
           <button
-            onClick={() => addCost(activity.id, { amount: 0 })}
+            onClick={() => {
+              addCost(activity.id, { amount: 0 })
+              useToastStore.getState().show('已新增一笔花费，请填写金额后保存')
+            }}
             className="rounded-md border border-dashed border-border px-2 py-1 text-[12px] text-text-muted transition-colors hover:border-accent hover:text-accent"
           >
             ＋ 添加花费
