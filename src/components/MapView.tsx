@@ -273,7 +273,7 @@ export default function MapView() {
 
       <button
         onClick={() => isPicking ? stopPicking() : setIsPicking(true)}
-        className={`absolute top-3 right-3 z-[550] flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium shadow-[0_2px_10px_rgba(0,0,0,0.08)] transition-colors md:top-4 md:right-4 ${
+        className={`absolute top-[52px] right-3 z-[550] flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium shadow-[0_2px_10px_rgba(0,0,0,0.08)] transition-colors md:top-4 md:right-4 ${
           isPicking ? 'border-accent bg-accent text-white' : 'border-border bg-white/95 text-text-muted hover:border-accent hover:text-accent'
         }`}
       >
@@ -281,7 +281,7 @@ export default function MapView() {
       </button>
 
       {isPicking && !pickedPoint && (
-        <div className="absolute top-16 left-3 z-[550] rounded-lg border border-accent/30 bg-white/95 px-3 py-2 text-[12px] text-text-muted shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:top-[64px] md:left-4">
+        <div className="absolute top-[96px] left-3 z-[550] rounded-lg border border-accent/30 bg-white/95 px-3 py-2 text-[12px] text-text-muted shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:top-[64px] md:left-4">
           点击地图空白处，收藏一个想去地点
         </div>
       )}
