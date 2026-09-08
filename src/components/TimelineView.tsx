@@ -1333,7 +1333,7 @@ export default function TimelineView() {
       {mobileQuickAddOpen && (
         <div className="fixed inset-0 z-[700] flex items-end bg-black/30 sm:hidden" role="dialog" aria-modal="true" aria-label="新增安排">
           <button className="absolute inset-0" onClick={() => setMobileQuickAddOpen(false)} aria-label="关闭新增安排" />
-          <div className="mobile-safe-bottom relative max-h-[84vh] w-full overflow-y-auto rounded-t-[22px] bg-[#fbfcfe] px-4 pt-3 shadow-[0_-12px_36px_rgba(15,23,42,0.18)]">
+          <div className="mobile-safe-bottom relative max-h-[84vh] w-full overflow-y-auto rounded-t-[22px] bg-[#fffefb] px-4 pt-3 shadow-[0_-12px_36px_rgba(38,49,59,0.16)]">
             <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
             <div className="mb-3 flex items-start justify-between gap-3">
               <div>

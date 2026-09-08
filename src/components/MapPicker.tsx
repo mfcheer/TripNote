@@ -9,7 +9,7 @@ import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 
 const pickIcon = L.divIcon({
   className: '',
-  html: `<div class="map-marker" style="border-color:#415f88;color:#415f88">📍</div>`,
+  html: `<div class="map-marker" style="border-color:#304a67;color:#304a67">📍</div>`,
   iconSize: [26, 26],
   iconAnchor: [13, 26],
 })
@@ -86,7 +86,7 @@ export default function MapPicker({
     }
   }
 
-  const amapMarkers: AmapMarker[] = point ? [{ id: 'picked', point, label: '📍', color: '#415f88' }] : []
+  const amapMarkers: AmapMarker[] = point ? [{ id: 'picked', point, label: '📍', color: '#304a67' }] : []
 
   return (
     <div className="overflow-hidden rounded-md border border-border">

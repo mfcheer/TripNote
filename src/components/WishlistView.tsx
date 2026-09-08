@@ -30,10 +30,10 @@ function readMapPanelWidth() {
 }
 
 function wishMarker(active: boolean, label: string) {
-  const color = active ? '#2e496f' : '#415f88'
+  const color = active ? '#223b56' : '#304a67'
   return L.divIcon({
     className: '',
-    html: `<div class="map-place-marker" style="border-color:${color};color:${color};${active ? 'background:#e8eff8;' : ''}">${escapeHtml(label)}</div>`,
+    html: `<div class="map-place-marker" style="border-color:${color};color:${color};${active ? 'background:#e8edf1;' : ''}">${escapeHtml(label)}</div>`,
     iconSize: [140, 28],
     iconAnchor: [70, 14],
   })
@@ -494,7 +494,7 @@ export default function WishlistView() {
     id: place.id,
     point: place.geo!,
     label: place.title,
-    color: activeId === place.id ? '#2e496f' : '#415f88',
+    color: activeId === place.id ? '#223b56' : '#304a67',
     active: activeId === place.id,
     wide: true,
     onClick: () => setActiveId(place.id),

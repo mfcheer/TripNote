@@ -35,7 +35,7 @@ function markerIcon(color: string, label: string) {
 function clusterIcon(count: number) {
   return L.divIcon({
     className: '',
-    html: `<div class="map-marker" style="border-color:#415f88;color:#415f88">${count}</div>`,
+    html: `<div class="map-marker" style="border-color:#304a67;color:#304a67">${count}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   })

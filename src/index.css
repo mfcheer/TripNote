@@ -8,29 +8,29 @@
   padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
 }
 
-/* 雾蓝旅行册：冷白底、深海军蓝主色，以低饱和分类色组织信息层级。 */
+/* 纸感旅行册：暖灰纸张、墨蓝操作与陶土路线。颜色只承担层级与状态，不制造“仪表盘感”。 */
 @theme {
-  --color-bg: #f5f7fb;
-  --color-surface: #ffffff;
-  --color-surface-2: #edf2f7;
-  --color-border: #dbe3ed;
-  --color-text: #172033;
-  --color-text-muted: #637287;
-  --color-text-faint: #94a1b2;
-  --color-accent: #415f88;
-  --color-accent-soft: #e8eff8;
-  --color-accent-hover: #2e496f;
+  --color-bg: #f5f2ec;
+  --color-surface: #fffefb;
+  --color-surface-2: #efeae1;
+  --color-border: #e2dbd0;
+  --color-text: #26313b;
+  --color-text-muted: #68737b;
+  --color-text-faint: #999c9a;
+  --color-accent: #304a67;
+  --color-accent-soft: #e8edf1;
+  --color-accent-hover: #223b56;
 
-  --color-cat-traffic: #3f83ab;
-  --color-cat-traffic-soft: #e4f2fa;
-  --color-cat-sight: #d16d55;
-  --color-cat-sight-soft: #fbeae5;
-  --color-cat-food: #bd873d;
-  --color-cat-food-soft: #fbf1e1;
-  --color-cat-stay: #7868a6;
-  --color-cat-stay-soft: #edeaf7;
-  --color-cat-shop: #b35f87;
-  --color-cat-shop-soft: #f8e9f0;
+  --color-cat-traffic: #557a8e;
+  --color-cat-traffic-soft: #e9f0f1;
+  --color-cat-sight: #b95c49;
+  --color-cat-sight-soft: #f8e9e3;
+  --color-cat-food: #a87535;
+  --color-cat-food-soft: #f6eedf;
+  --color-cat-stay: #6c7085;
+  --color-cat-stay-soft: #ececf0;
+  --color-cat-shop: #9b6370;
+  --color-cat-shop-soft: #f4e9eb;
 
   --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
 }
@@ -57,14 +57,14 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
 
 /* 细滚动条 */
 *::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: #cbd6e3; border-radius: 4px; }
-*::-webkit-scrollbar-thumb:hover { background: #aebdce; }
+*::-webkit-scrollbar-thumb { background: #cec7bb; border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: #aea697; }
 *::-webkit-scrollbar-track { background: transparent; }
 
 /* Leaflet 融入浅色设计 */
 .leaflet-container {
   font-family: var(--font-sans);
-  background: #edf2f7;
+  background: #efeae1;
 }
 .leaflet-control-zoom {
   border: 1px solid var(--color-border) !important;
@@ -99,7 +99,7 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
   width: 26px;
   height: 26px;
   border-radius: 50%;
-  background: #ffffff;
+  background: var(--color-surface);
   border: 2px solid var(--color-accent);
   font-size: 12px;
   font-weight: 600;
@@ -116,7 +116,7 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
   overflow: hidden;
   border: 2px solid var(--color-accent);
   border-radius: 14px;
-  background: #ffffff;
+  background: var(--color-surface);
   box-shadow: 0 1px 5px rgba(0,0,0,0.18);
   color: var(--color-accent);
   font-size: 12px;
@@ -133,7 +133,7 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
   box-sizing: border-box;
   width: 14px;
   height: 14px;
-  border: 3px solid #ffffff;
+  border: 3px solid var(--color-surface);
   border-radius: 50%;
   background: var(--wish-marker-color, var(--color-accent));
   box-shadow: 0 1px 5px rgba(38, 61, 86, 0.34);
@@ -141,5 +141,5 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
 }
 .wish-map-marker.is-active {
   transform: scale(1.28);
-  box-shadow: 0 0 0 4px rgba(65, 95, 136, 0.2), 0 2px 6px rgba(38, 61, 86, 0.35);
+  box-shadow: 0 0 0 4px rgba(48, 74, 103, 0.18), 0 2px 6px rgba(38, 49, 59, 0.28);
 }
