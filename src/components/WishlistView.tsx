@@ -329,9 +329,9 @@ function SortableWishCard({
       onClick={onActivate}
       onMouseEnter={() => onHoverChange(true)}
       onMouseLeave={() => onHoverChange(false)}
-      className={`group rounded-lg border bg-white p-2.5 transition-[border-color,box-shadow,background-color] ${
-        active ? 'border-accent shadow-[0_2px_8px_rgba(49,92,125,0.12)]' : highlighted ? 'border-accent/50 bg-accent-soft/35 shadow-[0_1px_5px_rgba(49,92,125,0.06)]' : 'border-border'
-      } ${isDragging ? 'relative z-30 opacity-70 shadow-lg' : ''}`}
+      className={`group border-b border-border/70 px-1 py-3 transition-[background-color,box-shadow] ${
+        active ? 'rounded-md bg-white px-2.5 shadow-[0_3px_12px_rgba(31,50,76,0.07)]' : highlighted ? 'bg-accent-soft/45' : 'hover:bg-white/70'
+      } ${isDragging ? 'relative z-30 rounded-md bg-white opacity-70 shadow-lg' : ''}`}
     >
       <div className="flex items-start gap-2">
         <button
@@ -365,7 +365,7 @@ function SortableWishCard({
           <TrashIcon size={14} />
         </button>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 pt-1.5">
         {scheduledItems.length > 0 ? (
           <>
             <span className="mr-auto text-[11px] font-medium text-accent-hover">已安排 {scheduledItems.length} 次</span>
@@ -595,15 +595,15 @@ export default function WishlistView() {
   return (
     <div className="flex h-full min-w-0">
       <section className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mr-auto max-w-[920px] px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
-          <div className="mb-5">
-            <h1 className="text-[18px] font-semibold">想去清单</h1>
-            <p className="mt-1 text-[12.5px] text-text-muted">
-              先收藏灵感，需要时再确认日期和时间。待安排地点 {trip.wishPlaces.length - scheduledCount} · 已安排地点 {scheduledCount}
+        <div className="mr-auto max-w-[1000px] px-4 py-5 sm:px-7 sm:py-7 lg:px-10">
+          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border/80 pb-3">
+            <h1 className="text-[18px] font-semibold">想去</h1>
+            <p className="text-[12px] text-text-muted">
+              待安排 {trip.wishPlaces.length - scheduledCount} · 已安排 {scheduledCount}
             </p>
           </div>
 
-          <div className="relative mb-5 rounded-xl border border-accent/30 bg-accent-soft/25 p-3">
+          <div className="relative mb-4 border-b border-border/80 pb-4">
             <div className="flex flex-wrap gap-2">
               <div className="relative min-w-full flex-1 sm:min-w-[250px]">
                 <input
@@ -663,31 +663,31 @@ export default function WishlistView() {
             </div>
           </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="mb-4 flex flex-wrap items-center gap-1.5">
             <input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               placeholder="筛选地点或城市"
                 className="w-full rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent sm:w-[180px]"
             />
-            <button onClick={() => setCategory('all')} className={`rounded-full px-2.5 py-1 text-[12px] ${category === 'all' ? 'bg-accent text-white' : 'bg-surface text-text-muted'}`}>全部 {trip.wishPlaces.length}</button>
+            <button onClick={() => setCategory('all')} className={`rounded-full px-2.5 py-1 text-[12px] ${category === 'all' ? 'bg-accent text-white' : 'text-text-muted hover:bg-surface-2'}`}>全部 {trip.wishPlaces.length}</button>
             {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => (
-              <button key={value} onClick={() => setCategory(value)} className={`rounded-full px-2.5 py-1 text-[12px] ${category === value ? 'bg-accent text-white' : 'bg-surface text-text-muted'}`}>
+              <button key={value} onClick={() => setCategory(value)} className={`rounded-full px-2.5 py-1 text-[12px] ${category === value ? 'bg-accent text-white' : 'text-text-muted hover:bg-surface-2'}`}>
                 {CATEGORY_META[value].label}
               </button>
             ))}
           </div>
 
-          <div className="mb-3 hidden rounded-md border border-dashed border-border bg-surface px-3 py-2 text-[11.5px] leading-relaxed text-text-muted md:block">
-            拖动地点名称或“拖到左侧日期”到左边任意日期，即可快速安排；卡片左侧 <span className="font-medium">⠿</span> 只用于调整清单顺序。
+          <div className="mb-2 hidden text-[11.5px] leading-relaxed text-text-faint md:block">
+            可拖动地点名称到左侧日期快速安排；左侧 ⠿ 用于调整收藏顺序。
           </div>
 
           {filtered.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border px-6 py-12 text-center text-[13px] text-text-faint">还没有待安排地点，从上方搜索或手动收藏一个开始。</div>
+            <div className="border-y border-dashed border-border px-6 py-12 text-center text-[13px] text-text-faint">还没有待安排地点，从上方搜索或手动收藏一个开始。</div>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={filtered.map((place) => place.id)} strategy={verticalListSortingStrategy}>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col">
                   {filtered.map((place, index) => {
                     const scheduledItems = scheduledItemsFor(place)
                     const startsScheduledSection = scheduledItems.length > 0 && !filtered.slice(0, index).some(isPlaceScheduled)
@@ -731,9 +731,9 @@ export default function WishlistView() {
       >
         <span className="h-10 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
       </div>
-      <aside className="sticky top-0 hidden h-full shrink-0 border-l border-border bg-white p-4 lg:block" style={{ width: mapPanelWidth }}>
-        <div className="mb-2 text-[13px] font-semibold">地点分布</div>
-        <div className="mb-3 text-[11.5px] text-text-faint">地图标记与清单卡片联动</div>
+      <aside className="sticky top-0 hidden h-full shrink-0 border-l border-border bg-surface p-4 lg:block" style={{ width: mapPanelWidth }}>
+        <div className="mb-1 text-[13px] font-semibold">地点分布</div>
+        <div className="mb-3 text-[11.5px] text-text-faint">点击地图标记可定位收藏</div>
         {mapped.length > 0 ? (
           <div className="h-[calc(100%-48px)] overflow-hidden rounded-lg border border-border">
             {amapJsKey ? (

@@ -342,9 +342,12 @@ export default function MapView() {
         </div>
       )}
 
-      {/* 图例 */}
-      <div className="absolute right-4 bottom-6 z-[500] hidden rounded-lg border border-border bg-white/95 px-3.5 py-2.5 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:block">
-        <div className="mb-1.5 text-[11px] font-semibold text-text-muted">行程进度</div>
+      {/* 图例默认收起，把地图留给路线与地点；需要时再展开查看日期色。 */}
+      <details className="absolute right-4 bottom-6 z-[500] hidden w-[238px] rounded-lg border border-border bg-white/95 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:block">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[11.5px] font-medium text-text-muted [&::-webkit-details-marker]:hidden">
+          <span>行程进度 · {trip.daysCount} 天</span><span className="text-text-faint">展开</span>
+        </summary>
+        <div className="border-t border-border px-3.5 py-2.5">
         <div className="mb-2 flex items-center gap-1 text-[10.5px] text-text-faint">
           <span>第 1 天</span>
           <span className="h-1 flex-1 rounded-full" style={{ background: `linear-gradient(90deg, ${ROUTE_COLORS.join(', ')})` }} />
@@ -372,7 +375,8 @@ export default function MapView() {
           </div>
         )}
         {routeFallback && mapRouteMode === 'walking' && <div className="mt-1.5 text-[11px] text-amber-700">步行路线请求失败，已显示直线连线。</div>}
-      </div>
+        </div>
+      </details>
 
       {/* 当前选中类别说明（保持设计系统中分类色一致） */}
       <div className="absolute top-4 left-[64px] z-[500] hidden rounded-lg border border-border bg-white/95 px-3 py-2 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:block">
