@@ -132,22 +132,27 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
 .map-place-marker {
   display: block;
   box-sizing: border-box;
-  max-width: 140px;
-  height: 28px;
+  max-width: 122px;
+  height: 24px;
   overflow: hidden;
-  border: 2px solid var(--color-accent);
-  border-radius: 14px;
+  border: 1.5px solid var(--color-accent);
+  border-radius: 12px;
   background: var(--color-surface);
   box-shadow: 0 1px 5px rgba(0,0,0,0.18);
   color: var(--color-accent);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  line-height: 24px;
-  padding: 0 9px;
+  line-height: 21px;
+  padding: 0 7px;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
   pointer-events: none;
+}
+
+/* 地图上的名称是辅助信息：收敛尺寸，优先保留地图与路线本身的呼吸感。 */
+@media (max-width: 767px) {
+  .map-place-marker { max-width: 104px; }
 }
 
 /* 想去清单的地图只表达地点分布，避免编号暗示不存在的游览顺序。 */

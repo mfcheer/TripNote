@@ -328,14 +328,14 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="hidden h-full w-[252px] shrink-0 flex-col border-r border-border bg-surface md:flex">
+    <aside className="hidden h-full w-[232px] shrink-0 flex-col border-r border-border bg-surface md:flex">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 pt-5 pb-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-[14px] border border-border bg-[#f7f9fb] text-accent-hover shadow-[0_4px_12px_rgba(31,50,76,0.08)]">
-          <LogoIcon size={23} />
+      <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-[#f7f9fb] text-accent-hover">
+          <LogoIcon size={21} />
         </div>
         <div>
-          <div className="text-[15px] font-semibold leading-tight tracking-[0.02em]">途记</div>
+          <div className="text-[14px] font-semibold leading-tight tracking-[0.02em]">途记</div>
           <div className="mt-0.5 text-[10.5px] leading-tight tracking-[0.08em] text-text-faint">TripNote</div>
         </div>
       </div>
@@ -379,7 +379,7 @@ export default function Sidebar() {
               }}
               onDragLeave={() => setDropDayId((id) => (id === d.id ? null : id))}
               onDrop={(event) => scheduleDroppedWish(event, d)}
-              className={`relative mb-1 flex w-full min-w-0 items-center gap-2.5 rounded-lg px-2 py-2 text-left transition-colors ${
+              className={`relative mb-1 flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left transition-colors ${
                 dropDayId === d.id
                   ? 'bg-accent text-white shadow-[0_2px_8px_rgba(65,95,136,0.22)]'
                   : active

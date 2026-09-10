@@ -115,17 +115,17 @@ function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => 
   ]
 
   return (
-    <div className="mb-5 grid grid-cols-2 overflow-hidden rounded-xl border border-border bg-white shadow-[0_2px_10px_rgba(45,55,65,0.035)] sm:grid-cols-4 sm:divide-x sm:divide-border">
+    <div className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-border/80 py-3 sm:gap-x-7">
       {stats.map(({ label, value, hint, Icon, onClick }, index) => {
-        const className = `flex min-w-0 items-center gap-2.5 px-3 py-2.5 text-left ${index < 2 ? 'border-b border-border sm:border-b-0' : ''} ${index % 2 === 0 ? 'border-r border-border sm:border-r-0' : ''} ${onClick ? 'transition-colors hover:bg-surface' : ''}`
+        const className = `group flex min-w-0 items-center gap-1.5 text-left ${index > 0 ? 'sm:border-l sm:border-border sm:pl-5' : ''} ${onClick ? 'transition-colors hover:text-accent-hover' : ''}`
         const content = <>
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-hover">
-            <Icon size={14} />
+          <span className="hidden h-5 w-5 shrink-0 items-center justify-center text-text-faint sm:flex group-hover:text-accent">
+            <Icon size={13} />
           </span>
-          <span className="min-w-0">
-            <span className="block text-[10.5px] leading-none text-text-faint">{label}</span>
-            <span className="mt-1 block truncate text-[13px] font-semibold leading-none text-text">{value}</span>
-            {hint && <span className={`mt-1 block truncate text-[10px] leading-none ${trip.totalBudget > 0 && trip.totalBudget < totalCost ? 'text-red-500' : 'text-text-faint'}`}>{hint}</span>}
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <span className="shrink-0 text-[11px] text-text-faint">{label}</span>
+            <span className="truncate text-[13px] font-semibold text-text">{value}</span>
+            {hint && <span className={`hidden truncate text-[10.5px] sm:inline ${trip.totalBudget > 0 && trip.totalBudget < totalCost ? 'text-red-500' : 'text-text-faint'}`}>{hint}</span>}
           </span>
         </>
         return onClick ? (
@@ -711,12 +711,12 @@ function ActivityCard({
     <div
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
-      className={`relative flex min-w-0 w-full items-center gap-2 rounded-lg border bg-white py-3 pr-2 pl-3.5 transition-[box-shadow,border-color,background-color] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] ${
-        selected ? 'border-accent shadow-[0_2px_8px_rgba(49,92,125,0.12)]' : highlighted ? 'border-accent/50 bg-accent-soft/40 shadow-[0_1px_5px_rgba(49,92,125,0.06)]' : 'border-border'
+      className={`relative flex min-w-0 w-full items-center gap-2 rounded-md border border-transparent py-2.5 pr-2 pl-2.5 transition-[border-color,background-color] ${
+        selected ? 'border-accent/45 bg-white shadow-[0_3px_12px_rgba(31,50,76,0.08)]' : highlighted ? 'bg-accent-soft/55' : 'hover:bg-white'
       }`}
     >
       <div
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
         style={{ background: meta.soft, color: meta.color }}
       >
         <Icon size={16} />
@@ -724,14 +724,14 @@ function ActivityCard({
       {/* 可点击主体（展开/收起详情） */}
       <button onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 text-left">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13.5px] font-medium">{activity.title}</div>
-          <div className="mt-0.5 flex items-center gap-3 text-[12px] text-text-muted">
+          <div className="truncate text-[13px] font-medium">{activity.title}</div>
+          <div className="mt-0.5 flex items-center gap-2.5 text-[11.5px] text-text-muted">
             {activity.duration && <span>{activity.duration}</span>}
             {activity.location && <span className="truncate">{activity.location}</span>}
           </div>
         </div>
         {activity.costs.length > 0 && (
-          <span className="shrink-0 text-[12px] text-text-muted">
+          <span className="shrink-0 text-[11.5px] text-text-muted">
             ¥{activity.costs.reduce((s, c) => s + c.amount, 0).toLocaleString()}
           </span>
         )}
@@ -925,7 +925,7 @@ function DaySection({
   }
 
   return (
-      <section ref={setNodeRef} className={`mb-6 rounded-lg transition-colors ${isOver ? 'bg-accent-soft/30' : ''}`}>
+      <section ref={setNodeRef} className={`mb-7 border-b border-border/70 pb-7 transition-colors last:border-b-0 ${isOver ? 'bg-accent-soft/30' : ''}`}>
         {/* 天标题 */}
         <header className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 px-0.5">
           <h2 className="text-[16px] font-semibold">{day.label}</h2>
@@ -1305,7 +1305,7 @@ export default function TimelineView() {
     >
       <div className="flex min-h-full min-w-0">
         <div className="min-w-0 flex-1">
-          <div className="mr-auto max-w-[900px] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+          <div className="mr-auto max-w-[980px] px-3 py-4 sm:px-7 sm:py-7 lg:px-10">
             <MobileDayStrip trip={trip} />
             <TripStatsBar trip={trip} onOpenBudget={() => setBudgetDrawerOpen(true)} />
             {/* 空旅程引导：还没有任何行程时给出第一步指引 */}
@@ -1339,7 +1339,7 @@ export default function TimelineView() {
             ))}
           </div>
           <div data-quick-add className="sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block lg:px-8">
-            <div className="mr-auto max-w-[900px]">
+            <div className="mr-auto max-w-[980px]">
               <div className="mb-1.5 flex items-center justify-between text-[11.5px] font-medium text-text-faint">
                 <span>
                   快速添加到 {activeDay?.label ?? '当前天'}
