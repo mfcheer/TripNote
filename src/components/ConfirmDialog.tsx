@@ -40,7 +40,7 @@ export default function ConfirmDialog() {
             autoFocus
             onClick={() => close(true)}
             className={`rounded-md px-3.5 py-1.5 text-[13px] font-medium text-white transition-colors ${
-              danger ? 'bg-red-500 hover:bg-red-600' : 'bg-accent hover:bg-accent-hover'
+              danger ? 'bg-red-500 hover:bg-red-600' : 'bg-action hover:bg-action-hover'
             }`}
           >
             {mode === 'confirm' ? '确认' : '知道了'}

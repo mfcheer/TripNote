@@ -30,7 +30,7 @@ function readMapPanelWidth() {
 }
 
 function wishMarker(active: boolean, label: string) {
-  const color = active ? '#294f6e' : '#3d6382'
+  const color = active ? '#3f4953' : '#59636e'
   return L.divIcon({
     className: '',
     html: `<div class="map-place-marker" style="border-color:${color};color:${color};${active ? 'background:#e9f1f7;' : ''}">${escapeHtml(label)}</div>`,
@@ -171,7 +171,7 @@ function CustomMapWishDialog({
             <button
               onClick={save}
               disabled={!name.trim() || !point}
-              className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+              className="rounded-md bg-action px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
             >
               收藏这个位置
             </button>
@@ -395,7 +395,7 @@ function SortableWishCard({
           <>
             <span className="mr-auto text-[11px] text-text-faint">尚未安排日期</span>
             <ScheduleDragButton place={place} onSchedule={onSchedule} />
-            <button onClick={onSchedule} className="rounded-md bg-accent px-2.5 py-1 text-[11.5px] font-medium text-white hover:bg-accent-hover">
+            <button onClick={onSchedule} className="rounded-md bg-action px-2.5 py-1 text-[11.5px] font-medium text-white hover:bg-action-hover">
               安排到行程
             </button>
           </>
@@ -518,7 +518,7 @@ export default function WishlistView() {
     id: place.id,
     point: place.geo!,
     label: place.title,
-    color: activeId === place.id ? '#294f6e' : '#3d6382',
+    color: activeId === place.id ? '#3f4953' : '#59636e',
     active: activeId === place.id || hoveredId === place.id,
     wide: true,
     onClick: () => setActiveId(place.id),
@@ -657,7 +657,7 @@ export default function WishlistView() {
                   <option key={value} value={value}>{CATEGORY_META[value].label}</option>
                 ))}
               </select>
-              <button onClick={addManual} disabled={!searching.trim()} className="flex items-center gap-1 rounded-md bg-accent px-3 py-2 text-[13px] font-medium text-white disabled:opacity-40">
+              <button onClick={addManual} disabled={!searching.trim()} className="flex items-center gap-1 rounded-md bg-action px-3 py-2 text-[13px] font-medium text-white hover:bg-action-hover disabled:opacity-40">
                 <PlusIcon size={14} /> 收藏
               </button>
             </div>

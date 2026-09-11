@@ -123,7 +123,7 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
           <button onClick={onClose} className="rounded-md px-3.5 py-2 text-[13px] text-text-muted hover:bg-surface">
             取消
           </button>
-          <button onClick={submit} className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white hover:bg-accent-hover">
+          <button onClick={submit} className="rounded-md bg-action px-4 py-2 text-[13px] font-medium text-white hover:bg-action-hover">
             创建并开始规划
           </button>
         </div>

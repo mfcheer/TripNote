@@ -37,7 +37,7 @@ function markerIcon(color: string, label: string) {
 function clusterIcon(count: number) {
   return L.divIcon({
     className: '',
-    html: `<div class="map-marker" style="border-color:#3d6382;color:#3d6382">${count}</div>`,
+    html: `<div class="map-marker" style="border-color:#59636e;color:#59636e">${count}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   })
@@ -329,7 +329,7 @@ export default function MapView() {
             <select value={pickedCategory} onChange={(event) => setPickedCategory(event.target.value as ActivityCategory)} className="min-w-0 flex-1 rounded-md border border-border bg-white px-2 py-1.5 text-[12px] text-text-muted outline-none focus:border-accent">
               {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((category) => <option key={category} value={category}>{CATEGORY_META[category].label}</option>)}
             </select>
-            <button onClick={savePickedPlace} disabled={!pickedName.trim()} className="rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40">收藏到想去</button>
+            <button onClick={savePickedPlace} disabled={!pickedName.trim()} className="rounded-md bg-action px-3 py-1.5 text-[12px] font-medium text-white hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40">收藏到想去</button>
           </div>
           <div className="mt-2 truncate text-[11px] text-text-faint">{resolvingPoint ? '正在识别附近位置…' : pickedLocation}</div>
         </div>

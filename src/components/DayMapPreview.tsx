@@ -6,7 +6,7 @@ import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
 import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 
 function pointIcon(label: string, selected: boolean, highlighted: boolean, showLabels: boolean) {
-  const color = selected ? '#294f6e' : '#3d6382'
+  const color = selected ? '#3f4953' : '#59636e'
   const activeStyle = selected ? 'background:#e9f1f7;' : highlighted ? 'background:#f2f7fb;' : ''
   return L.divIcon({
     className: '',

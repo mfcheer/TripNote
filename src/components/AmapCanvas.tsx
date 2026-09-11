@@ -169,7 +169,7 @@ export default function AmapCanvas({
     }
     for (const marker of markers) {
       const point = wgs84ToGcj02(marker.point)
-      const color = marker.color ?? '#3d6382'
+      const color = marker.color ?? '#59636e'
       const className = marker.simple ? `wish-map-marker${marker.active ? ' is-active' : ''}` : marker.wide ? 'map-place-marker' : 'map-marker'
       const content = marker.simple
         ? `<div class="${className}" style="--wish-marker-color:${color}"></div>`

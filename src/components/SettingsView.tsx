@@ -112,7 +112,7 @@ export default function SettingsView({
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             {!isStandalone && canInstall && onInstall && (
-              <button onClick={onInstall} className="rounded-md bg-accent px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover">
+              <button onClick={onInstall} className="rounded-md bg-action px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover">
                 安装途记
               </button>
             )}
@@ -184,7 +184,7 @@ export default function SettingsView({
             </div>
             <div className="mt-3 flex items-center justify-between gap-3">
               <span className="text-[11px] leading-relaxed text-text-faint">Key 会明文写入导出文件，请勿把备份发送给不可信的人；建议在高德控制台限制可用域名。</span>
-              <button onClick={saveMapConfig} className="shrink-0 rounded-md bg-accent px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-accent-hover">
+              <button onClick={saveMapConfig} className="shrink-0 rounded-md bg-action px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-action-hover">
                 保存配置
               </button>
             </div>

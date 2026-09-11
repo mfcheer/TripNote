@@ -572,7 +572,7 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
         <button
           onClick={submit}
           disabled={!title.trim()}
-          className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-md bg-action px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
           添加
         </button>
@@ -868,7 +868,7 @@ function DayHeaderInfo({ day }: { day: { id: string; date: string; place: string
       />
       <button
         onClick={commit}
-        className="rounded bg-accent px-2 py-0.5 text-[11.5px] text-white transition-colors hover:bg-accent-hover"
+        className="rounded bg-action px-2 py-0.5 text-[11.5px] text-white transition-colors hover:bg-action-hover"
       >
         保存
       </button>
@@ -1351,7 +1351,7 @@ export default function TimelineView() {
           <div className="sticky bottom-0 z-20 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:hidden">
             <button
               onClick={() => setMobileQuickAddOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-accent px-4 py-3 text-[13px] font-medium text-white shadow-[0_3px_10px_rgba(49,92,125,0.2)] active:bg-accent-hover"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-action px-4 py-3 text-[13px] font-medium text-white shadow-[0_3px_10px_rgba(90,48,39,0.16)] active:bg-action-hover"
             >
               <PlusIcon size={16} />
               添加到 {activeDay?.label ?? '当前天'}{activeDay?.place ? ` · ${activeDay.place}` : ''}

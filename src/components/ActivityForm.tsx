@@ -300,7 +300,7 @@ export default function ActivityForm({
         <button
           onClick={submit}
           disabled={!form.title.trim()}
-          className="rounded-md bg-accent px-4 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-md bg-action px-4 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
           {submitLabel}
         </button>

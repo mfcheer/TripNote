@@ -13,13 +13,16 @@
   --color-bg: #f6f8fb;
   --color-surface: #ffffff;
   --color-surface-2: #f0f3f7;
-  --color-border: #dce3ea;
-  --color-text: #202c3a;
-  --color-text-muted: #68788a;
-  --color-text-faint: #98a5b4;
-  --color-accent: #3d6382;
-  --color-accent-soft: #e9f1f7;
-  --color-accent-hover: #294f6e;
+  --color-border: #dde3e8;
+  --color-text: #27313a;
+  --color-text-muted: #737e89;
+  --color-text-faint: #9aa4ad;
+  --color-accent: #59636e;
+  --color-accent-soft: #edf0f2;
+  --color-accent-hover: #3f4953;
+  --color-action: #c46752;
+  --color-action-soft: #faece8;
+  --color-action-hover: #a95341;
 
   --color-cat-traffic: #4f829f;
   --color-cat-traffic-soft: #e5f1f7;
