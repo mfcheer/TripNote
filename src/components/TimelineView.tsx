@@ -1003,9 +1003,6 @@ function DaySection({
         {/* 时间轴 */}
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
           <div className="relative pl-[44px] sm:pl-[52px]">
-            {/* 竖线 */}
-            {/* 竖线放在时间列与事项之间，避免穿过时间文字；小屏与桌面列宽不同，分别对齐。 */}
-            <div className="absolute top-2 bottom-[60px] left-[88px] w-px bg-border sm:left-[110px]" />
             <div className="flex flex-col gap-2.5">
               {items.map((a, index) => (
                 <div key={a.id} className="relative flex min-w-0 items-start gap-2 sm:gap-3" data-activity-id={a.id}>
