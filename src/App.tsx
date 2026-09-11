@@ -78,7 +78,7 @@ export default function App() {
         {view === 'plan' && (
           <>
             {/* 行程规划子标签 */}
-            <div className="hidden shrink-0 items-center justify-between border-b border-border bg-surface px-5 pt-2.5 md:flex">
+            <div className="trip-topbar hidden shrink-0 items-center justify-between border-b border-border px-6 pt-2.5 md:flex">
               <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
                 {PLAN_TABS.map(({ key, label, Icon }) => {
                   const active = planTab === key
@@ -91,7 +91,7 @@ export default function App() {
                       }`}
                     >
                       <Icon size={14} /> {label}
-                      {active && <span className="absolute inset-x-2 bottom-0 h-[2px] rounded-full bg-accent" />}
+                      {active && <span className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-action" />}
                     </button>
                   )
                 })}
@@ -109,7 +109,7 @@ export default function App() {
                 <button
                   onClick={downloadImage}
                   disabled={exportingImage}
-                  className="flex items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1.5 text-[12px] font-medium text-text-muted shadow-[0_1px_2px_rgba(15,23,42,0.04)] transition-colors hover:border-accent hover:text-accent disabled:cursor-wait disabled:opacity-60"
+                  className="flex items-center gap-1.5 rounded-lg border border-white/80 bg-white/75 px-2.5 py-1.5 text-[12px] font-medium text-text-muted shadow-[0_1px_3px_rgba(15,23,42,0.06)] backdrop-blur-sm transition-colors hover:border-accent/50 hover:text-accent-hover disabled:cursor-wait disabled:opacity-60"
                 >
                   <DownloadIcon size={13} /> {exportingImage ? '生成中…' : '导出行程卡片'}
                 </button>

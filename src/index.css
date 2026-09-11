@@ -58,6 +58,43 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 input::placeholder, textarea::placeholder { color: var(--color-text-faint); opacity: .9; }
 
+/* 顶部栏以冷灰地形等高线强化旅行与地图语义，纹路向内容区渐隐以保证文字清晰。 */
+.trip-topbar {
+  position: relative;
+  isolation: isolate;
+  overflow: visible;
+  background: linear-gradient(105deg, rgba(255,255,255,.98) 0%, rgba(247,249,250,.97) 52%, rgba(238,242,244,.96) 100%);
+  box-shadow: 0 1px 0 rgba(39,49,58,.02), 0 4px 14px rgba(39,49,58,.035);
+}
+.trip-topbar::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 0 38%;
+  pointer-events: none;
+  opacity: .52;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='92' viewBox='0 0 420 92'%3E%3Cg fill='none' stroke='%2359636e' stroke-opacity='.18' stroke-width='1'%3E%3Cpath d='M-28 69C16 40 42 84 91 54s76-17 112 3 68 15 99-7 74-24 143 3'/%3E%3Cpath d='M-19 80C22 53 53 94 101 66s73-15 108 4 66 13 99-8 73-20 135 2'/%3E%3Cpath d='M68 12c25-17 66-12 78 9s-5 43-31 48-54-8-56-27 0-24 9-30Z'/%3E%3Cpath d='M79 20c18-11 46-8 54 7s-4 30-22 34-38-6-40-19 1-17 8-22Z'/%3E%3Cpath d='M286 3c35 2 62 19 61 40s-31 35-66 30-57-23-51-43 24-29 56-27Z'/%3E%3Cpath d='M284 13c27 1 48 13 48 29s-23 25-50 22-43-16-39-30 18-22 41-21Z'/%3E%3C/g%3E%3C/svg%3E");
+  background-position: right center;
+  background-size: 420px 92px;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 26%, #000 100%);
+  mask-image: linear-gradient(to right, transparent 0%, #000 26%, #000 100%);
+}
+.trip-topbar > * {
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 767px) {
+  .trip-topbar::before {
+    left: 26%;
+    opacity: .42;
+    background-position: 72% center;
+    background-size: 360px 79px;
+    -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 38%, #000 100%);
+    mask-image: linear-gradient(to right, transparent 0%, #000 38%, #000 100%);
+  }
+}
+
 /* 细滚动条 */
 *::-webkit-scrollbar { width: 8px; height: 8px; }
 *::-webkit-scrollbar-thumb { background: #cbd6e3; border-radius: 4px; }
