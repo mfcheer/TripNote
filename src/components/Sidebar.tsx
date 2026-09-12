@@ -328,15 +328,15 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="hidden h-full w-[232px] shrink-0 flex-col border-r border-border bg-surface md:flex">
+    <aside className="hidden h-full w-[240px] shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] md:flex">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-[#f7f9fb] text-accent-hover">
+        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border/80 bg-white text-accent-hover shadow-[0_1px_3px_rgba(32,40,46,0.04)]">
           <LogoIcon size={21} />
         </div>
         <div>
-          <div className="text-[14px] font-semibold leading-tight tracking-[0.02em]">途记</div>
-          <div className="mt-0.5 text-[10.5px] leading-tight tracking-[0.08em] text-text-faint">TripNote</div>
+          <div className="text-[14px] font-semibold leading-tight tracking-[0.01em]">途记</div>
+          <div className="mt-0.5 text-[10px] leading-tight tracking-[0.12em] text-text-faint">TRIPNOTE</div>
         </div>
       </div>
 
@@ -345,12 +345,11 @@ export default function Sidebar() {
 
       {/* 天列表 */}
       <nav className="mt-3 flex-1 overflow-y-auto px-3">
-        <div className="mb-2 flex items-center justify-between px-2">
-          <span className="text-[10.5px] font-semibold tracking-[0.12em] text-text-faint">行程目录</span>
-          <span className="rounded-full bg-surface-2 px-2 py-0.5 text-[10.5px] font-medium text-text-muted">{trip.days.length} 天</span>
+        <div className="mb-2.5 flex items-center justify-between px-2">
+          <span className="text-[10px] font-semibold tracking-[0.16em] text-text-faint">行程目录</span>
+          <span className="text-[11px] font-medium tabular-nums text-text-muted">{trip.days.length} 天</span>
         </div>
         <div className="relative">
-          {trip.days.length > 1 && <div className="absolute top-5 bottom-6 left-[23px] w-px bg-border" />}
         {trip.days.map((d, index) => {
           const active = d.id === activeDayId && view === 'plan' && planTab === 'timeline'
           const activityCount = trip.activities.filter((activity) => activity.dayId === d.id).length
@@ -379,29 +378,29 @@ export default function Sidebar() {
               }}
               onDragLeave={() => setDropDayId((id) => (id === d.id ? null : id))}
               onDrop={(event) => scheduleDroppedWish(event, d)}
-              className={`relative mb-1 flex w-full min-w-0 items-center gap-2 rounded-md px-2 py-2 text-left transition-colors ${
+              className={`relative mb-1 flex w-full min-w-0 items-center gap-2.5 rounded-md border-l-2 px-2.5 py-2.5 text-left transition-[background-color,border-color,box-shadow] ${
                 dropDayId === d.id
-                  ? 'bg-accent text-white shadow-[0_2px_8px_rgba(65,95,136,0.22)]'
+                  ? 'border-action bg-accent text-white shadow-[0_3px_10px_rgba(32,40,46,0.12)]'
                   : active
-                  ? 'bg-accent-soft text-accent-hover'
-                  : 'text-text-muted hover:bg-surface-2'
+                  ? 'border-action bg-white text-text shadow-[0_1px_4px_rgba(32,40,46,0.06)]'
+                  : 'border-transparent text-text-muted hover:bg-white/70'
               }`}
             >
-              <span className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold tabular-nums ${
+              <span className={`relative z-10 w-7 shrink-0 text-[10px] font-semibold tracking-[0.08em] tabular-nums ${
                 dropDayId === d.id
-                  ? 'border-white/45 bg-white/15 text-white'
+                  ? 'text-white/80'
                   : active
-                    ? 'border-accent bg-accent text-white'
-                    : 'border-border bg-white text-text-muted'
+                    ? 'text-action'
+                    : 'text-text-faint'
               }`}>
-                {index + 1}
+                D{String(index + 1).padStart(2, '0')}
               </span>
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-2">
-                  <span className="truncate text-[12.5px] font-medium">{d.place || '待定地点'}</span>
-                  <span className={`shrink-0 text-[10.5px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>{date}</span>
+                  <span className="truncate text-[13px] font-semibold">{d.place || '待定地点'}</span>
+                  <span className={`shrink-0 text-[11px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-muted'}`}>{date}</span>
                 </span>
-                <span className={`mt-0.5 block text-[10.5px] ${dropDayId === d.id ? 'text-white/75' : active ? 'text-accent/75' : 'text-text-faint'}`}>
+                <span className={`mt-0.5 block text-[11px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>
                   {d.label} · {geoCount} 个地点{dayCost > 0 ? ` · ¥${dayCost.toLocaleString()}` : ` · ${activityCount} 个安排`}
                 </span>
               </span>
@@ -412,7 +411,7 @@ export default function Sidebar() {
         <div className="relative mt-2">
           <button
             onClick={() => setShowAddDayOptions((open) => !open)}
-            className="flex w-full items-center gap-2.5 rounded-lg border border-dashed border-border px-3 py-2 text-[12.5px] text-text-muted transition-colors hover:border-accent hover:text-accent"
+            className="flex w-full items-center gap-2.5 rounded-md border border-transparent bg-surface-2/70 px-3 py-2.5 text-[12.5px] font-medium text-text-muted transition-colors hover:border-border hover:bg-white hover:text-text"
           >
             <PlusIcon size={15} /> 添加一天
           </button>
@@ -446,17 +445,17 @@ export default function Sidebar() {
       </nav>
 
       {/* 底部导航 */}
-      <nav className="border-t border-border p-3">
+      <nav className="border-t border-border/80 p-3">
         {NAV_ITEMS.map(({ key, label, Icon }) => {
           const active = view === key
           return (
             <button
               key={key}
               onClick={() => setView(key)}
-              className={`mb-0.5 flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-[13px] transition-colors ${
+              className={`mb-0.5 flex w-full items-center gap-2.5 rounded-md border-l-2 px-2.5 py-2 text-[13px] transition-colors ${
                 active
-                  ? 'bg-accent-soft font-medium text-accent-hover'
-                  : 'text-text-muted hover:bg-surface-2'
+                  ? 'border-action bg-white font-medium text-text'
+                  : 'border-transparent text-text-muted hover:bg-white/70'
               }`}
             >
               <Icon size={17} />

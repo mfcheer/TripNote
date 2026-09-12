@@ -6,10 +6,10 @@ export default function Toast() {
   if (!open) return null
   return (
     <div className="pointer-events-none fixed bottom-[76px] left-1/2 z-[1100] w-[calc(100%-24px)] -translate-x-1/2 md:bottom-6 md:w-auto">
-      <div className="pointer-events-auto flex items-center justify-center gap-3 rounded-lg bg-[#203145] px-4 py-2.5 text-[13px] text-white shadow-[0_6px_24px_rgba(20,34,52,0.25)]">
+      <div className="pointer-events-auto flex items-center justify-center gap-3 rounded-md bg-[#303940] px-4 py-2.5 text-[13px] text-white shadow-[0_8px_26px_rgba(32,40,46,0.22)]">
         <span>{message}</span>
         {undoFn && (
-          <button onClick={undo} className="rounded font-medium text-[#b7d9eb] transition-colors hover:text-white">
+          <button onClick={undo} className="rounded font-medium text-[#f0b3a6] transition-colors hover:text-white">
             撤销
           </button>
         )}

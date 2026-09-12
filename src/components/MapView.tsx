@@ -252,16 +252,20 @@ export default function MapView() {
   return (
     <div className={`trip-map-view relative h-full w-full ${isPicking ? 'cursor-crosshair' : ''}`}>
       {/* 天数筛选 */}
-      <div className="absolute inset-x-3 top-3 z-[500] overflow-x-auto pb-1 md:inset-x-auto md:top-4 md:left-1/2 md:-translate-x-1/2">
-        <div className="mx-auto flex w-max items-center gap-1 rounded-full border border-border bg-white p-1 shadow-[0_2px_10px_rgba(0,0,0,0.08)]">
+      <div className="absolute inset-x-3 top-3 z-[500] overflow-x-auto pb-1 md:inset-x-auto md:top-4 md:left-[64px]">
+        <div className="mx-auto flex w-max items-center gap-1 rounded-lg border border-white/80 bg-white/94 p-1.5 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
+          <div className="mr-1 hidden max-w-[190px] items-center gap-2 border-r border-border/80 px-2 pr-3 md:flex">
+            <span className="truncate text-[12px] font-semibold text-text">{trip.name}</span>
+            <span className="shrink-0 text-[10.5px] text-text-faint">{trip.daysCount} 天</span>
+          </div>
           {[{ id: 'all', label: '全部' }, ...trip.days.map((d) => ({ id: d.id, label: d.label }))].map((item) => {
             const active = filter === item.id
             return (
               <button
                 key={item.id}
                 onClick={() => setFilter(item.id)}
-                className={`rounded-full px-3 py-1 text-[12px] font-medium transition-colors ${
-                  active ? 'bg-accent text-white' : 'text-text-muted hover:bg-surface'
+                className={`rounded-md px-3 py-1 text-[12px] font-medium transition-colors ${
+                  active ? 'bg-accent text-white shadow-[0_1px_3px_rgba(32,40,46,0.12)]' : 'text-text-muted hover:bg-surface-2 hover:text-text'
                 }`}
               >
                 {item.label}
@@ -273,8 +277,8 @@ export default function MapView() {
 
       <button
         onClick={() => isPicking ? stopPicking() : setIsPicking(true)}
-        className={`absolute top-[52px] right-3 z-[550] flex items-center gap-1.5 rounded-lg border px-3 py-2 text-[12px] font-medium shadow-[0_2px_10px_rgba(0,0,0,0.08)] transition-colors md:top-4 md:right-4 ${
-          isPicking ? 'border-accent bg-accent text-white' : 'border-border bg-white/95 text-text-muted hover:border-accent hover:text-accent'
+        className={`absolute top-[52px] right-3 z-[550] flex items-center gap-1.5 rounded-md border px-3 py-2 text-[12px] font-medium shadow-[0_5px_18px_rgba(32,40,46,0.12)] transition-colors md:top-4 md:right-4 ${
+          isPicking ? 'border-action bg-action text-white' : 'border-white/80 bg-white/94 text-text-muted backdrop-blur-md hover:text-text'
         }`}
       >
         {isPicking ? '取消选点' : <><PlusIcon size={14} /> 选点收藏</>}
@@ -343,7 +347,7 @@ export default function MapView() {
       )}
 
       {/* 图例默认收起，把地图留给路线与地点；需要时再展开查看日期色。 */}
-      <details className="absolute right-4 bottom-6 z-[500] hidden w-[238px] rounded-lg border border-border bg-white/95 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:block">
+      <details className="absolute right-4 bottom-6 z-[500] hidden w-[238px] rounded-md border border-white/80 bg-white/94 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md md:block">
         <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[11.5px] font-medium text-text-muted [&::-webkit-details-marker]:hidden">
           <span>行程进度 · {trip.daysCount} 天</span><span className="text-text-faint">展开</span>
         </summary>
@@ -378,13 +382,6 @@ export default function MapView() {
         </div>
       </details>
 
-      {/* 当前选中类别说明（保持设计系统中分类色一致） */}
-      <div className="absolute top-4 left-[64px] z-[500] hidden rounded-lg border border-border bg-white/95 px-3 py-2 shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:block">
-        <div className="text-[12px] font-semibold">{trip.name}</div>
-        <div className="mt-0.5 text-[11px] text-text-muted">
-          {filter === 'all' ? `${trip.daysCount} 天行程${useAmap ? ' · 高德地图' : ''}` : trip.days.find((d) => d.id === filter)?.place}
-        </div>
-      </div>
       <span className="hidden">{CATEGORY_META.sight.label}</span>
     </div>
   )

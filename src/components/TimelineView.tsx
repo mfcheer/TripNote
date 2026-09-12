@@ -115,7 +115,7 @@ function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => 
   ]
 
   return (
-    <div className="mb-6 flex flex-wrap items-center gap-x-5 gap-y-2 border-y border-border/80 py-3 sm:gap-x-7">
+    <div className="mb-7 flex flex-wrap items-center gap-x-5 gap-y-2 border-b border-border/80 pb-4 sm:gap-x-7">
       {stats.map(({ label, value, hint, Icon, onClick }, index) => {
         const className = `group flex min-w-0 items-center gap-1.5 text-left ${index > 0 ? 'sm:border-l sm:border-border sm:pl-5' : ''} ${onClick ? 'transition-colors hover:text-accent-hover' : ''}`
         const content = <>
@@ -123,9 +123,9 @@ function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => 
             <Icon size={13} />
           </span>
           <span className="flex min-w-0 items-baseline gap-1.5">
-            <span className="shrink-0 text-[11px] text-text-faint">{label}</span>
-            <span className="truncate text-[13px] font-semibold text-text">{value}</span>
-            {hint && <span className={`hidden truncate text-[10.5px] sm:inline ${trip.totalBudget > 0 && trip.totalBudget < totalCost ? 'text-red-500' : 'text-text-faint'}`}>{hint}</span>}
+            <span className="shrink-0 text-[11.5px] text-text-muted">{label}</span>
+            <span className="truncate text-[13.5px] font-semibold text-text">{value}</span>
+            {hint && <span className={`hidden truncate text-[11px] sm:inline ${trip.totalBudget > 0 && trip.totalBudget < totalCost ? 'text-red-500' : 'text-text-faint'}`}>{hint}</span>}
           </span>
         </>
         return onClick ? (
@@ -175,7 +175,7 @@ function DayOverview({ items, scheduleWarningCount }: { items: Activity[]; sched
   }).length
 
   return (
-    <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 px-0.5 text-[11.5px] text-text-faint">
+    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 px-0.5 text-[12px] text-text-muted">
       <span>{items.length} 个安排</span>
       {dayCost > 0 && <span className="font-medium text-accent-hover">当天 ¥{dayCost.toLocaleString()}</span>}
       {plannedMinutes > 0 && <span>已安排 {formatMinutes(plannedMinutes)}</span>}
@@ -503,7 +503,7 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
   }
 
   return (
-    <div className="rounded-lg border border-dashed border-accent/50 bg-white p-3 sm:p-3.5">
+    <div className="rounded-md border border-border/80 bg-white p-3 shadow-[0_1px_3px_rgba(32,40,46,0.04)] sm:p-3.5">
       <div className="flex flex-wrap gap-2">
         <input
           type="time"
@@ -711,12 +711,12 @@ function ActivityCard({
     <div
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
-      className={`relative flex min-w-0 w-full items-center gap-2 rounded-md border border-transparent py-2.5 pr-2 pl-2.5 transition-[border-color,background-color] ${
-        selected ? 'border-accent/45 bg-white shadow-[0_3px_12px_rgba(31,50,76,0.08)]' : highlighted ? 'bg-accent-soft/55' : 'hover:bg-white'
+      className={`relative flex min-w-0 w-full items-center gap-2.5 rounded-md border-l-2 py-2.5 pr-2 pl-3 transition-[border-color,background-color,box-shadow] ${
+        selected ? 'border-action bg-white shadow-[0_2px_9px_rgba(32,40,46,0.07)]' : highlighted ? 'border-accent/40 bg-accent-soft/70' : 'border-transparent hover:bg-white/80'
       }`}
     >
       <div
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px]"
         style={{ background: meta.soft, color: meta.color }}
       >
         <Icon size={16} />
@@ -724,14 +724,14 @@ function ActivityCard({
       {/* 可点击主体（展开/收起详情） */}
       <button onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 text-left">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13px] font-medium">{activity.title}</div>
-          <div className="mt-0.5 flex items-center gap-2.5 text-[11.5px] text-text-muted">
+          <div className="truncate text-[14px] font-semibold tracking-[-0.01em]">{activity.title}</div>
+          <div className="mt-0.5 flex items-center gap-2.5 text-[12px] text-text-muted">
             {activity.duration && <span>{activity.duration}</span>}
             {activity.location && <span className="truncate">{activity.location}</span>}
           </div>
         </div>
         {activity.costs.length > 0 && (
-          <span className="shrink-0 text-[11.5px] text-text-muted">
+          <span className="shrink-0 text-[12px] font-medium text-text-muted">
             ¥{activity.costs.reduce((s, c) => s + c.amount, 0).toLocaleString()}
           </span>
         )}
@@ -907,12 +907,12 @@ function DaySection({
       <button
         ref={setNodeRef}
         onClick={() => useTripStore.getState().setActiveDay(dayId)}
-        className={`mb-3 flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left transition-colors ${
-          isOver ? 'border-accent bg-accent-soft' : 'border-border bg-surface hover:bg-surface-2'
+        className={`mb-1 flex w-full items-center gap-3 border-b px-1 py-3 text-left transition-colors ${
+          isOver ? 'border-action bg-action-soft/60' : 'border-border/80 hover:bg-white/55'
         }`}
       >
-        <div className="text-[13px] font-semibold">{day.label}</div>
-        <div className="text-[12px] text-text-faint">
+        <div className="text-[13.5px] font-semibold">{day.label}</div>
+        <div className="text-[12px] text-text-muted">
           {day.date && day.date !== '待定'
             ? /^\d{4}-\d{2}-\d{2}$/.test(day.date)
               ? displayDate(day.date)
@@ -928,14 +928,22 @@ function DaySection({
       <section ref={setNodeRef} className={`mb-7 border-b border-border/70 pb-7 transition-colors last:border-b-0 ${isOver ? 'bg-accent-soft/30' : ''}`}>
         {/* 天标题 */}
         <header className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 px-0.5">
-          <h2 className="text-[16px] font-semibold">{day.label}</h2>
+          <h2 className="text-[19px] font-semibold tracking-[-0.02em]">{day.label}</h2>
           <DayHeaderInfo day={day} />
-          {(
-            <div className="flex w-full items-center justify-end gap-1 sm:ml-auto sm:w-auto">
+          <details className="relative ml-auto">
+            <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md px-2 py-1.5 text-[12px] font-medium text-text-muted transition-colors hover:bg-white hover:text-text [&::-webkit-details-marker]:hidden">
+              管理当天 <span className="text-[10px] text-text-faint">⌄</span>
+            </summary>
+            <div
+              className="absolute right-0 top-[calc(100%+6px)] z-30 flex min-w-[168px] flex-col rounded-lg border border-border bg-white p-1.5 shadow-[0_10px_30px_rgba(32,40,46,0.14)]"
+              onClick={(event) => {
+                if ((event.target as HTMLElement).closest('button')) event.currentTarget.parentElement?.removeAttribute('open')
+              }}
+            >
               {trip.days.length > 1 && <button
                 onClick={() => moveDay(dayId, -1)}
                 disabled={trip.days.findIndex((item) => item.id === dayId) === 0}
-                className="rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
+                className="rounded-md px-2.5 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-30"
                 title="整天前移"
               >
                 ↑ 前移
@@ -943,7 +951,7 @@ function DaySection({
               {trip.days.length > 1 && <button
                 onClick={() => moveDay(dayId, 1)}
                 disabled={trip.days.findIndex((item) => item.id === dayId) === trip.days.length - 1}
-                className="rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent disabled:cursor-not-allowed disabled:opacity-30"
+                className="rounded-md px-2.5 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-30"
                 title="整天后移"
               >
                 ↓ 后移
@@ -960,7 +968,7 @@ function DaySection({
                       : `已在${day.label}后插入一天`,
                   )
                 }}
-                className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent"
+                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
                 title="在这天后插入空白一天"
               >
                 <PlusIcon size={13} /> 空白一天
@@ -970,7 +978,7 @@ function DaySection({
                   copyDay(dayId)
                   useToastStore.getState().show(`已复制${day.label}的安排到下一天`)
                 }}
-                className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent"
+                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
                 title="复制当天的安排、地点和花费到下一天"
               >
                 复制当天
@@ -989,13 +997,13 @@ function DaySection({
                   },
                 })
                 }
-                className="flex items-center gap-1 rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:bg-red-50 hover:text-red-500"
+                className="mt-1 flex items-center gap-2 border-t border-border/70 rounded-md px-2.5 py-2 pt-2.5 text-left text-[12px] text-text-faint transition-colors hover:bg-red-50 hover:text-red-500"
                 title="删除该天"
               >
                 <TrashIcon size={13} /> 删除该天
               </button>}
             </div>
-          )}
+          </details>
         </header>
 
         <DayOverview items={items} scheduleWarningCount={warnings.size} />
@@ -1007,11 +1015,11 @@ function DaySection({
               {items.map((a, index) => (
                 <div key={a.id} className="relative flex min-w-0 items-start gap-2 sm:gap-3" data-activity-id={a.id}>
                   {(!items[index - 1] || periodLabel(items[index - 1].time) !== periodLabel(a.time)) && (
-                    <div className="absolute -left-[43px] mt-0.5 w-[35px] text-right text-[10px] font-medium text-text-faint sm:-left-[51px] sm:w-[42px] sm:text-[10.5px]">
+                    <div className="absolute -left-[43px] mt-0.5 w-[35px] text-right text-[10.5px] font-medium text-text-faint sm:-left-[51px] sm:w-[42px] sm:text-[11px]">
                       {periodLabel(a.time)}
                     </div>
                   )}
-                  <div className="w-[40px] shrink-0 pt-3 text-right text-[11px] font-medium tabular-nums text-text-muted sm:w-[48px] sm:text-[12px]">
+                  <div className="w-[40px] shrink-0 pt-3 text-right text-[11.5px] font-medium tabular-nums text-text-muted sm:w-[48px] sm:text-[12.5px]">
                     {a.time}
                   </div>
                   <div className="relative min-w-0 flex-1">
@@ -1046,7 +1054,7 @@ function DaySection({
               ))}
               <button
                 onClick={onQuickAdd}
-                className="flex items-center gap-2 rounded-lg border border-dashed border-border px-3.5 py-2.5 text-[13px] text-text-muted transition-colors hover:border-accent hover:text-accent"
+                className="flex items-center gap-2 rounded-md border border-transparent bg-surface-2/65 px-3.5 py-2.5 text-[13px] font-medium text-text-muted transition-colors hover:border-border hover:bg-white hover:text-text"
               >
                 <PlusIcon size={15} /> 在这里添加安排
               </button>
@@ -1102,8 +1110,8 @@ function PlannerInspector({
       <div role="separator" aria-label="调整行程地图与详情宽度" aria-orientation="vertical" onPointerDown={startPanelResize} className="group hidden w-2 shrink-0 cursor-col-resize touch-none items-center justify-center lg:flex">
         <span className="h-11 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
       </div>
-      <aside className="sticky top-0 hidden h-[calc(100vh-44px)] shrink-0 overflow-y-auto border-l border-border bg-white lg:block" style={{ width: panelWidth }}>
-      <div className="border-b border-border p-4">
+      <aside className="sticky top-0 hidden h-[calc(100vh-52px)] shrink-0 overflow-y-auto border-l border-border/80 bg-[#fafbfb] lg:block" style={{ width: panelWidth }}>
+      <div className="border-b border-border/80 p-4">
         <div className="mb-2 flex items-center justify-between">
           <div>
             <div className="text-[13px] font-semibold">{day?.label} 地图</div>
@@ -1143,11 +1151,9 @@ function PlannerInspector({
             <InlineActivityDetail activity={activity} />
           )
         ) : (
-          <div className="rounded-lg border border-dashed border-border bg-surface px-4 py-6 text-center">
-            <div className="text-[13px] font-medium text-text-muted">选择一个安排查看详情</div>
-            <p className="mt-1.5 text-[12px] leading-relaxed text-text-faint">
-              花费、备注、时长和地点都在这里补充，时间轴会保持简洁。
-            </p>
+          <div className="border-t border-border/80 px-1 py-5">
+            <div className="text-[13px] font-medium text-text-muted">当天信息</div>
+            <p className="mt-1.5 text-[12px] leading-relaxed text-text-faint">选择时间轴中的安排，即可查看花费、备注和地点详情。</p>
           </div>
         )}
       </div>
@@ -1182,14 +1188,14 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
               setActiveDay(day.id)
               selectActivity(null)
             }}
-            className={`shrink-0 rounded-xl border px-3 py-2 text-left transition-colors ${
+            className={`shrink-0 rounded-lg border-l-2 px-3 py-2 text-left transition-colors ${
               active
-                ? 'border-accent bg-accent text-white shadow-[0_2px_8px_rgba(49,92,125,0.18)]'
-                : 'border-border bg-white text-text-muted'
+                ? 'border-action bg-white text-text shadow-[0_1px_5px_rgba(32,40,46,0.08)]'
+                : 'border-transparent bg-surface-2/60 text-text-muted'
             }`}
           >
             <span className="block text-[12px] font-semibold">{day.label}</span>
-            <span className={`mt-0.5 block max-w-[84px] truncate text-[10.5px] ${active ? 'text-white/75' : 'text-text-faint'}`}>
+            <span className="mt-0.5 block max-w-[84px] truncate text-[10.5px] text-text-faint">
               {day.place || (day.date !== '待定' ? displayDate(day.date).split(' ')[0] : '待安排')}
             </span>
           </button>

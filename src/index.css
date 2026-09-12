@@ -8,32 +8,32 @@
   padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
 }
 
-/* 清爽旅行册：回到冷白底，但用更克制的雾蓝层级和低饱和分类色，避免后台模板感。 */
+/* 冷灰旅行册：用清晰的矿物灰阶承载信息，珊瑚色只负责关键动作。 */
 @theme {
-  --color-bg: #f6f8fb;
-  --color-surface: #ffffff;
-  --color-surface-2: #f0f3f7;
-  --color-border: #dde3e8;
-  --color-text: #27313a;
-  --color-text-muted: #737e89;
-  --color-text-faint: #9aa4ad;
-  --color-accent: #59636e;
-  --color-accent-soft: #edf0f2;
-  --color-accent-hover: #3f4953;
-  --color-action: #c46752;
-  --color-action-soft: #faece8;
-  --color-action-hover: #a95341;
+  --color-bg: #f3f5f6;
+  --color-surface: #fbfcfc;
+  --color-surface-2: #eceff1;
+  --color-border: #d8dee2;
+  --color-text: #20282e;
+  --color-text-muted: #65717a;
+  --color-text-faint: #89949c;
+  --color-accent: #4f5961;
+  --color-accent-soft: #e9edef;
+  --color-accent-hover: #343e45;
+  --color-action: #cd6953;
+  --color-action-soft: #f8eae6;
+  --color-action-hover: #af5542;
 
-  --color-cat-traffic: #4f829f;
-  --color-cat-traffic-soft: #e5f1f7;
-  --color-cat-sight: #c76b55;
-  --color-cat-sight-soft: #faebe6;
-  --color-cat-food: #ad7d3a;
-  --color-cat-food-soft: #faf1e1;
-  --color-cat-stay: #70719a;
-  --color-cat-stay-soft: #eeedf6;
-  --color-cat-shop: #ae6687;
-  --color-cat-shop-soft: #f8ebf0;
+  --color-cat-traffic: #5b7f91;
+  --color-cat-traffic-soft: #e9f0f3;
+  --color-cat-sight: #b96552;
+  --color-cat-sight-soft: #f6ebe8;
+  --color-cat-food: #99733e;
+  --color-cat-food-soft: #f5f0e6;
+  --color-cat-stay: #6d7089;
+  --color-cat-stay-soft: #eeeff3;
+  --color-cat-shop: #96677e;
+  --color-cat-shop-soft: #f3ebef;
 
   --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
 }
@@ -44,9 +44,11 @@ html, body, #root {
 
 body {
   font-family: var(--font-sans);
+  font-size: 14px;
   color: var(--color-text);
   background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 ::selection { background: var(--color-accent-soft); color: var(--color-accent-hover); }
@@ -98,8 +100,8 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
 
 /* 细滚动条 */
 *::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: #cbd6e3; border-radius: 4px; }
-*::-webkit-scrollbar-thumb:hover { background: #aebdce; }
+*::-webkit-scrollbar-thumb { background: #c8cfd4; border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: #aeb8be; }
 *::-webkit-scrollbar-track { background: transparent; }
 
 /* Leaflet 融入浅色设计 */
@@ -176,13 +178,13 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
   max-width: 122px;
   height: 24px;
   overflow: hidden;
-  border: 1.5px solid var(--color-accent);
-  border-radius: 12px;
-  background: var(--color-surface);
-  box-shadow: 0 1px 5px rgba(0,0,0,0.18);
+  border: 1px solid var(--color-accent);
+  border-radius: 7px;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 2px 7px rgba(28,37,43,.16);
   color: var(--color-accent);
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 550;
   line-height: 21px;
   padding: 0 7px;
   text-align: center;

@@ -285,7 +285,7 @@ function ScheduleDragButton({ place, onSchedule }: { place: WishPlace; onSchedul
       draggable
       onDragStart={(event) => startWishScheduleDrag(event, place)}
       onClick={onSchedule}
-      className="hidden items-center gap-1 rounded-md border border-border px-2 py-1 text-[11px] text-text-muted transition-colors hover:border-accent hover:text-accent md:flex"
+      className="hidden items-center gap-1 rounded-md px-2 py-1 text-[11px] text-text-faint opacity-0 transition-[opacity,color,background] group-hover:opacity-100 hover:bg-surface-2 hover:text-text focus:opacity-100 md:flex"
       title="拖到左侧日期即可快速安排（点击仍可手动选择日期）"
       aria-label={`拖动「${place.title}」到左侧日期安排`}
     >
@@ -329,8 +329,8 @@ function SortableWishCard({
       onClick={onActivate}
       onMouseEnter={() => onHoverChange(true)}
       onMouseLeave={() => onHoverChange(false)}
-      className={`group border-b border-border/70 px-1 py-3 transition-[background-color,box-shadow] ${
-        active ? 'rounded-md bg-white px-2.5 shadow-[0_3px_12px_rgba(31,50,76,0.07)]' : highlighted ? 'bg-accent-soft/45' : 'hover:bg-white/70'
+      className={`group border-b border-l-2 border-b-border/70 px-2.5 py-3 transition-[background-color,border-color,box-shadow] ${
+        active ? 'border-l-action bg-white shadow-[0_2px_8px_rgba(32,40,46,0.06)]' : highlighted ? 'border-l-accent/40 bg-accent-soft/55' : 'border-l-transparent hover:bg-white/65'
       } ${isDragging ? 'relative z-30 rounded-md bg-white opacity-70 shadow-lg' : ''}`}
     >
       <div className="flex items-start gap-2">
@@ -338,7 +338,7 @@ function SortableWishCard({
           {...attributes}
           {...listeners}
           onFocus={onActivate}
-          className="mt-0.5 flex h-7 w-4 shrink-0 cursor-grab touch-none items-center justify-center rounded text-[16px] leading-none text-text-faint opacity-35 transition-[opacity,color,background] group-hover:opacity-100 hover:bg-surface hover:text-accent focus:opacity-100 active:cursor-grabbing"
+          className="mt-0.5 flex h-7 w-4 shrink-0 cursor-grab touch-none items-center justify-center rounded text-[16px] leading-none text-text-faint opacity-25 transition-[opacity,color,background] group-hover:opacity-100 hover:bg-surface-2 hover:text-text focus:opacity-100 active:cursor-grabbing"
           aria-label={`拖动排序 ${place.title}`}
           title="仅用于调整想去清单顺序"
         >
@@ -353,29 +353,29 @@ function SortableWishCard({
           className="min-w-0 flex-1 cursor-grab rounded py-0.5 active:cursor-grabbing"
           title="拖动地点名称到左侧日期，即可快速安排"
         >
-          <div className="truncate text-[13px] font-medium">{place.title}</div>
-          {place.location && <div className="mt-px truncate text-[11.5px] text-text-muted">{place.location}</div>}
-          {place.note && <div className="mt-0.5 truncate text-[11px] text-text-faint">{place.note}</div>}
+          <div className="truncate text-[14px] font-semibold tracking-[-0.01em]">{place.title}</div>
+          {place.location && <div className="mt-px truncate text-[12px] text-text-muted">{place.location}</div>}
+          {place.note && <div className="mt-0.5 truncate text-[11.5px] text-text-faint">{place.note}</div>}
         </div>
         <button
           onClick={onRemove}
-          className="h-fit shrink-0 rounded p-1 text-text-faint hover:text-red-500"
+          className="h-fit shrink-0 rounded p-1 text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500 focus:opacity-100"
           title={scheduledItems.length > 0 ? '移出清单，已排行程会保留' : '移出清单'}
         >
           <TrashIcon size={14} />
         </button>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5 pt-1.5">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-9 pt-1">
         {scheduledItems.length > 0 ? (
           <>
-            <span className="mr-auto text-[11px] font-medium text-accent-hover">已安排 {scheduledItems.length} 次</span>
+            <span className="mr-auto text-[11.5px] font-medium text-text-muted">已安排 {scheduledItems.length} 次</span>
             <ScheduleDragButton place={place} onSchedule={onSchedule} />
-            <button onClick={onSchedule} className="rounded-md border border-accent/40 px-2 py-1 text-[11px] font-medium text-accent-hover hover:bg-accent-soft">
+            <button onClick={onSchedule} className="rounded-md px-2 py-1 text-[11.5px] font-medium text-action hover:bg-action-soft">
               再安排
             </button>
             <div className="flex w-full flex-wrap gap-1 pt-0.5">
               {scheduledItems.map((item) => (
-                <span key={item.id} className="inline-flex items-center overflow-hidden rounded-full border border-border bg-white text-[11px]">
+                <span key={item.id} className="inline-flex items-center overflow-hidden rounded-md bg-surface-2 text-[11px]">
                   <button onClick={() => onFocus(item.id)} className="px-1.5 py-0.5 text-text-muted hover:bg-surface-2 hover:text-accent">
                     {item.dayLabel} · {item.time}
                   </button>
@@ -393,10 +393,10 @@ function SortableWishCard({
           </>
         ) : (
           <>
-            <span className="mr-auto text-[11px] text-text-faint">尚未安排日期</span>
+            <span className="mr-auto text-[11.5px] text-text-faint">尚未安排日期</span>
             <ScheduleDragButton place={place} onSchedule={onSchedule} />
-            <button onClick={onSchedule} className="rounded-md bg-action px-2.5 py-1 text-[11.5px] font-medium text-white hover:bg-action-hover">
-              安排到行程
+            <button onClick={onSchedule} className="rounded-md bg-action px-2.5 py-1.5 text-[11.5px] font-medium text-white hover:bg-action-hover">
+              安排
             </button>
           </>
         )}
@@ -596,14 +596,14 @@ export default function WishlistView() {
     <div className="flex h-full min-w-0">
       <section className="min-w-0 flex-1 overflow-y-auto">
         <div className="mr-auto max-w-[1000px] px-4 py-5 sm:px-7 sm:py-7 lg:px-10">
-          <div className="mb-4 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border/80 pb-3">
-            <h1 className="text-[18px] font-semibold">想去</h1>
+          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <h1 className="text-[20px] font-semibold tracking-[-0.02em]">想去</h1>
             <p className="text-[12px] text-text-muted">
               待安排 {trip.wishPlaces.length - scheduledCount} · 已安排 {scheduledCount}
             </p>
           </div>
 
-          <div className="relative mb-4 border-b border-border/80 pb-4">
+          <div className="relative mb-4 rounded-lg bg-white p-3 shadow-[0_1px_4px_rgba(32,40,46,0.055)]">
             <div className="flex flex-wrap gap-2">
               <div className="relative min-w-full flex-1 sm:min-w-[250px]">
                 <input
@@ -663,16 +663,16 @@ export default function WishlistView() {
             </div>
           </div>
 
-          <div className="mb-4 flex flex-wrap items-center gap-1.5">
+          <div className="mb-3 flex flex-wrap items-center gap-1.5 border-b border-border/80 pb-3">
             <input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               placeholder="筛选地点或城市"
                 className="w-full rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent sm:w-[180px]"
             />
-            <button onClick={() => setCategory('all')} className={`rounded-full px-2.5 py-1 text-[12px] ${category === 'all' ? 'bg-accent text-white' : 'text-text-muted hover:bg-surface-2'}`}>全部 {trip.wishPlaces.length}</button>
+            <button onClick={() => setCategory('all')} className={`border-b-2 px-2.5 py-1 text-[12px] font-medium ${category === 'all' ? 'border-action text-text' : 'border-transparent text-text-muted hover:text-text'}`}>全部 {trip.wishPlaces.length}</button>
             {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => (
-              <button key={value} onClick={() => setCategory(value)} className={`rounded-full px-2.5 py-1 text-[12px] ${category === value ? 'bg-accent text-white' : 'text-text-muted hover:bg-surface-2'}`}>
+              <button key={value} onClick={() => setCategory(value)} className={`border-b-2 px-2.5 py-1 text-[12px] font-medium ${category === value ? 'border-action text-text' : 'border-transparent text-text-muted hover:text-text'}`}>
                 {CATEGORY_META[value].label}
               </button>
             ))}
@@ -683,7 +683,7 @@ export default function WishlistView() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="border-y border-dashed border-border px-6 py-12 text-center text-[13px] text-text-faint">还没有待安排地点，从上方搜索或手动收藏一个开始。</div>
+            <div className="border-y border-border px-6 py-12 text-center text-[13px] text-text-faint">还没有待安排地点，从上方搜索或手动收藏一个开始。</div>
           ) : (
             <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
               <SortableContext items={filtered.map((place) => place.id)} strategy={verticalListSortingStrategy}>
@@ -731,11 +731,11 @@ export default function WishlistView() {
       >
         <span className="h-10 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
       </div>
-      <aside className="sticky top-0 hidden h-full shrink-0 border-l border-border bg-surface p-4 lg:block" style={{ width: mapPanelWidth }}>
+      <aside className="sticky top-0 hidden h-full shrink-0 border-l border-border/80 bg-[#fafbfb] p-4 lg:block" style={{ width: mapPanelWidth }}>
         <div className="mb-1 text-[13px] font-semibold">地点分布</div>
         <div className="mb-3 text-[11.5px] text-text-faint">点击地图标记可定位收藏</div>
         {mapped.length > 0 ? (
-          <div className="h-[calc(100%-48px)] overflow-hidden rounded-lg border border-border">
+          <div className="h-[calc(100%-48px)] overflow-hidden rounded-md border border-border/80">
             {amapJsKey ? (
               <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} className="h-full w-full" zoom={11} />
             ) : (

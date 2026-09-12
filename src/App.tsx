@@ -78,7 +78,7 @@ export default function App() {
         {view === 'plan' && (
           <>
             {/* 行程规划子标签 */}
-            <div className="trip-topbar hidden shrink-0 items-center justify-between border-b border-border px-6 pt-2.5 md:flex">
+            <div className="trip-topbar hidden h-[52px] shrink-0 items-end justify-between border-b border-border/80 px-7 md:flex">
               <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
                 {PLAN_TABS.map(({ key, label, Icon }) => {
                   const active = planTab === key
@@ -86,8 +86,8 @@ export default function App() {
                     <button
                       key={key}
                       onClick={() => setPlanTab(key)}
-                      className={`relative flex shrink-0 items-center gap-1.5 px-3 pb-2.5 pt-1 text-[13px] transition-colors ${
-                        active ? 'font-medium text-accent-hover' : 'text-text-muted hover:text-text'
+                      className={`relative flex shrink-0 items-center gap-1.5 px-3 pb-3 pt-2 text-[13px] transition-colors ${
+                        active ? 'font-semibold text-text' : 'text-text-muted hover:text-text'
                       }`}
                     >
                       <Icon size={14} /> {label}
@@ -96,7 +96,7 @@ export default function App() {
                   )
                 })}
               </div>
-              <div className="flex items-center gap-1.5 pb-2">
+              <div className="flex items-center gap-1.5 pb-2.5">
                 {installPrompt && (
                   <button
                     onClick={installApp}
@@ -109,7 +109,7 @@ export default function App() {
                 <button
                   onClick={downloadImage}
                   disabled={exportingImage}
-                  className="flex items-center gap-1.5 rounded-lg border border-white/80 bg-white/75 px-2.5 py-1.5 text-[12px] font-medium text-text-muted shadow-[0_1px_3px_rgba(15,23,42,0.06)] backdrop-blur-sm transition-colors hover:border-accent/50 hover:text-accent-hover disabled:cursor-wait disabled:opacity-60"
+                  className="flex items-center gap-1.5 rounded-md border border-border/80 bg-white/80 px-2.5 py-1.5 text-[12px] font-medium text-text-muted shadow-[0_1px_2px_rgba(32,40,46,0.04)] backdrop-blur-sm transition-colors hover:border-accent/50 hover:text-text disabled:cursor-wait disabled:opacity-60"
                 >
                   <DownloadIcon size={13} /> {exportingImage ? '生成中…' : '导出行程卡片'}
                 </button>
@@ -131,7 +131,7 @@ export default function App() {
             <SettingsView canInstall={!!installPrompt} onInstall={installApp} />
           </div>
         )}
-        <nav className="mobile-safe-bottom flex shrink-0 border-t border-border bg-white/95 px-1 pt-1 shadow-[0_-3px_12px_rgba(45,55,65,0.06)] backdrop-blur md:hidden" aria-label="主要导航">
+        <nav className="mobile-safe-bottom flex shrink-0 border-t border-border/80 bg-white/96 px-1 pt-1 shadow-[0_-2px_10px_rgba(32,40,46,0.05)] backdrop-blur md:hidden" aria-label="主要导航">
           {PLAN_TABS.map(({ key, label, Icon }) => {
             const active = view === 'plan' && planTab === key
             return (
@@ -141,10 +141,11 @@ export default function App() {
                   setView('plan')
                   setPlanTab(key)
                 }}
-                className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-[10.5px] transition-colors ${
-                  active ? 'bg-accent-soft font-medium text-accent-hover' : 'text-text-faint active:bg-surface-2'
+                className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[10.5px] transition-colors ${
+                  active ? 'font-semibold text-text' : 'text-text-faint active:bg-surface-2'
                 }`}
               >
+                {active && <span className="absolute top-0 h-0.5 w-5 rounded-full bg-action" />}
                 <Icon size={19} />
                 <span>{label}</span>
               </button>
