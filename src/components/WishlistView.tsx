@@ -329,11 +329,11 @@ function SortableWishCard({
       onClick={onActivate}
       onMouseEnter={() => onHoverChange(true)}
       onMouseLeave={() => onHoverChange(false)}
-      className={`group border-b border-l-2 border-b-border/70 px-2.5 py-3 transition-[background-color,border-color,box-shadow] ${
+      className={`group border-b border-l-2 border-b-border/70 px-2.5 py-2 transition-[background-color,border-color,box-shadow] ${
         active ? 'border-l-action bg-white shadow-[0_2px_8px_rgba(32,40,46,0.06)]' : highlighted ? 'border-l-accent/40 bg-accent-soft/55' : 'border-l-transparent hover:bg-white/65'
       } ${isDragging ? 'relative z-30 rounded-md bg-white opacity-70 shadow-lg' : ''}`}
     >
-      <div className="flex items-start gap-2">
+      <div className="flex items-start gap-1.5">
         <button
           {...attributes}
           {...listeners}
@@ -350,12 +350,12 @@ function SortableWishCard({
         <div
           draggable
           onDragStart={(event) => startWishScheduleDrag(event, place)}
-          className="min-w-0 flex-1 cursor-grab rounded py-0.5 active:cursor-grabbing"
+          className="min-w-0 flex-1 cursor-grab rounded active:cursor-grabbing"
           title="拖动地点名称到左侧日期，即可快速安排"
         >
-          <div className="truncate text-[14px] font-semibold tracking-[-0.01em]">{place.title}</div>
-          {place.location && <div className="mt-px truncate text-[12px] text-text-muted">{place.location}</div>}
-          {place.note && <div className="mt-0.5 truncate text-[11.5px] text-text-faint">{place.note}</div>}
+          <div className="truncate text-[14px] font-semibold leading-[1.35] tracking-[-0.01em]">{place.title}</div>
+          {place.location && <div className="truncate text-[12px] leading-[1.4] text-text-muted">{place.location}</div>}
+          {place.note && <div className="truncate text-[11.5px] leading-[1.4] text-text-faint">{place.note}</div>}
         </div>
         <button
           onClick={onRemove}
@@ -365,7 +365,7 @@ function SortableWishCard({
           <TrashIcon size={14} />
         </button>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-9 pt-1">
+      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-[34px] pt-0.5">
         {scheduledItems.length > 0 ? (
           <>
             <span className="mr-auto text-[11.5px] font-medium text-text-muted">已安排 {scheduledItems.length} 次</span>
