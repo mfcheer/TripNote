@@ -1,14 +1,4 @@
 import { useEffect, useRef, useState, type DragEvent as NativeDragEvent } from 'react'
-import {
-  DndContext,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from '@dnd-kit/core'
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
 import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -274,7 +264,8 @@ function ScheduleWishDialog({
 }
 
 function startWishScheduleDrag(event: NativeDragEvent<HTMLElement>, place: WishPlace) {
-  event.dataTransfer.effectAllowed = 'copy'
+  // 同一份拖拽数据既支持清单内移动排序，也支持拖到日期后复制为行程安排。
+  event.dataTransfer.effectAllowed = 'copyMove'
   event.dataTransfer.setData('application/x-tripnote-wish-id', place.id)
   event.dataTransfer.setData('text/plain', place.title)
 }
@@ -282,14 +273,12 @@ function startWishScheduleDrag(event: NativeDragEvent<HTMLElement>, place: WishP
 function ScheduleDragButton({ place, onSchedule }: { place: WishPlace; onSchedule: () => void }) {
   return (
     <button
-      draggable
-      onDragStart={(event) => startWishScheduleDrag(event, place)}
       onClick={onSchedule}
       className="hidden items-center gap-1 rounded-md px-2 py-1 text-[11px] text-text-faint opacity-0 transition-[opacity,color,background] group-hover:opacity-100 hover:bg-surface-2 hover:text-text focus:opacity-100 md:flex"
-      title="拖到左侧日期即可快速安排（点击仍可手动选择日期）"
-      aria-label={`拖动「${place.title}」到左侧日期安排`}
+      title="手动选择安排日期"
+      aria-label={`为「${place.title}」选择安排日期`}
     >
-      <CalendarIcon size={13} /> 拖到左侧日期
+      <CalendarIcon size={13} /> 选择日期
     </button>
   )
 }
@@ -305,6 +294,8 @@ function SortableWishCard({
   onFocus,
   onCancel,
   onSchedule,
+  onCardDragStart,
+  onCardDrop,
 }: {
   place: WishPlace
   active: boolean
@@ -316,43 +307,35 @@ function SortableWishCard({
   onFocus: (activityId: string) => void
   onCancel: (activityId: string) => void
   onSchedule: () => void
+  onCardDragStart: (event: NativeDragEvent<HTMLElement>) => void
+  onCardDrop: (event: NativeDragEvent<HTMLElement>) => void
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: place.id })
   const meta = CATEGORY_META[place.category]
   const Icon = CATEGORY_ICONS[place.category]
 
   return (
     <article
-      ref={setNodeRef}
-      style={{ transform: CSS.Transform.toString(transform), transition }}
+      draggable
       data-wish-id={place.id}
       onClick={onActivate}
       onMouseEnter={() => onHoverChange(true)}
       onMouseLeave={() => onHoverChange(false)}
-      className={`group border-b border-l-2 border-b-border/70 px-2.5 py-2 transition-[background-color,border-color,box-shadow] ${
+      onDragStart={onCardDragStart}
+      onDragOver={(event) => {
+        event.preventDefault()
+        event.dataTransfer.dropEffect = 'move'
+      }}
+      onDrop={onCardDrop}
+      className={`group border-b border-l-2 border-b-border/70 px-2.5 py-2 transition-[background-color,border-color,box-shadow] md:cursor-grab md:active:cursor-grabbing ${
         active ? 'border-l-action bg-white shadow-[0_2px_8px_rgba(32,40,46,0.06)]' : highlighted ? 'border-l-accent/40 bg-accent-soft/55' : 'border-l-transparent hover:bg-white/65'
-      } ${isDragging ? 'relative z-30 rounded-md bg-white opacity-70 shadow-lg' : ''}`}
+      }`}
+      title="拖动卡片可调整顺序；拖到左侧日期可快速安排"
     >
       <div className="flex items-start gap-1.5">
-        <button
-          {...attributes}
-          {...listeners}
-          onFocus={onActivate}
-          className="mt-0.5 flex h-7 w-4 shrink-0 cursor-grab touch-none items-center justify-center rounded text-[16px] leading-none text-text-faint opacity-25 transition-[opacity,color,background] group-hover:opacity-100 hover:bg-surface-2 hover:text-text focus:opacity-100 active:cursor-grabbing"
-          aria-label={`拖动排序 ${place.title}`}
-          title="仅用于调整想去清单顺序"
-        >
-          ⠿
-        </button>
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ background: meta.soft, color: meta.color }}>
           <Icon size={15} />
         </div>
-        <div
-          draggable
-          onDragStart={(event) => startWishScheduleDrag(event, place)}
-          className="min-w-0 flex-1 cursor-grab rounded active:cursor-grabbing"
-          title="拖动地点名称到左侧日期，即可快速安排"
-        >
+        <div className="min-w-0 flex-1 rounded">
           <div className="truncate text-[14px] font-semibold leading-[1.35] tracking-[-0.01em]">{place.title}</div>
           {place.location && <div className="truncate text-[12px] leading-[1.4] text-text-muted">{place.location}</div>}
           {place.note && <div className="truncate text-[11.5px] leading-[1.4] text-text-faint">{place.note}</div>}
@@ -421,7 +404,6 @@ export default function WishlistView() {
   const [schedulingPlaceId, setSchedulingPlaceId] = useState<string | null>(null)
   const [showCustomMap, setShowCustomMap] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
 
   useEffect(() => {
     localStorage.setItem(WISHLIST_MAP_WIDTH_KEY, String(mapPanelWidth))
@@ -443,11 +425,6 @@ export default function WishlistView() {
     }
     window.addEventListener('pointermove', onMove)
     window.addEventListener('pointerup', onEnd, { once: true })
-  }
-
-  function onDragEnd(event: DragEndEvent) {
-    const { active, over } = event
-    if (over && active.id !== over.id) reorderWishPlace(String(active.id), String(over.id))
   }
 
   useEffect(() => {
@@ -679,15 +656,13 @@ export default function WishlistView() {
           </div>
 
           <div className="mb-2 hidden text-[11.5px] leading-relaxed text-text-faint md:block">
-            可拖动地点名称到左侧日期快速安排；左侧 ⠿ 用于调整收藏顺序。
+            拖动整张卡片可调整收藏顺序，也可以直接拖到左侧日期快速安排。
           </div>
 
           {filtered.length === 0 ? (
             <div className="border-y border-border px-6 py-12 text-center text-[13px] text-text-faint">还没有待安排地点，从上方搜索或手动收藏一个开始。</div>
           ) : (
-            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-              <SortableContext items={filtered.map((place) => place.id)} strategy={verticalListSortingStrategy}>
-                <div className="flex flex-col">
+            <div className="flex flex-col">
                   {filtered.map((place, index) => {
                     const scheduledItems = scheduledItemsFor(place)
                     const startsScheduledSection = scheduledItems.length > 0 && !filtered.slice(0, index).some(isPlaceScheduled)
@@ -711,13 +686,24 @@ export default function WishlistView() {
                           onFocus={focusActivity}
                           onCancel={(activityId) => cancelSchedule(place, activityId)}
                           onSchedule={() => setSchedulingPlaceId(place.id)}
+                          onCardDragStart={(event) => {
+                            const origin = event.target as HTMLElement
+                            if (origin.closest('button, input, select, textarea, a')) {
+                              event.preventDefault()
+                              return
+                            }
+                            startWishScheduleDrag(event, place)
+                          }}
+                          onCardDrop={(event) => {
+                            event.preventDefault()
+                            const sourceId = event.dataTransfer.getData('application/x-tripnote-wish-id')
+                            if (sourceId && sourceId !== place.id) reorderWishPlace(sourceId, place.id)
+                          }}
                         />
                       </div>
                     )
                   })}
-                </div>
-              </SortableContext>
-            </DndContext>
+            </div>
           )}
         </div>
       </section>

@@ -336,7 +336,7 @@ export default function Sidebar() {
         </div>
         <div>
           <div className="text-[14px] font-semibold leading-tight tracking-[0.01em]">途记</div>
-          <div className="mt-0.5 text-[10px] leading-tight tracking-[0.12em] text-text-faint">TRIPNOTE</div>
+          <div className="mt-0.5 text-[10px] leading-tight tracking-[0.08em] text-text-faint">TripNote</div>
         </div>
       </div>
 

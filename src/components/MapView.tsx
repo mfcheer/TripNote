@@ -346,10 +346,12 @@ export default function MapView() {
         </div>
       )}
 
-      {/* 图例默认收起，把地图留给路线与地点；需要时再展开查看日期色。 */}
-      <details className="absolute right-4 bottom-6 z-[500] hidden w-[238px] rounded-md border border-white/80 bg-white/94 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md md:block">
+      {/* 桌面端默认展开行程进度，仍可随时手动收起。 */}
+      <details open className="group absolute right-4 bottom-6 z-[500] hidden w-[238px] rounded-md border border-white/80 bg-white/94 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md md:block">
         <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[11.5px] font-medium text-text-muted [&::-webkit-details-marker]:hidden">
-          <span>行程进度 · {trip.daysCount} 天</span><span className="text-text-faint">展开</span>
+          <span>行程进度 · {trip.daysCount} 天</span>
+          <span className="text-text-faint group-open:hidden">展开</span>
+          <span className="hidden text-text-faint group-open:inline">收起</span>
         </summary>
         <div className="border-t border-border px-3.5 py-2.5">
         <div className="mb-2 flex items-center gap-1 text-[10.5px] text-text-faint">

@@ -121,7 +121,7 @@ export async function exportTripImage(trip: Trip) {
 
   ctx.fillStyle = '#9b766c'
   ctx.font = '600 17px "PingFang SC", sans-serif'
-  ctx.fillText('TRIPNOTE  /  ITINERARY', PADDING, 66)
+  ctx.fillText('TripNote', PADDING, 66)
   ctx.fillStyle = INK
   ctx.font = '700 48px "PingFang SC", sans-serif'
   ctx.fillText(clip(ctx, trip.name, 820), PADDING, 124)
