@@ -13,8 +13,8 @@ import { useToastStore } from './components/toastStore'
 import { CalendarIcon, DownloadIcon, HeartIcon, MapIcon } from './components/Icons'
 
 const PLAN_TABS: { key: PlanTab; label: string; Icon: typeof CalendarIcon }[] = [
-  { key: 'timeline', label: '行程', Icon: CalendarIcon },
   { key: 'places', label: '想去', Icon: HeartIcon },
+  { key: 'timeline', label: '行程', Icon: CalendarIcon },
 ]
 
 interface BeforeInstallPromptEvent extends Event {
