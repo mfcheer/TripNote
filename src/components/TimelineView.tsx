@@ -25,7 +25,7 @@ import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import { CATEGORY_META, type Activity, type ActivityCategory, type Trip } from '../types'
 import { searchPlaces, type GeoResult } from '../api/geocode'
-import { fetchWalkingRouteInfo, straightLineDistanceMeters, WALKING_DISTANCE_THRESHOLD_METERS } from '../api/route'
+import { fetchRouteInfo, fetchWalkingRouteInfo, routeProfileForSegment, straightLineDistanceMeters, WALKING_DISTANCE_THRESHOLD_METERS } from '../api/route'
 import DayMapPreview from './DayMapPreview'
 import ModalShell, { OverlayHeader, SheetHandle } from './OverlayShell'
 import { InlineStatus } from './FeedbackState'
@@ -372,41 +372,37 @@ function TransitHint({ from, to }: { from: Activity; to: Activity }) {
   const fromGeo = from.geo
   const toGeo = to.geo
   const directDistance = fromGeo && toGeo ? straightLineDistanceMeters(fromGeo, toGeo) : null
-  const isShortWalk = !!directDistance && directDistance <= WALKING_DISTANCE_THRESHOLD_METERS
-  const hasManualTransit = !!to.travelMode && to.travelMode !== 'walk'
-  const shouldRequestWalking = !!fromGeo && !!toGeo && !hasManualTransit && (to.travelMode === 'walk' || isShortWalk)
+  const routeProfile = fromGeo && toGeo ? routeProfileForSegment(fromGeo, toGeo, to.travelMode) : null
 
   useEffect(() => {
-    if (from.category === 'traffic' || to.category === 'traffic' || !shouldRequestWalking || !fromGeo || !toGeo) {
+    if (from.category === 'traffic' || to.category === 'traffic' || !routeProfile || !fromGeo || !toGeo) {
       setRoute(null)
       return
     }
     const ctrl = new AbortController()
-    fetchWalkingRouteInfo([fromGeo, toGeo], ctrl.signal).then((result) => {
+    fetchRouteInfo([fromGeo, toGeo], routeProfile, ctrl.signal).then((result) => {
       if (!ctrl.signal.aborted) {
         setRoute({ durationMinutes: result.durationMinutes, distanceMeters: result.distanceMeters })
       }
     })
     return () => ctrl.abort()
-  }, [from.category, fromGeo, shouldRequestWalking, to.category, toGeo])
+  }, [from.category, fromGeo, routeProfile, to.category, toGeo])
 
   if (from.category === 'traffic' || to.category === 'traffic' || !from.geo || !to.geo) return null
-  if (hasManualTransit) {
+  if (!routeProfile && to.travelMode) {
     return <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-accent-hover"><span>{TRAVEL_MODE_LABELS[to.travelMode!]}</span>{directDistance && <span>· 相距 {(directDistance / 1000).toFixed(directDistance >= 1000 ? 1 : 2)} km</span>}</div>
-  }
-  if (!isShortWalk) {
-    return <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-amber-700"><span>跨城移动</span>{directDistance && <span>· 相距 {(directDistance / 1000).toFixed(1)} km</span>}<span>· 建议补充交通安排</span></div>
   }
   if (!route?.durationMinutes) return null
   const previousEnd = activityEndMinutes(from)
   const available = previousEnd === undefined ? undefined : timeToMinutes(to.time) - previousEnd
   const insufficient = available !== undefined && available >= 0 && available < route.durationMinutes
+  const routeLabel = routeProfile === 'driving' ? '驾车约' : '步行约'
 
   return (
     <div className={`mt-1.5 flex items-center gap-1.5 text-[11px] ${insufficient ? 'text-amber-600' : 'text-text-faint'}`}>
-      <span>步行约 {route.durationMinutes} 分钟</span>
+      <span>{routeLabel} {route.durationMinutes} 分钟</span>
       {route.distanceMeters && <span>· {(route.distanceMeters / 1000).toFixed(route.distanceMeters >= 1000 ? 1 : 2)} km</span>}
-      {insufficient && <span className="font-medium">· 通勤时间不足</span>}
+      {insufficient && <span className="font-medium">· 路程时间不足</span>}
     </div>
   )
 }

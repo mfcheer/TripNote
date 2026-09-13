@@ -1,9 +1,10 @@
-// OSRM 公共服务：步行路线（foot profile）。失败时回退直线连接。
-const OSRM_BASE = 'https://router.project-osrm.org/route/v1/foot'
-const ROUTE_CACHE_KEY = 'tripnote-walking-route-cache-v1'
+// OSRM 公共服务：近距离用步行、较远距离用驾车；失败时回退直线连接。
+const OSRM_BASE = 'https://router.project-osrm.org/route/v1'
+const ROUTE_CACHE_KEY = 'tripnote-route-cache-v2'
 const ROUTE_CACHE_TTL = 30 * 24 * 60 * 60 * 1000
 const ROUTE_CACHE_MAX_ENTRIES = 80
 export const WALKING_DISTANCE_THRESHOLD_METERS = 15_000
+export type RouteProfile = 'foot' | 'driving'
 
 export function straightLineDistanceMeters(from: { lat: number; lng: number }, to: { lat: number; lng: number }) {
   const earthRadius = 6_371_000
@@ -19,6 +20,18 @@ export function isWalkableRoute(points: { lat: number; lng: number }[]) {
   return points.every((point, index) => index === 0 || straightLineDistanceMeters(points[index - 1], point) <= WALKING_DISTANCE_THRESHOLD_METERS)
 }
 
+/** 根据距离和用户已选交通方式决定是否请求道路路线。 */
+export function routeProfileForSegment(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+  travelMode?: 'walk' | 'drive' | 'train' | 'flight' | 'charter',
+): RouteProfile | null {
+  if (travelMode === 'walk') return 'foot'
+  if (travelMode === 'drive') return 'driving'
+  if (travelMode === 'train' || travelMode === 'flight' || travelMode === 'charter') return null
+  return straightLineDistanceMeters(from, to) <= WALKING_DISTANCE_THRESHOLD_METERS ? 'foot' : 'driving'
+}
+
 export interface WalkingRoute {
   points: { lat: number; lng: number }[]
   durationMinutes: number | null
@@ -30,9 +43,9 @@ type CachedRoute = Omit<WalkingRoute, 'fallback'> & { cachedAt: number }
 
 const routeMemoryCache = new Map<string, CachedRoute>()
 
-function cacheKeyFor(points: { lat: number; lng: number }[]) {
+function cacheKeyFor(profile: RouteProfile, points: { lat: number; lng: number }[]) {
   // 五位小数约 1 米精度：相同两点重复规划会命中，同时避免 GPS 微小抖动产生无意义缓存。
-  return points.map((point) => `${point.lat.toFixed(5)},${point.lng.toFixed(5)}`).join('|')
+  return `${profile}:${points.map((point) => `${point.lat.toFixed(5)},${point.lng.toFixed(5)}`).join('|')}`
 }
 
 function isCachedRoute(value: unknown): value is CachedRoute {
@@ -80,14 +93,14 @@ function saveCachedRoute(key: string, route: Omit<WalkingRoute, 'fallback'>) {
   }
 }
 
-// 包含距离与耗时的步行路线，供时间轴的相邻地点提示使用。
-export async function fetchWalkingRouteInfo(
+export async function fetchRouteInfo(
   points: { lat: number; lng: number }[],
+  profile: RouteProfile,
   signal?: AbortSignal,
 ): Promise<WalkingRoute> {
   if (points.length < 2) return { points, durationMinutes: 0, distanceMeters: 0, fallback: false }
-  // 公共步行服务不适合跨城段：不请求、不缓存，交给界面提示用户补充交通方式。
-  if (!isWalkableRoute(points)) {
+  // 对多点调用时，只允许全程步行；跨城的多点链路应逐段请求，以避免把整天误当作驾车。
+  if (profile === 'foot' && !isWalkableRoute(points)) {
     return {
       points,
       durationMinutes: null,
@@ -95,11 +108,11 @@ export async function fetchWalkingRouteInfo(
       fallback: false,
     }
   }
-  const routeKey = cacheKeyFor(points)
+  const routeKey = cacheKeyFor(profile, points)
   const cached = readCachedRoute(routeKey)
   if (cached) return { ...cached, fallback: false }
   const coords = points.map((p) => `${p.lng},${p.lat}`).join(';')
-  const url = `${OSRM_BASE}/${coords}?overview=full&geometries=geojson`
+  const url = `${OSRM_BASE}/${profile}/${coords}?overview=full&geometries=geojson`
 
   try {
     const res = await fetch(url, { signal })
@@ -110,8 +123,10 @@ export async function fetchWalkingRouteInfo(
     const distanceMeters = Number.isFinite(route.distance) ? Math.round(route.distance) : null
     const result = {
       points: route.geometry.coordinates.map((c: [number, number]) => ({ lat: c[1], lng: c[0] })),
-      // 公共 OSRM 实例的 foot profile 不保证返回真实步行速度；以路线距离和 4.8km/h 估算，避免误导。
-      durationMinutes: distanceMeters ? Math.max(1, Math.round(distanceMeters / 80)) : null,
+      // foot profile 按约 4.8km/h 估算；driving 使用 OSRM 返回的驾驶耗时。
+      durationMinutes: profile === 'foot'
+        ? (distanceMeters ? Math.max(1, Math.round(distanceMeters / 80)) : null)
+        : (Number.isFinite(route.duration) ? Math.max(1, Math.round(route.duration / 60)) : null),
       distanceMeters,
     }
     saveCachedRoute(routeKey, result)
@@ -120,6 +135,21 @@ export async function fetchWalkingRouteInfo(
     // 网络失败/超时：地图仍可用直线连接，时间轴则不展示不可靠的耗时。
     return { points, durationMinutes: null, distanceMeters: null, fallback: true }
   }
+}
+
+// 包含距离与耗时的步行路线，供时间轴的相邻地点提示使用。
+export async function fetchWalkingRouteInfo(
+  points: { lat: number; lng: number }[],
+  signal?: AbortSignal,
+): Promise<WalkingRoute> {
+  return fetchRouteInfo(points, 'foot', signal)
+}
+
+export async function fetchDrivingRouteInfo(
+  points: { lat: number; lng: number }[],
+  signal?: AbortSignal,
+): Promise<WalkingRoute> {
+  return fetchRouteInfo(points, 'driving', signal)
 }
 
 export async function fetchWalkingRoute(

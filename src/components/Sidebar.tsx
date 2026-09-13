@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DragEvent, ReactElement } from 'react'
-import { useActiveTrip, useTripStore, displayDate, nextActivityTime } from '../store'
+import { activitiesByDay, useActiveTrip, useTripStore, displayDate, nextActivityTime } from '../store'
+import { straightLineDistanceMeters } from '../api/route'
 import type { TripDay, ViewKey } from '../types'
 import { CalendarIcon, ChevronDownIcon, DownloadIcon, EditIcon, LogoIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { useConfirmStore } from './confirmStore'
@@ -11,6 +12,24 @@ const NAV_ITEMS: { key: ViewKey; label: string; Icon: (p: { size?: number }) => 
   { key: 'plan', label: '行程规划', Icon: CalendarIcon },
   { key: 'settings', label: '设置', Icon: SettingsIcon },
 ]
+
+// 一天的移动里程按连续动线累计：当天内部相邻地点，加上前一天最后一个定位点到当天第一个定位点。
+// 使用直线里程作为不调用路线服务的稳定概览；打开智能地图后可看到对应的道路路线。
+function dayMovementMeters(trip: ReturnType<typeof useActiveTrip>, dayIndex: number) {
+  const day = trip.days[dayIndex]
+  const todayPoints = activitiesByDay(trip, day.id).flatMap((activity) => activity.geo ? [activity.geo] : [])
+  if (todayPoints.length === 0) return 0
+  const previousLastPoint = dayIndex > 0
+    ? activitiesByDay(trip, trip.days[dayIndex - 1].id).flatMap((activity) => activity.geo ? [activity.geo] : []).at(-1)
+    : undefined
+  const points = previousLastPoint ? [previousLastPoint, ...todayPoints] : todayPoints
+  return points.slice(1).reduce((total, point, index) => total + straightLineDistanceMeters(points[index], point), 0)
+}
+
+function formatMovement(meters: number) {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(meters >= 10_000 ? 0 : 1)} km`
+  return `${Math.round(meters)} m`
+}
 
 function CreateTripDialog({ onClose }: { onClose: () => void }) {
   const createTrip = useTripStore((s) => s.createTrip)
@@ -361,6 +380,7 @@ export default function Sidebar() {
           const dayCost = trip.activities
             .filter((activity) => activity.dayId === d.id)
             .reduce((sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0), 0)
+          const movementMeters = dayMovementMeters(trip, index)
           const date = /^\d{4}-\d{2}-\d{2}$/.test(d.date)
             ? displayDate(d.date).split(' ')[0]
             : d.date !== '待定'
@@ -407,6 +427,11 @@ export default function Sidebar() {
                 <span className={`mt-0.5 block text-[11px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>
                   {d.label} · {geoCount} 个地点{dayCost > 0 ? ` · ¥${dayCost.toLocaleString()}` : ` · ${activityCount} 个安排`}
                 </span>
+                {movementMeters > 0 && (
+                  <span className={`mt-0.5 block text-[10.5px] tabular-nums ${dropDayId === d.id ? 'text-white/70' : 'text-text-muted'}`}>
+                    移动约 {formatMovement(movementMeters)}
+                  </span>
+                )}
               </span>
             </button>
           )

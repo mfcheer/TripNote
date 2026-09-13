@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS, MapIcon, PlusIcon } from './Icons'
 import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint, type TripDay } from '../types'
-import { fetchWalkingRouteInfo, isWalkableRoute, straightLineDistanceMeters } from '../api/route'
+import { fetchRouteInfo, routeProfileForSegment, straightLineDistanceMeters } from '../api/route'
 import { reverseGeocode } from '../api/geocode'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
 import { useToastStore } from './toastStore'
@@ -116,41 +116,34 @@ function MapPickHandler({ enabled, onPick }: { enabled: boolean; onPick: (point:
   return null
 }
 
-// 一天的真实步行路线（OSRM，失败回退直线）
-function DayRoute({ dayId, color, routeMode, onRouteFallback }: { dayId: string; color: string; routeMode: 'direct' | 'walking'; onRouteFallback: () => void }) {
-  const trip = useActiveTrip()
-  const geoItems = useMemo(
-    () => activitiesByDay(trip, dayId).filter((a) => a.geo),
-    [trip, dayId],
-  )
+// 相邻地点逐段请求道路路线：近距离为步行，较远距离自动改为驾车。
+// 火车、飞机、包车等明确交通方式仍保留直线，避免伪装成道路导航。
+function RouteSegment({ from, to, color, routeMode, onRouteFallback }: { from: Activity; to: Activity; color: string; routeMode: 'direct' | 'walking'; onRouteFallback: () => void }) {
   const [path, setPath] = useState<[number, number][]>([])
-  const hasManualTransit = geoItems.slice(1).some((item) => item.travelMode && item.travelMode !== 'walk')
-  const canUseWalkingRoute = isWalkableRoute(geoItems.map((item) => ({ lat: item.geo!.lat, lng: item.geo!.lng }))) && !hasManualTransit
+  const fromPoint = from.geo
+  const toPoint = to.geo
+  const routeProfile = fromPoint && toPoint ? routeProfileForSegment(fromPoint, toPoint, to.travelMode) : null
 
   useEffect(() => {
-    const pts = geoItems.map((a) => ({ lat: a.geo!.lat, lng: a.geo!.lng }))
-    if (pts.length < 2 || routeMode === 'direct' || !canUseWalkingRoute) {
-      setPath([])
+    if (!fromPoint || !toPoint || routeMode === 'direct' || !routeProfile) {
+      setPath(fromPoint && toPoint ? [[fromPoint.lat, fromPoint.lng], [toPoint.lat, toPoint.lng]] : [])
       return
     }
     const ctrl = new AbortController()
-    setPath(pts.map((p) => [p.lat, p.lng]))
-    fetchWalkingRouteInfo(pts, ctrl.signal).then((route) => {
+    setPath([[fromPoint.lat, fromPoint.lng], [toPoint.lat, toPoint.lng]])
+    fetchRouteInfo([fromPoint, toPoint], routeProfile, ctrl.signal).then((route) => {
       if (!ctrl.signal.aborted) {
         if (route.fallback) onRouteFallback()
         setPath(route.points.map((p) => [p.lat, p.lng]))
       }
     })
     return () => ctrl.abort()
-  }, [geoItems.map((a) => `${a.id}@${a.geo!.lat},${a.geo!.lng}:${a.travelMode ?? ''}`).join('|'), routeMode, canUseWalkingRoute]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [fromPoint, toPoint, routeMode, routeProfile, onRouteFallback])
 
-  const directPath = geoItems.map((item) => [item.geo!.lat, item.geo!.lng] as [number, number])
-  // 跨城或手动指定交通方式时，保留直线作为行程脉络，不伪装成步行路线。
-  const visiblePath = routeMode === 'walking' && canUseWalkingRoute ? path : directPath
-  if (visiblePath.length < 2) return null
+  if (path.length < 2) return null
   return <>
-    <Polyline positions={visiblePath} pathOptions={{ color: '#fffdf9', weight: 9, opacity: 0.9 }} />
-    <Polyline positions={visiblePath} pathOptions={{ color, weight: 4, opacity: 0.98 }} />
+    <Polyline positions={path} pathOptions={{ color: '#fffdf9', weight: 9, opacity: 0.9 }} />
+    <Polyline positions={path} pathOptions={{ color, weight: routeProfile === 'driving' ? 4.5 : 4, opacity: 0.98 }} />
   </>
 }
 
@@ -251,8 +244,17 @@ export default function MapView({
   }, [onOpenActivity])
   const amapLines = useMemo<AmapLine[]>(() => [
     ...visibleDays.flatMap((day) => {
-      const points = activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => activity.geo!)
-      return points.length > 1 ? [{ id: `day-${day.id}`, points, color: routeColor(trip.days.indexOf(day), trip.days.length), route: mapRouteMode === 'walking' && isWalkableRoute(points) }] : []
+      const activities = activitiesByDay(trip, day.id).filter((activity) => activity.geo)
+      return activities.slice(1).map((to, index) => {
+        const from = activities[index]
+        return {
+          id: `day-${day.id}-${from.id}-${to.id}`,
+          points: [from.geo!, to.geo!],
+          color: routeColor(trip.days.indexOf(day), trip.days.length),
+          route: mapRouteMode === 'walking' ? routeProfileForSegment(from.geo!, to.geo!, to.travelMode) ?? undefined : undefined,
+          weight: routeProfileForSegment(from.geo!, to.geo!, to.travelMode) === 'driving' ? 4.5 : 4,
+        }
+      })
     }),
     ...crossDaySegments.map(({ from, to, dayIndex }) => ({
       id: `cross-${from.id}-${to.id}`,
@@ -329,7 +331,19 @@ export default function MapView({
           </Fragment>
         })}
 
-        {visibleDays.map((day) => <DayRoute key={day.id} dayId={day.id} color={routeColor(trip.days.indexOf(day), trip.days.length)} routeMode={mapRouteMode} onRouteFallback={handleRouteFallback} />)}
+        {visibleDays.flatMap((day) => {
+          const activities = activitiesByDay(trip, day.id).filter((activity) => activity.geo)
+          return activities.slice(1).map((to, index) => (
+            <RouteSegment
+              key={`${day.id}-${activities[index].id}-${to.id}`}
+              from={activities[index]}
+              to={to}
+              color={routeColor(trip.days.indexOf(day), trip.days.length)}
+              routeMode={mapRouteMode}
+              onRouteFallback={handleRouteFallback}
+            />
+          ))
+        })}
         {markerGroups.map((group) => group.items.length === 1 ? (() => {
           const { activity, day, color } = group.items[0]
           const Icon = CATEGORY_ICONS[activity.category]
@@ -408,10 +422,10 @@ export default function MapView({
         {crossDaySegments.length > 0 && (
           <div className="mt-2 border-t border-border pt-2 text-[11px] text-text-faint">
             <span className="mr-1 inline-block w-5 align-middle border-t-2 border-dashed" style={{ borderColor: routeColor(1, Math.max(trip.days.length, 2)) }} />
-            虚线为跨日衔接；{mapRouteMode === 'walking' ? '步行路线' : '直线连接'}由浅至深代表行程推进
+            虚线为跨日衔接；{mapRouteMode === 'walking' ? '智能路线（近步行、远驾车）' : '直线连接'}由浅至深代表行程推进
           </div>
         )}
-        {routeFallback && mapRouteMode === 'walking' && <div className="mt-1.5 text-[11px] text-amber-700">步行路线请求失败，已显示直线连线。</div>}
+        {routeFallback && mapRouteMode === 'walking' && <div className="mt-1.5 text-[11px] text-amber-700">路线请求失败，已显示直线连线。</div>}
         </div>
       </details>
 

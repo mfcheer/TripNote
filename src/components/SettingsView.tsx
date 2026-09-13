@@ -274,7 +274,7 @@ export default function SettingsView({
           </summary>
           <div className="mt-5 border-t border-border/80 pt-5">
             <p className="mb-4 max-w-[620px] text-[12.5px] leading-relaxed text-text-muted">
-              填写后，地图展示和地点搜索会优先使用高德；留空则继续使用 OSM、Nominatim。步行路线始终使用 OSRM，已有行程地点可直接切换地图。
+              填写后，地图展示和地点搜索会优先使用高德；留空则继续使用 OSM、Nominatim。智能路线使用 OSRM：近距离步行、较远距离自动驾车，已有行程地点可直接切换地图。
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-[12.5px] font-medium text-text-muted">
@@ -299,10 +299,10 @@ export default function SettingsView({
                   <span className="font-medium">直线连接</span><span className="ml-1.5 text-text-faint">推荐，不调用路线服务</span>
                 </button>
                 <button onClick={() => setMapRouteMode('walking')} className={`flex-1 rounded-md border-l-2 px-3 py-2.5 text-left text-[12.5px] transition-colors ${mapRouteMode === 'walking' ? 'border-action bg-action-soft text-text' : 'border-transparent bg-surface-2/60 text-text-muted hover:bg-surface-2'}`}>
-                  <span className="font-medium">步行路线</span><span className="ml-1.5 text-text-faint">按相邻地点请求路线</span>
+                  <span className="font-medium">智能路线</span><span className="ml-1.5 text-text-faint">近距离步行，远距离驾车</span>
                 </button>
               </div>
-              <p className="mt-2 text-[11.5px] leading-relaxed text-text-faint">步行路线始终使用 OSRM 服务，打开地图时才会请求；失败时会显示直线，并在地图图例处提示。</p>
+              <p className="mt-2 text-[11.5px] leading-relaxed text-text-faint">智能路线使用 OSRM 服务，打开地图时才会请求；火车、飞机、包车保留直线。请求失败时显示直线，并在地图图例处提示。</p>
             </div>
           </div>
         </details>

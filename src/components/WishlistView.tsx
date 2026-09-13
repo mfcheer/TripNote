@@ -3,6 +3,7 @@ import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { searchPlaces, type GeoResult } from '../api/geocode'
+import { fetchRouteInfo, routeProfileForSegment } from '../api/route'
 import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CalendarIcon, CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type ActivityCategory, type GeoPoint, type WishPlace } from '../types'
@@ -55,6 +56,32 @@ function FitPlaces({ points }: { points: [number, number][] }) {
     if (points.length > 1) map.fitBounds(L.latLngBounds(points).pad(0.16))
   }, [map, points])
   return null
+}
+
+// 想去页的侧边地图与主地图使用同一套智能路线规则。
+function WishlistRouteLine({ line }: { line: AmapLine }) {
+  const [points, setPoints] = useState<[number, number][]>(() => line.points.map((point) => [point.lat, point.lng]))
+
+  useEffect(() => {
+    const direct = line.points.map((point) => [point.lat, point.lng] as [number, number])
+    if (!line.route || line.points.length < 2) {
+      setPoints(direct)
+      return
+    }
+    const ctrl = new AbortController()
+    setPoints(direct)
+    fetchRouteInfo(line.points, line.route, ctrl.signal).then((route) => {
+      if (!ctrl.signal.aborted) setPoints(route.points.map((point) => [point.lat, point.lng]))
+    })
+    return () => ctrl.abort()
+  }, [line])
+
+  if (points.length < 2) return null
+  const dashArray = line.dashed ? '7 8' : undefined
+  return <Fragment>
+    <Polyline positions={points} pathOptions={{ color: '#fffdf9', weight: (line.weight ?? 4) + 5, opacity: 0.9, dashArray }} />
+    <Polyline positions={points} pathOptions={{ color: line.color, weight: line.weight ?? 4, opacity: 0.98, dashArray }} />
+  </Fragment>
 }
 
 function CustomMapWishDialog({
@@ -350,7 +377,7 @@ function SortableWishCard({
 
 export default function WishlistView() {
   const trip = useActiveTrip()
-  const { addWishPlace, removeWishPlace, reorderWishPlace, cancelWishSchedule, focusActivity, amapWebServiceKey, amapJsKey } = useTripStore()
+  const { addWishPlace, removeWishPlace, reorderWishPlace, cancelWishSchedule, focusActivity, amapWebServiceKey, amapJsKey, mapRouteMode } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
   const [category, setCategory] = useState<ActivityCategory | 'all'>('all')
   const [keyword, setKeyword] = useState('')
@@ -454,9 +481,19 @@ export default function WishlistView() {
   // 想去页默认保留完整行程脉络：每天的实线路径 + 跨日虚线衔接。
   // 收藏卡片仍是主交互对象，路线只作为规划时的空间参考。
   const itineraryLines = useMemo<AmapLine[]>(() => trip.days.flatMap((day, dayIndex) => {
-    const routePoints = activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => activity.geo!)
-    return routePoints.length > 1 ? [{ id: `wish-day-${day.id}`, points: routePoints, color: routeColor(dayIndex, trip.days.length) }] : []
-  }), [trip])
+    const activities = activitiesByDay(trip, day.id).filter((activity) => activity.geo)
+    return activities.slice(1).map((to, index) => {
+      const from = activities[index]
+      const profile = routeProfileForSegment(from.geo!, to.geo!, to.travelMode)
+      return {
+        id: `wish-day-${day.id}-${from.id}-${to.id}`,
+        points: [from.geo!, to.geo!],
+        color: routeColor(dayIndex, trip.days.length),
+        route: mapRouteMode === 'walking' ? profile ?? undefined : undefined,
+        weight: profile === 'driving' ? 4.5 : 4,
+      }
+    })
+  }), [mapRouteMode, trip])
   const crossDayLines = useMemo<AmapLine[]>(() => trip.days.flatMap((day, dayIndex) => {
     if (dayIndex === 0) return []
     const previous = activitiesByDay(trip, trip.days[dayIndex - 1].id).filter((activity) => activity.geo).at(-1)
@@ -723,15 +760,7 @@ export default function WishlistView() {
             <MapContainer center={allMapPoints[0]} zoom={11} className="h-full w-full" attributionControl={false}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <FitPlaces points={allMapPoints} />
-              {[...itineraryLines, ...crossDayLines].map((line) => {
-                const routePoints = line.points.map((point) => [point.lat, point.lng] as [number, number])
-                if (routePoints.length < 2) return null
-                const dashArray = line.dashed ? '7 8' : undefined
-                return <Fragment key={line.id}>
-                  <Polyline positions={routePoints} pathOptions={{ color: '#fffdf9', weight: (line.weight ?? 4) + 5, opacity: 0.9, dashArray }} />
-                  <Polyline positions={routePoints} pathOptions={{ color: line.color, weight: line.weight ?? 4, opacity: 0.98, dashArray }} />
-                </Fragment>
-              })}
+              {[...itineraryLines, ...crossDayLines].map((line) => <WishlistRouteLine key={line.id} line={line} />)}
               {mapped.map((place) => (
                 <Marker
                   key={place.id}

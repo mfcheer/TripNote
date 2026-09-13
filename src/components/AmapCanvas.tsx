@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { gcj02ToWgs84, wgs84ToGcj02 } from '../api/coordinates'
-import { fetchWalkingRouteInfo } from '../api/route'
+import { fetchRouteInfo, type RouteProfile } from '../api/route'
 import type { GeoPoint } from '../types'
 import { InlineStatus } from './FeedbackState'
 
@@ -71,7 +71,7 @@ export interface AmapLine {
   color: string
   dashed?: boolean
   weight?: number
-  route?: boolean
+  route?: RouteProfile
 }
 
 export default function AmapCanvas({
@@ -135,7 +135,7 @@ export default function AmapCanvas({
     let didFallback = false
     const resolvedLines = await Promise.all(lines.map(async (line) => {
       if (!line.route) return line
-      const route = await fetchWalkingRouteInfo(line.points, controller.signal)
+      const route = await fetchRouteInfo(line.points, line.route, controller.signal)
       didFallback ||= route.fallback
       return { ...line, points: route.points }
     }))
