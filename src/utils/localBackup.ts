@@ -4,6 +4,9 @@ export interface BackupData {
   trips: Trip[]
   activeTripId: string
   mapRouteMode: 'direct' | 'walking'
+  /** Optional so complete backups created before map settings were included remain restorable. */
+  amapJsKey?: string
+  amapWebServiceKey?: string
 }
 
 export interface NorthwardBackup {

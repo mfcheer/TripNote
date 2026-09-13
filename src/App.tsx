@@ -70,6 +70,8 @@ export default function App() {
         trips: state.trips,
         activeTripId: state.activeTripId,
         mapRouteMode: state.mapRouteMode,
+        amapJsKey: state.amapJsKey,
+        amapWebServiceKey: state.amapWebServiceKey,
       }
     }
     const unsubscribe = useTripStore.subscribe((state) => scheduleLocalBackup(toBackupData(state)))

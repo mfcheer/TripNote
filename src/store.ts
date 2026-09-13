@@ -408,6 +408,10 @@ export const useTripStore = create<TripState>()(
           editingActivityId: null,
           activityDraft: null,
           mapRouteMode: data.mapRouteMode === 'walking' ? 'walking' : 'direct',
+          // Older complete backups did not include map settings. Keep the current
+          // keys in that case, but restore them whenever the backup provides them.
+          ...(typeof data.amapJsKey === 'string' ? { amapJsKey: data.amapJsKey } : {}),
+          ...(typeof data.amapWebServiceKey === 'string' ? { amapWebServiceKey: data.amapWebServiceKey } : {}),
           view: 'plan',
           planTab: 'timeline',
         })

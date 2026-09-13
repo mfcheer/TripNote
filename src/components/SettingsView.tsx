@@ -43,7 +43,7 @@ export default function SettingsView({
   const [isIos] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent))
   const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
 
-  const backupData: BackupData = { trips, activeTripId, mapRouteMode }
+  const backupData: BackupData = { trips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey }
 
   async function refreshBackupStatus() {
     setBackupStatus(await getLocalBackupStatus())
@@ -113,7 +113,7 @@ export default function SettingsView({
           const count = data.data.trips.length
           askConfirm({
             title: '恢复完整备份？',
-            message: `将用这份备份中的 ${count} 个旅行替换当前全部旅行。恢复前建议先下载一份当前完整备份。`,
+            message: `将用这份备份中的 ${count} 个旅行替换当前全部旅行，并同步恢复高德 Key 和地图连线配置。恢复前建议先下载一份当前完整备份。`,
             onConfirm: () => {
               if (!restoreBackup(data.data)) {
                 info({ title: '恢复失败', message: '备份中的旅行数据不完整。' })
@@ -201,7 +201,7 @@ export default function SettingsView({
         <section className="border-b border-border/80 py-6">
           <div className="mb-1 text-[15px] font-semibold">数据管理</div>
           <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">
-            数据仍保存在当前浏览器。完整备份包含全部旅行、当前旅行和地图连线方式，不包含高德 Key；可下载保存，也可在桌面 Chrome / Edge 自动归档到电脑文件夹。
+            数据仍保存在当前浏览器。完整备份包含全部旅行、当前旅行、高德两个 Key 与地图连线方式；可下载保存，也可在桌面 Chrome / Edge 自动归档到电脑文件夹。备份含密钥，请勿外发。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
@@ -242,7 +242,7 @@ export default function SettingsView({
                       ? backupStatus.permission === 'granted'
                         ? `已连接「${backupStatus.directoryName} / 北向备份」。修改后约 30 秒自动归档，并保留最近 100 份历史。${backupStatus.lastBackupAt ? ` 上次备份：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
                         : `已记住「${backupStatus.directoryName}」，但浏览器需要重新授权后才能继续自动写入。`
-                      : '选择一个本机文件夹后，北向会在应用打开期间自动创建完整备份。'}
+                      : '选择一个本机文件夹后，北向会在应用打开期间自动创建完整备份（含当前高德 Key 和地图连线配置）。'}
                   </p>
                 ) : (
                   <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">当前浏览器不支持直接写入指定文件夹。可继续使用上方“下载完整备份”；桌面 Chrome、Edge 在 HTTPS 页面中可开启自动归档。</p>
@@ -287,7 +287,7 @@ export default function SettingsView({
               </label>
             </div>
             <div className="mt-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-              <span className="text-[11.5px] leading-relaxed text-text-faint">Key 会明文写入导出文件，请勿把备份发送给不可信的人；建议在高德控制台限制可用域名。</span>
+              <span className="text-[11.5px] leading-relaxed text-text-faint">高德 Key 会明文写入下载备份和文件夹自动备份；恢复完整备份时也会同步恢复。请勿外发，建议在高德控制台限制可用域名。</span>
               <button onClick={saveMapConfig} className="shrink-0 rounded-md bg-action px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-action-hover">
                 保存配置
               </button>
