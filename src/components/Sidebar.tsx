@@ -326,9 +326,16 @@ export default function Sidebar() {
     useTripStore()
   const trip = useActiveTrip()
   const [dropDayId, setDropDayId] = useState<string | null>(null)
+  const [expandedDayId, setExpandedDayId] = useState(activeDayId)
   const [showAddDayOptions, setShowAddDayOptions] = useState(false)
+  const isWishlist = view === 'plan' && planTab === 'places'
 
-  function scheduleDroppedWish(event: DragEvent<HTMLButtonElement>, day: TripDay) {
+  useEffect(() => {
+    if (!isWishlist || trip.days.some((day) => day.id === expandedDayId)) return
+    setExpandedDayId(activeDayId || trip.days[0]?.id || '')
+  }, [activeDayId, expandedDayId, isWishlist, trip.days])
+
+  function scheduleDroppedWish(event: DragEvent<HTMLElement>, day: TripDay) {
     event.preventDefault()
     setDropDayId(null)
     const placeId = event.dataTransfer.getData('application/x-tripnote-wish-id')
@@ -351,7 +358,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="hidden h-full w-[240px] shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] md:flex">
+    <aside className={`hidden h-full shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] transition-[width] duration-200 md:flex ${isWishlist ? 'w-[310px]' : 'w-[240px]'}`}>
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[11px] shadow-[0_2px_8px_rgba(32,40,46,0.07)]">
@@ -381,20 +388,16 @@ export default function Sidebar() {
             .filter((activity) => activity.dayId === d.id)
             .reduce((sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0), 0)
           const movementMeters = dayMovementMeters(trip, index)
+          const dayItems = activitiesByDay(trip, d.id)
+          const expanded = isWishlist && expandedDayId === d.id
           const date = /^\d{4}-\d{2}-\d{2}$/.test(d.date)
             ? displayDate(d.date).split(' ')[0]
             : d.date !== '待定'
               ? d.date
               : '待定日期'
           return (
-            <button
+            <div
               key={d.id}
-              onClick={() => {
-                setActiveDay(d.id)
-                setView('plan')
-                setPlanTab('timeline')
-                selectActivity(null)
-              }}
               onDragOver={(event) => {
                 event.preventDefault()
                 event.dataTransfer.dropEffect = 'copy'
@@ -402,7 +405,7 @@ export default function Sidebar() {
               }}
               onDragLeave={() => setDropDayId((id) => (id === d.id ? null : id))}
               onDrop={(event) => scheduleDroppedWish(event, d)}
-              className={`relative mb-1 flex w-full min-w-0 items-center gap-2.5 rounded-md border-l-2 px-2.5 py-2.5 text-left transition-[background-color,border-color,box-shadow] ${
+              className={`relative mb-1 overflow-hidden rounded-md border-l-2 transition-[background-color,border-color,box-shadow] ${
                 dropDayId === d.id
                   ? 'border-action bg-accent text-white shadow-[0_3px_10px_rgba(32,40,46,0.12)]'
                   : active
@@ -410,30 +413,76 @@ export default function Sidebar() {
                   : 'border-transparent text-text-muted hover:bg-white/70'
               }`}
             >
-              <span className={`relative z-10 w-7 shrink-0 text-[10px] font-semibold tracking-[0.08em] tabular-nums ${
-                dropDayId === d.id
-                  ? 'text-white/80'
-                  : active
-                    ? 'text-action'
-                    : 'text-text-faint'
-              }`}>
-                D{String(index + 1).padStart(2, '0')}
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-2">
-                  <span className="truncate text-[13px] font-semibold">{d.place || '待定地点'}</span>
-                  <span className={`shrink-0 text-[11px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-muted'}`}>{date}</span>
-                </span>
-                <span className={`mt-0.5 block text-[11px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>
-                  {d.label} · {geoCount} 个地点{dayCost > 0 ? ` · ¥${dayCost.toLocaleString()}` : ` · ${activityCount} 个安排`}
-                </span>
-                {movementMeters > 0 && (
-                  <span className={`mt-0.5 block text-[10.5px] tabular-nums ${dropDayId === d.id ? 'text-white/70' : 'text-text-muted'}`}>
-                    移动约 {formatMovement(movementMeters)}
+              <div className="flex min-w-0 items-center gap-2.5 px-2.5 py-2.5">
+                <button
+                  onClick={() => {
+                    if (isWishlist) {
+                      setExpandedDayId(d.id)
+                      return
+                    }
+                    setActiveDay(d.id)
+                    setView('plan')
+                    setPlanTab('timeline')
+                    selectActivity(null)
+                  }}
+                  className="flex min-w-0 flex-1 items-center gap-2.5 text-left"
+                >
+                  <span className={`relative z-10 w-7 shrink-0 text-[10px] font-semibold tracking-[0.08em] tabular-nums ${
+                    dropDayId === d.id
+                      ? 'text-white/80'
+                      : active
+                        ? 'text-action'
+                        : 'text-text-faint'
+                  }`}>
+                    D{String(index + 1).padStart(2, '0')}
                   </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-2">
+                      <span className="truncate text-[13px] font-semibold">{d.place || '待定地点'}</span>
+                      <span className={`shrink-0 text-[11px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-muted'}`}>{date}</span>
+                    </span>
+                    <span className={`mt-0.5 block text-[11px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>
+                      {d.label} · {geoCount} 个地点{dayCost > 0 ? ` · ¥${dayCost.toLocaleString()}` : ` · ${activityCount} 个安排`}
+                    </span>
+                    {movementMeters > 0 && (
+                      <span className={`mt-0.5 block text-[10.5px] tabular-nums ${dropDayId === d.id ? 'text-white/70' : 'text-text-muted'}`}>
+                        移动约 {formatMovement(movementMeters)}
+                      </span>
+                    )}
+                  </span>
+                </button>
+                {isWishlist && (
+                  <button
+                    onClick={() => setExpandedDayId((id) => id === d.id ? '' : d.id)}
+                    className={`shrink-0 rounded p-1 transition-colors ${dropDayId === d.id ? 'text-white hover:bg-white/15' : 'text-text-faint hover:bg-surface-2 hover:text-text'}`}
+                    aria-label={`${expanded ? '收起' : '展开'}${d.label}安排`}
+                    title={`${expanded ? '收起' : '展开'}当天安排`}
+                  >
+                    <ChevronDownIcon size={15} className={expanded ? 'rotate-180 transition-transform' : 'transition-transform'} />
+                  </button>
                 )}
-              </span>
-            </button>
+              </div>
+              {expanded && (
+                <div className={`border-t px-3.5 pt-2.5 pb-3 ${dropDayId === d.id ? 'border-white/20' : 'border-border/70 bg-white/45'}`}>
+                  {dayItems.length > 0 ? (
+                    <div className="space-y-1.5">
+                      {dayItems.slice(0, 4).map((activity) => (
+                        <div key={activity.id} className={`flex min-w-0 items-center gap-2 text-[11.5px] ${dropDayId === d.id ? 'text-white/88' : 'text-text-muted'}`}>
+                          <span className={`w-9 shrink-0 tabular-nums ${dropDayId === d.id ? 'text-white/65' : 'text-text-faint'}`}>{activity.time}</span>
+                          <span className="truncate">{activity.title}</span>
+                        </div>
+                      ))}
+                      {dayItems.length > 4 && <div className={`pl-11 text-[10.5px] ${dropDayId === d.id ? 'text-white/65' : 'text-text-faint'}`}>还有 {dayItems.length - 4} 项安排</div>}
+                    </div>
+                  ) : (
+                    <div className={`text-[11.5px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>当天还没有安排。</div>
+                  )}
+                  <div className={`mt-2.5 rounded-md border border-dashed px-2.5 py-2 text-[11px] font-medium ${dropDayId === d.id ? 'border-white/40 bg-white/10 text-white' : 'border-accent/35 bg-accent-soft/55 text-accent-hover'}`}>
+                    拖到这里安排 · 建议 {nextActivityTime(trip, d.id)}
+                  </div>
+                </div>
+              )}
+            </div>
           )
         })}
         </div>
