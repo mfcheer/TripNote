@@ -1,20 +1,33 @@
-import { useEffect, useRef, useState, type DragEvent as NativeDragEvent } from 'react'
-import { MapContainer, Marker, TileLayer, useMap } from 'react-leaflet'
+import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent as NativeDragEvent } from 'react'
+import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { searchPlaces, type GeoResult } from '../api/geocode'
-import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
+import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CalendarIcon, CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type ActivityCategory, type GeoPoint, type WishPlace } from '../types'
 import ActivityForm, { type ActivityFormValues } from './ActivityForm'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import MapPicker from './MapPicker'
-import AmapCanvas, { type AmapMarker } from './AmapCanvas'
+import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 import { EmptyState, InlineStatus } from './FeedbackState'
 
 const WISHLIST_MAP_WIDTH_KEY = 'tripnote-wishlist-map-width-v1'
+const ROUTE_COLORS = ['#E9A668', '#EA795A', '#D9534F', '#B63E44', '#7F344A']
+
+function routeColor(dayIndex: number, totalDays: number) {
+  if (totalDays <= 1) return ROUTE_COLORS.at(-1)!
+  const position = (dayIndex / (totalDays - 1)) * (ROUTE_COLORS.length - 1)
+  const lowerIndex = Math.floor(position)
+  const upperIndex = Math.min(lowerIndex + 1, ROUTE_COLORS.length - 1)
+  const ratio = position - lowerIndex
+  const lower = ROUTE_COLORS[lowerIndex].match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
+  const upper = ROUTE_COLORS[upperIndex].match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
+  const channel = (index: number) => Math.round(lower[index] + (upper[index] - lower[index]) * ratio).toString(16).padStart(2, '0')
+  return `#${channel(0)}${channel(1)}${channel(2)}`
+}
 
 function readMapPanelWidth() {
   const saved = Number(localStorage.getItem(WISHLIST_MAP_WIDTH_KEY))
@@ -438,6 +451,25 @@ export default function WishlistView() {
     .sort((a, b) => Number(isPlaceScheduled(a)) - Number(isPlaceScheduled(b)))
   const mapped = filtered.filter((place) => place.geo)
   const points = mapped.map((place) => [place.geo!.lat, place.geo!.lng] as [number, number])
+  // 想去页默认保留完整行程脉络：每天的实线路径 + 跨日虚线衔接。
+  // 收藏卡片仍是主交互对象，路线只作为规划时的空间参考。
+  const itineraryLines = useMemo<AmapLine[]>(() => trip.days.flatMap((day, dayIndex) => {
+    const routePoints = activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => activity.geo!)
+    return routePoints.length > 1 ? [{ id: `wish-day-${day.id}`, points: routePoints, color: routeColor(dayIndex, trip.days.length) }] : []
+  }), [trip])
+  const crossDayLines = useMemo<AmapLine[]>(() => trip.days.flatMap((day, dayIndex) => {
+    if (dayIndex === 0) return []
+    const previous = activitiesByDay(trip, trip.days[dayIndex - 1].id).filter((activity) => activity.geo).at(-1)
+    const current = activitiesByDay(trip, day.id).filter((activity) => activity.geo)[0]
+    return previous?.geo && current?.geo
+      ? [{ id: `wish-cross-${previous.id}-${current.id}`, points: [previous.geo, current.geo], color: routeColor(dayIndex, trip.days.length), dashed: true, weight: 3 }]
+      : []
+  }), [trip])
+  const itineraryPoints = trip.activities.filter((activity) => activity.geo).map((activity) => [activity.geo!.lat, activity.geo!.lng] as [number, number])
+  const allMapPoints = [
+    ...points,
+    ...itineraryPoints,
+  ]
   const amapMarkers: AmapMarker[] = mapped.map((place) => ({
     id: place.id,
     point: place.geo!,
@@ -681,16 +713,25 @@ export default function WishlistView() {
         <span className="h-10 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
       </div>
       <aside className="sticky top-0 hidden h-full shrink-0 border-l border-border/80 bg-[#fafbfb] p-4 lg:block" style={{ width: mapPanelWidth }}>
-        <div className="mb-1 text-[13px] font-semibold">地点分布</div>
-        <div className="mb-3 text-[11.5px] text-text-faint">点击地图标记可定位收藏</div>
-        {mapped.length > 0 ? (
+        <div className="mb-1 text-[13px] font-semibold">地点与行程</div>
+        <div className="mb-3 text-[11.5px] text-text-faint">默认展示行程连线；点击地点名称可定位收藏</div>
+        {allMapPoints.length > 0 ? (
           <div className="h-[calc(100%-48px)] overflow-hidden rounded-md border border-border/80">
             {amapJsKey ? (
-              <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} className="h-full w-full" zoom={11} />
+              <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={[...itineraryLines, ...crossDayLines]} className="h-full w-full" zoom={11} />
             ) : (
-            <MapContainer center={points[0]} zoom={11} className="h-full w-full" attributionControl={false}>
+            <MapContainer center={allMapPoints[0]} zoom={11} className="h-full w-full" attributionControl={false}>
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-              <FitPlaces points={points} />
+              <FitPlaces points={allMapPoints} />
+              {[...itineraryLines, ...crossDayLines].map((line) => {
+                const routePoints = line.points.map((point) => [point.lat, point.lng] as [number, number])
+                if (routePoints.length < 2) return null
+                const dashArray = line.dashed ? '7 8' : undefined
+                return <Fragment key={line.id}>
+                  <Polyline positions={routePoints} pathOptions={{ color: '#fffdf9', weight: (line.weight ?? 4) + 5, opacity: 0.9, dashArray }} />
+                  <Polyline positions={routePoints} pathOptions={{ color: line.color, weight: line.weight ?? 4, opacity: 0.98, dashArray }} />
+                </Fragment>
+              })}
               {mapped.map((place) => (
                 <Marker
                   key={place.id}
@@ -707,7 +748,7 @@ export default function WishlistView() {
             )}
           </div>
         ) : (
-          <div className="flex h-[180px] items-center justify-center rounded-lg border border-dashed border-border p-5 text-center text-[12px] leading-relaxed text-text-faint">收藏带坐标的地点后，会在这里看到分布。</div>
+          <div className="flex h-[180px] items-center justify-center rounded-lg border border-dashed border-border p-5 text-center text-[12px] leading-relaxed text-text-faint">收藏带坐标的地点，或先为行程补充地点后，会在这里看到路线与分布。</div>
         )}
       </aside>
 

@@ -473,11 +473,36 @@ export const useTripStore = create<TripState>()(
       addActivity: (activity) => {
         const id = makeId('activity')
         set((s) => ({
-          trips: s.trips.map((t) =>
-            t.id === s.activeTripId
-              ? { ...t, activities: [...t.activities, { ...activity, id }] }
-              : t,
-          ),
+          trips: s.trips.map((t) => {
+            if (t.id !== s.activeTripId) return t
+
+            // 从行程直接新增的地点也保留到「想去」。这样即使之后删掉
+            // 某天或某条安排，用户仍可从清单重新安排，而不会丢失地点。
+            const samePlace = (wish: WishPlace) =>
+              wish.title.trim().toLocaleLowerCase() === activity.title.trim().toLocaleLowerCase()
+              && (wish.geo && activity.geo
+                ? Math.abs(wish.geo.lat - activity.geo.lat) < 0.00001 && Math.abs(wish.geo.lng - activity.geo.lng) < 0.00001
+                : wish.location === activity.location)
+            const linkedWish = activity.sourceWishId
+              ? t.wishPlaces.find((wish) => wish.id === activity.sourceWishId)
+              : t.wishPlaces.find(samePlace)
+            const wishId = linkedWish?.id ?? makeId('wish')
+            const nextActivity = { ...activity, id, sourceWishId: wishId }
+            const wishPlaces = linkedWish
+              ? t.wishPlaces.map((wish) => wish.id === wishId
+                ? normalizeWishPlace({ ...wish, scheduledActivityIds: [...wishScheduledActivityIds(wish), id] })
+                : wish)
+              : [{
+                  id: wishId,
+                  title: activity.title,
+                  category: activity.category,
+                  location: activity.location,
+                  note: activity.note,
+                  geo: activity.geo,
+                  scheduledActivityIds: [id],
+                }, ...t.wishPlaces]
+            return { ...t, activities: [...t.activities, nextActivity], wishPlaces }
+          }),
         }))
         return id
       },

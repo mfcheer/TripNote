@@ -511,7 +511,7 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
     })
     selectActivity(id)
     useToastStore.getState().show(
-      `已添加到${day?.label ?? '当前天'} · ${time}`,
+      `已添加到${day?.label ?? '当前天'} · ${time}，并保留到想去`,
       { undo: () => removeActivity(id) },
     )
     onDone()
