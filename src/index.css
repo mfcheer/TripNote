@@ -8,18 +8,18 @@
   padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
 }
 
-/* 冷灰旅行册：用清晰的矿物灰阶承载信息，珊瑚色只负责关键动作。 */
+/* 冷灰旅行册：略带暖意的纸白承载内容，矿物灰负责结构，珊瑚色只负责关键动作。 */
 @theme {
-  --color-bg: #f3f5f6;
-  --color-surface: #fbfcfc;
-  --color-surface-2: #eceff1;
-  --color-border: #d8dee2;
-  --color-text: #20282e;
-  --color-text-muted: #59656e;
-  --color-text-faint: #68747c;
-  --color-accent: #4f5961;
-  --color-accent-soft: #e9edef;
-  --color-accent-hover: #343e45;
+  --color-bg: #f2f4f4;
+  --color-surface: #fafbfb;
+  --color-surface-2: #e9edef;
+  --color-border: #d5dbde;
+  --color-text: #222a2f;
+  --color-text-muted: #556169;
+  --color-text-faint: #707b82;
+  --color-accent: #556169;
+  --color-accent-soft: #e7ecee;
+  --color-accent-hover: #354148;
   --color-action: #b4513e;
   --color-action-soft: #f8eae6;
   --color-action-hover: #983f30;
@@ -46,7 +46,9 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   color: var(--color-text);
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 82% 0%, rgba(255,255,255,.72), transparent 36rem),
+    var(--color-bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -60,6 +62,48 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 input::placeholder, textarea::placeholder { color: var(--color-text-faint); opacity: .9; }
 
+/* 统一的状态语言：保持安静，但让“正在发生什么”和“下一步做什么”一眼可见。 */
+.ui-spinner {
+  box-sizing: border-box;
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  border: 1.5px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  animation: ui-spin .72s linear infinite;
+}
+@keyframes ui-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ui-spinner { animation-duration: 1.8s; } }
+
+.ui-empty-state {
+  display: flex;
+  min-height: 190px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 84%, transparent);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--color-surface) 78%, transparent);
+  padding: 28px 24px;
+  text-align: center;
+}
+.ui-empty-state.is-compact { min-height: 150px; padding: 22px 18px; }
+.ui-empty-state__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--color-border) 75%, transparent);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--color-accent);
+  box-shadow: 0 4px 14px rgba(32,40,46,.055);
+}
+.ui-empty-state__title { margin-top: 12px; color: var(--color-text); font-size: 13px; font-weight: 600; }
+.ui-empty-state__description { max-width: 360px; margin-top: 5px; color: var(--color-text-faint); font-size: 11.5px; line-height: 1.6; }
+.ui-empty-state__action { margin-top: 14px; }
+
 /* 顶部栏采用克制的冷灰雾面层次；抽象光晕替代具象纹路，保持安静和清晰。 */
 .trip-topbar {
   position: relative;
@@ -68,7 +112,7 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
   background:
     radial-gradient(90% 180% at 104% -85%, rgba(196,103,82,.09) 0%, rgba(196,103,82,0) 58%),
     linear-gradient(108deg, rgba(255,255,255,.99) 0%, rgba(248,250,251,.98) 58%, rgba(241,244,246,.98) 100%);
-  box-shadow: 0 1px 0 rgba(39,49,58,.025), 0 5px 18px rgba(39,49,58,.035);
+  box-shadow: 0 1px 0 rgba(39,49,58,.03), 0 4px 16px rgba(39,49,58,.028);
 }
 .trip-topbar::before {
   content: "";

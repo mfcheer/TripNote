@@ -107,7 +107,7 @@ export default function SettingsView({
         <p className="mt-1 text-[13px] text-text-muted">管理安装方式、本地数据与地图服务。</p>
       </div>
 
-      <div className="overflow-hidden rounded-[10px] bg-white px-5 shadow-[0_1px_5px_rgba(32,40,46,0.06)] sm:px-7">
+      <div className="overflow-hidden rounded-xl border border-border/70 bg-white/90 px-5 shadow-[0_10px_34px_rgba(32,40,46,0.05)] sm:px-7">
         <section className="border-b border-border/80 py-6">
           <div className="mb-1 text-[15px] font-semibold">安装与分享</div>
           <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">

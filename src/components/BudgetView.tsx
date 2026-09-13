@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react'
 import { Cell, Pie, PieChart, ResponsiveContainer } from 'recharts'
 import { useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS, EditIcon } from './Icons'
+import { CATEGORY_ICONS, EditIcon, WalletIcon } from './Icons'
 import { CATEGORY_META, type ActivityCategory } from '../types'
+import { EmptyState } from './FeedbackState'
 
 const DONUT_COLORS: Record<ActivityCategory, string> = {
   stay: '#7868a6',
@@ -196,14 +197,15 @@ export default function BudgetView() {
               </div>
             </>
           ) : (
-            <div className="flex h-[190px] items-center justify-center text-[12px] text-text-faint">
-              暂无花费记录
-            </div>
+            <EmptyState compact icon={<WalletIcon size={18} />} title="还没有花费记录" description="在行程事项中补充花费后，这里会自动汇总。" className="mt-3" />
           )}
         </div>
 
         {/* 明细表 */}
         <div className="hidden overflow-hidden rounded-lg border border-border sm:block">
+          {rows.length === 0 ? (
+            <EmptyState compact icon={<WalletIcon size={18} />} title="还没有花费记录" description="在行程事项中添加花费后，明细会显示在这里。" className="m-4" />
+          ) : (
           <table className="w-full text-[13px]">
             <thead>
               <tr className="border-b border-border bg-surface text-left text-[12px] text-text-muted">
@@ -253,6 +255,7 @@ export default function BudgetView() {
               </tr>
             </tbody>
           </table>
+          )}
         </div>
 
         {/* 手机上用卡片替代表格，避免横向滚动和列内容挤压。 */}
@@ -262,9 +265,7 @@ export default function BudgetView() {
             <span>共 {rows.length} 笔</span>
           </div>
           {rows.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center text-[12px] text-text-faint">
-              暂无花费记录
-            </div>
+            <EmptyState compact icon={<WalletIcon size={18} />} title="还没有花费记录" description="在行程事项中添加第一笔花费。" />
           ) : (
             rows.map((row) => {
               const meta = CATEGORY_META[row.category]

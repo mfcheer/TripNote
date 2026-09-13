@@ -9,6 +9,7 @@ import { fetchWalkingRouteInfo, isWalkableRoute, straightLineDistanceMeters } fr
 import { reverseGeocode } from '../api/geocode'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
 import { useToastStore } from './toastStore'
+import { EmptyState } from './FeedbackState'
 
 // 高对比暖色阶：金橙至酒红表达行程推进，配合白色底描边确保在不同地图底色上清晰可见。
 const ROUTE_COLORS = ['#E9A668', '#EA795A', '#D9534F', '#B63E44', '#7F344A']
@@ -332,6 +333,17 @@ export default function MapView() {
         ))}
         {pickedPoint && <Marker position={[pickedPoint.lat, pickedPoint.lng]} icon={pickedPointIcon} interactive={false} />}
       </MapContainer>
+      )}
+
+      {allPoints.length === 0 && !isPicking && (
+        <EmptyState
+          icon={<MapIcon size={18} />}
+          title="地图上还没有地点"
+          description="为行程补充已定位地点，或直接在地图上选点收藏。"
+          action={<button onClick={() => setIsPicking(true)} className="inline-flex items-center gap-1.5 rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white hover:bg-action-hover"><PlusIcon size={13} /> 选点收藏</button>}
+          compact
+          className="absolute left-1/2 top-1/2 z-[550] w-[min(340px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2 bg-white/94 shadow-[0_12px_32px_rgba(32,40,46,0.12)] backdrop-blur"
+        />
       )}
 
       {isPicking && pickedPoint && (

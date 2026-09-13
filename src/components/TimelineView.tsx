@@ -28,6 +28,7 @@ import { searchPlaces, type GeoResult } from '../api/geocode'
 import { fetchWalkingRouteInfo, straightLineDistanceMeters, WALKING_DISTANCE_THRESHOLD_METERS } from '../api/route'
 import DayMapPreview from './DayMapPreview'
 import ModalShell, { OverlayHeader, SheetHandle } from './OverlayShell'
+import { InlineStatus } from './FeedbackState'
 
 const PLANNER_PANEL_WIDTH_KEY = 'tripnote-planner-panel-width-v1'
 const BUDGET_DRAWER_WIDTH_KEY = 'tripnote-budget-drawer-width-v1'
@@ -118,7 +119,7 @@ function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => 
   ]
 
   return (
-    <div className="mb-5 grid grid-cols-4 gap-1 rounded-lg border border-border/70 bg-white/70 p-2 sm:mb-7 sm:flex sm:flex-wrap sm:items-center sm:gap-x-7 sm:gap-y-2 sm:rounded-none sm:border-x-0 sm:border-t-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-4">
+    <div className="mb-5 grid grid-cols-4 gap-1 rounded-xl border border-border/70 bg-white/82 p-2 shadow-[0_4px_16px_rgba(32,40,46,0.035)] sm:mb-7 sm:flex sm:flex-wrap sm:items-center sm:gap-x-7 sm:gap-y-2 sm:rounded-none sm:border-x-0 sm:border-t-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-4 sm:shadow-none">
       {stats.map(({ label, value, mobileValue, hint, Icon, onClick }, index) => {
         const className = `group flex min-w-0 flex-col gap-0.5 rounded-md px-1.5 py-1 text-left sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-none sm:px-0 sm:py-0 ${index > 0 ? 'sm:border-l sm:border-border sm:pl-5' : ''} ${onClick ? 'transition-colors hover:text-accent-hover' : ''}`
         const content = <>
@@ -553,7 +554,7 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
             placeholder="搜索地点，或直接输入安排"
             className="w-full rounded-md border border-border px-3 py-2 text-[13px] outline-none focus:border-accent"
           />
-          {loading && <span className="absolute top-2.5 right-3 text-[11px] text-text-faint">搜索中…</span>}
+          {loading && <InlineStatus loading className="absolute top-1 right-1 border-transparent bg-white/94 py-1 shadow-none">搜索中</InlineStatus>}
           {results.length > 0 && (
             <ul className="absolute top-full left-0 z-20 mt-1 max-h-[220px] w-full overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
               {results.map((place) => (
@@ -574,7 +575,7 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
           )}
           {!loading && searchedQuery === title.trim() && searchedQuery.length >= 2 && results.length === 0 && !pickedPlace && (
             <div className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-[11.5px] text-text-muted shadow-lg">
-              没有找到匹配地点，仍可按 Enter 作为普通安排添加。
+              <InlineStatus tone="warning" className="w-full border-0 bg-transparent p-0">没有找到匹配地点，仍可按 Enter 作为普通安排添加。</InlineStatus>
             </div>
           )}
         </div>
@@ -1323,7 +1324,7 @@ export default function TimelineView() {
             <TripStatsBar trip={trip} onOpenBudget={() => setBudgetDrawerOpen(true)} />
             {/* 空旅程引导：还没有任何行程时给出第一步指引 */}
             {trip.activities.length === 0 && (
-              <div className="mb-6 rounded-xl border border-accent/30 bg-[linear-gradient(135deg,rgba(232,239,248,0.92),rgba(248,250,253,0.96))] px-5 py-5 sm:px-6 sm:py-6">
+              <div className="mb-6 rounded-xl border border-border/90 bg-surface px-5 py-5 shadow-[0_8px_28px_rgba(32,40,46,0.045)] sm:px-6 sm:py-6">
                 <div className="text-[15px] font-semibold text-accent-hover">从一个地点开始，行程会自然成形</div>
                 <p className="mt-1.5 max-w-[480px] text-[13px] leading-relaxed text-text-muted">
                   不需要一次填完所有信息。先记下要去哪里，再逐步补充时间、花费和备注。

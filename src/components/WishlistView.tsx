@@ -4,7 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { searchPlaces, type GeoResult } from '../api/geocode'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
-import { CalendarIcon, CATEGORY_ICONS, MapIcon, PlusIcon, TrashIcon } from './Icons'
+import { CalendarIcon, CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type ActivityCategory, type GeoPoint, type WishPlace } from '../types'
 import ActivityForm, { type ActivityFormValues } from './ActivityForm'
 import { useConfirmStore } from './confirmStore'
@@ -12,6 +12,7 @@ import { useToastStore } from './toastStore'
 import MapPicker from './MapPicker'
 import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
+import { EmptyState, InlineStatus } from './FeedbackState'
 
 const WISHLIST_MAP_WIDTH_KEY = 'tripnote-wishlist-map-width-v1'
 
@@ -526,7 +527,7 @@ export default function WishlistView() {
             </p>
           </div>
 
-          <div className="relative mb-3 rounded-lg bg-white p-2.5 shadow-[0_1px_4px_rgba(32,40,46,0.055)] sm:mb-4 sm:p-3">
+          <div className="relative mb-3 rounded-xl border border-border/70 bg-white/90 p-2.5 shadow-[0_5px_18px_rgba(32,40,46,0.045)] sm:mb-4 sm:p-3">
             <div className="mb-2 text-[11.5px] font-medium text-text-muted">搜索并收藏新地点</div>
             <div className="flex flex-wrap gap-2">
               <div className="relative min-w-full flex-1 sm:min-w-[250px]">
@@ -554,9 +555,12 @@ export default function WishlistView() {
                     ))}
                   </ul>
                 )}
+                {searchStatus === 'loading' && (
+                  <InlineStatus loading className="absolute top-1 right-1 border-transparent bg-white/94 py-1 shadow-none">搜索中</InlineStatus>
+                )}
                 {searchStatus === 'empty' && searching.trim().length >= 2 && (
                   <div className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-border bg-white p-3 shadow-lg">
-                    <div className="text-[12px] font-medium text-text-muted">没有找到「{searching.trim()}」</div>
+                    <InlineStatus tone="warning" className="border-0 bg-transparent p-0 font-medium">没有找到「{searching.trim()}」</InlineStatus>
                     <p className="mt-1 text-[11.5px] leading-relaxed text-text-faint">可能是小众地点、临时地标或地图未收录的位置。你可以直接在地图上点选并自定义名称。</p>
                     <button
                       onClick={() => setShowCustomMap(true)}
@@ -610,9 +614,18 @@ export default function WishlistView() {
           </div>
 
           {filtered.length === 0 ? (
-            <div className="border-y border-border px-6 py-12 text-center text-[13px] text-text-faint">还没有待安排地点，从上方搜索或手动收藏一个开始。</div>
+            <EmptyState
+              icon={<HeartIcon size={18} />}
+              title={trip.wishPlaces.length === 0 ? '还没有收藏地点' : '没有符合筛选条件的地点'}
+              description={trip.wishPlaces.length === 0 ? '先搜索一个想去的地方，或直接在地图上选点收藏。' : '可以清空关键词或切换到“全部”继续查看。'}
+              action={trip.wishPlaces.length === 0 ? (
+                <button onClick={() => setShowCustomMap(true)} className="inline-flex items-center gap-1.5 rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white hover:bg-action-hover">
+                  <MapIcon size={13} /> 地图选点
+                </button>
+              ) : undefined}
+            />
           ) : (
-            <div className="flex flex-col">
+            <div className="flex flex-col overflow-hidden rounded-xl border border-border/75 bg-white/50 px-2 shadow-[0_5px_20px_rgba(32,40,46,0.035)] sm:px-3">
                   {filtered.map((place, index) => {
                     const scheduledItems = scheduledItemsFor(place)
                     const startsScheduledSection = scheduledItems.length > 0 && !filtered.slice(0, index).some(isPlaceScheduled)

@@ -57,7 +57,7 @@ export default function App() {
       await exportTripImage(trip)
       useToastStore.getState().show('行程图片已开始下载')
     } catch {
-      useToastStore.getState().show('图片导出失败，请稍后重试')
+      useToastStore.getState().show('图片导出失败，请稍后重试', { tone: 'error' })
     } finally {
       setExportingImage(false)
     }
@@ -142,7 +142,7 @@ export default function App() {
                   setPlanTab(key)
                 }}
                 className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[10.5px] transition-colors ${
-                  active ? 'font-semibold text-text' : 'text-text-faint active:bg-surface-2'
+                  active ? 'rounded-lg bg-surface-2/55 font-semibold text-text' : 'text-text-faint active:bg-surface-2'
                 }`}
               >
                 {active && <span className="absolute top-0 h-0.5 w-5 rounded-full bg-action" />}

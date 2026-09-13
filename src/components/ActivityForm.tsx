@@ -4,6 +4,7 @@ import { CATEGORY_ICONS, MapIcon } from './Icons'
 import MapPicker from './MapPicker'
 import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint } from '../types'
 import { useTripStore } from '../store'
+import { InlineStatus } from './FeedbackState'
 
 export interface ActivityFormValues {
   time: string
@@ -232,7 +233,7 @@ export default function ActivityForm({
             className={`${inputCls} w-full`}
           />
           {geoLoading && (
-            <span className="absolute top-2 right-2.5 text-[11px] text-text-faint">搜索中…</span>
+            <InlineStatus loading className="absolute top-1 right-1 border-transparent bg-white/94 py-1 shadow-none">搜索中</InlineStatus>
           )}
           {geoLabel && (
             <div

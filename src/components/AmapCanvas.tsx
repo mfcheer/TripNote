@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { gcj02ToWgs84, wgs84ToGcj02 } from '../api/coordinates'
 import { fetchWalkingRouteInfo } from '../api/route'
 import type { GeoPoint } from '../types'
+import { InlineStatus } from './FeedbackState'
 
 interface AmapLngLat {
   getLng: () => number
@@ -197,5 +198,5 @@ export default function AmapCanvas({
     return () => controller.abort()
   }, [ready, markers, lines, zoom, onRouteFallback])
 
-  return <div ref={elementRef} className={className}>{!ready && <div className="flex h-full items-center justify-center bg-surface text-[12px] text-text-faint">正在加载高德地图…</div>}</div>
+  return <div ref={elementRef} className={className}>{!ready && <div className="flex h-full items-center justify-center bg-surface"><InlineStatus loading>正在加载高德地图</InlineStatus></div>}</div>
 }

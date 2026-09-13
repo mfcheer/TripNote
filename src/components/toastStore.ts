@@ -4,9 +4,10 @@ import { create } from 'zustand'
 interface ToastState {
   open: boolean
   message: string
+  tone: 'success' | 'error' | 'neutral'
   undoFn: (() => void) | null
   timer: ReturnType<typeof setTimeout> | null
-  show: (message: string, opts?: { undo?: () => void; duration?: number }) => void
+  show: (message: string, opts?: { undo?: () => void; duration?: number; tone?: 'success' | 'error' | 'neutral' }) => void
   dismiss: () => void
   undo: () => void
 }
@@ -14,6 +15,7 @@ interface ToastState {
 export const useToastStore = create<ToastState>((set, get) => ({
   open: false,
   message: '',
+  tone: 'success',
   undoFn: null,
   timer: null,
   show: (message, opts) => {
@@ -21,7 +23,7 @@ export const useToastStore = create<ToastState>((set, get) => ({
     if (timer) clearTimeout(timer)
     // 带撤销的操作多留几秒，避免用户刚看清结果按钮就消失。
     const t = setTimeout(() => get().dismiss(), opts?.duration ?? (opts?.undo ? 8000 : 5000))
-    set({ open: true, message, undoFn: opts?.undo ?? null, timer: t })
+    set({ open: true, message, tone: opts?.tone ?? 'success', undoFn: opts?.undo ?? null, timer: t })
   },
   dismiss: () => {
     const { timer } = get()
