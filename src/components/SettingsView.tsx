@@ -53,7 +53,7 @@ export default function SettingsView({
       String(now.getDate()).padStart(2, '0'),
     ].join('-') + `-${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`
     const safeName = (trip.name.trim() || '未命名行程').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ')
-    a.download = `TripNote-${safeName}-备份-${stamp}.json`
+    a.download = `北向-${safeName}-备份-${stamp}.json`
     a.click()
     URL.revokeObjectURL(url)
   }
@@ -111,12 +111,12 @@ export default function SettingsView({
         <section className="border-b border-border/80 py-6">
           <div className="mb-1 text-[15px] font-semibold">安装与分享</div>
           <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">
-            将途记安装到桌面后，会以独立应用打开。把链接发给朋友，他们会拥有自己的本地行程，彼此不会看到或修改对方的数据。
+            将北向安装到桌面后，会以独立应用打开。把链接发给朋友，他们会拥有自己的本地行程，彼此不会看到或修改对方的数据。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             {!isStandalone && canInstall && onInstall && (
               <button onClick={onInstall} className="rounded-md bg-action px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover">
-                安装途记
+                安装北向
               </button>
             )}
             <button onClick={copyAccessLink} className="rounded-md bg-surface-2 px-4 py-2 text-[13px] font-medium text-text-muted transition-colors hover:text-text">
@@ -133,7 +133,7 @@ export default function SettingsView({
               部署到 HTTPS 域名后，可在 Chrome、Edge 的浏览器菜单或地址栏中选择“安装应用”。
             </div>
           )}
-          {isStandalone && <div className="mt-4 text-[12px] font-medium text-accent-hover">途记已安装到此设备。</div>}
+          {isStandalone && <div className="mt-4 text-[12px] font-medium text-accent-hover">北向已安装到此设备。</div>}
         </section>
 
         {/* 数据管理 */}

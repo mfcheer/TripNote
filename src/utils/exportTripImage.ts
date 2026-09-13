@@ -111,6 +111,13 @@ export async function exportTripImage(trip: Trip) {
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('浏览器不支持图片导出')
 
+  const brandIcon = await new Promise<HTMLImageElement | null>((resolve) => {
+    const image = new Image()
+    image.onload = () => resolve(image)
+    image.onerror = () => resolve(null)
+    image.src = `${import.meta.env.BASE_URL}northward-icon-128.png`
+  })
+
   ctx.fillStyle = PAPER
   ctx.fillRect(0, 0, WIDTH, canvas.height)
   const gradient = ctx.createLinearGradient(PADDING, 0, WIDTH - PADDING, 0)
@@ -121,7 +128,8 @@ export async function exportTripImage(trip: Trip) {
 
   ctx.fillStyle = '#9b766c'
   ctx.font = '600 17px "PingFang SC", sans-serif'
-  ctx.fillText('TripNote', PADDING, 66)
+  if (brandIcon) ctx.drawImage(brandIcon, PADDING, 26, 42, 42)
+  ctx.fillText('北向', PADDING + (brandIcon ? 54 : 0), 58)
   ctx.fillStyle = INK
   ctx.font = '700 48px "PingFang SC", sans-serif'
   ctx.fillText(clip(ctx, trip.name, 820), PADDING, 124)
@@ -190,7 +198,7 @@ export async function exportTripImage(trip: Trip) {
   ctx.fillStyle = '#a3adb6'
   ctx.font = '400 17px "PingFang SC", sans-serif'
   ctx.textAlign = 'center'
-  ctx.fillText('途记 TripNote · 祝你旅途愉快', WIDTH / 2, canvas.height - 34)
+  ctx.fillText('北向 · 祝你一路从容', WIDTH / 2, canvas.height - 34)
   const blob = await new Promise<Blob>((resolve, reject) => {
     canvas.toBlob((value) => value ? resolve(value) : reject(new Error('图片生成失败')), 'image/png')
   })

@@ -1,6 +1,6 @@
 import type { GeoPoint } from '../types'
 
-// 高德底图使用 GCJ-02；TripNote 内部统一保存 WGS84，保证既有 OSM 数据和导出数据不变。
+// 高德底图使用 GCJ-02；北向内部统一保存 WGS84，保证既有 OSM 数据和导出数据不变。
 const PI = Math.PI
 const AXIS = 6378245.0
 const OFFSET = 0.006693421622965943

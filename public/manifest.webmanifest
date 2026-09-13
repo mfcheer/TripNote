@@ -1,13 +1,13 @@
 {
-  "name": "途记 · 旅行规划",
-  "short_name": "途记",
+  "name": "北向 · 旅行规划",
+  "short_name": "北向",
   "id": "./",
   "description": "轻松规划每一天的旅行安排。",
   "lang": "zh-CN",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#f5f3ef",
-  "theme_color": "#315c7d",
+  "background_color": "#f2f4f4",
+  "theme_color": "#354148",
   "icons": [
     {
       "src": "./icon-192.png",

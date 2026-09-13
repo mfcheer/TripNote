@@ -277,8 +277,8 @@ export function MobileHeader({ onExport, exporting }: { onExport: () => void; ex
 
   return (
     <header className="trip-topbar mobile-safe-top relative z-[900] flex shrink-0 items-center gap-1.5 border-b border-border px-3 pb-2 backdrop-blur md:hidden">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/80 bg-white/65 text-accent-hover shadow-[0_2px_8px_rgba(31,50,76,0.05)] backdrop-blur-sm" aria-label="途记">
-        <LogoIcon size={21} />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-[0_2px_8px_rgba(31,50,76,0.06)]" aria-label="北向">
+        <LogoIcon size={42} />
       </div>
       <TripSwitcher compact />
       <button
@@ -335,12 +335,12 @@ export default function Sidebar() {
     <aside className="hidden h-full w-[240px] shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] md:flex">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
-        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] border border-border/80 bg-white text-accent-hover shadow-[0_1px_3px_rgba(32,40,46,0.04)]">
-          <LogoIcon size={21} />
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[11px] shadow-[0_2px_8px_rgba(32,40,46,0.07)]">
+          <LogoIcon size={46} />
         </div>
         <div>
-          <div className="text-[14px] font-semibold leading-tight tracking-[0.01em]">途记</div>
-          <div className="mt-0.5 text-[10px] leading-tight tracking-[0.08em] text-text-faint">TripNote</div>
+          <div className="text-[15px] font-semibold leading-tight tracking-[0.08em]">北向</div>
+          <div className="mt-1 text-[9px] font-medium leading-tight tracking-[0.18em] text-text-faint">NORTHWARD</div>
         </div>
       </div>
 

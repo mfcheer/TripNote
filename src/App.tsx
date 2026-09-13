@@ -37,7 +37,7 @@ export default function App() {
     }
     function onInstalled() {
       setInstallPrompt(null)
-      useToastStore.getState().show('途记已添加到设备')
+      useToastStore.getState().show('北向已添加到设备')
     }
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
     window.addEventListener('appinstalled', onInstalled)
@@ -114,7 +114,7 @@ export default function App() {
                   <button
                     onClick={installApp}
                     className="rounded-md px-2.5 py-1 text-[12px] font-medium text-accent transition-colors hover:bg-accent-soft"
-                    title="将途记添加到设备"
+                    title="将北向添加到设备"
                   >
                     安装应用
                   </button>

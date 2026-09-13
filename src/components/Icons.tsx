@@ -1,7 +1,8 @@
-import type { ReactElement, SVGProps } from 'react'
+import type { ImgHTMLAttributes, ReactElement, SVGProps } from 'react'
 import type { ActivityCategory } from '../types'
 
 type IconProps = SVGProps<SVGSVGElement> & { size?: number }
+type BrandIconProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'width' | 'height'> & { size?: number }
 
 const base = (size: number): SVGProps<SVGSVGElement> => ({
   width: size,
@@ -14,16 +15,15 @@ const base = (size: number): SVGProps<SVGSVGElement> => ({
   strokeLinejoin: 'round',
 })
 
-// Logo：打开的旅行册，左页记录路线、右页留下目的地标记。
-export const LogoIcon = ({ size = 22, ...p }: IconProps) => (
-  <svg {...base(size)} {...p} strokeWidth={1.9}>
-    <path d="M3.5 5.5c2.8-1 5.6-.7 8.5.9v14c-2.9-1.6-5.7-1.9-8.5-.9v-14z" />
-    <path d="M20.5 5.5c-2.8-1-5.6-.7-8.5.9v14c2.9-1.6 5.7-1.9 8.5-.9v-14z" />
-    <path d="M6.3 15.4c1.1-2.8 2.1-4 3.3-4 1 0 1.5.6 2.4.9" stroke="var(--color-cat-sight)" />
-    <circle cx="6.3" cy="15.4" r="1.15" fill="var(--color-cat-sight)" stroke="none" />
-    <path d="M16.4 9.2a2.1 2.1 0 0 0-2.1 2.1c0 1.8 2.1 3.7 2.1 3.7s2.1-1.9 2.1-3.7a2.1 2.1 0 0 0-2.1-2.1z" fill="var(--color-accent-soft)" />
-    <circle cx="16.4" cy="11.3" r=".65" fill="currentColor" stroke="none" />
-  </svg>
+// 北向品牌图标：仰望前方的北极熊与珊瑚色旅行路线。
+export const LogoIcon = ({ size = 22, alt = '', ...p }: BrandIconProps) => (
+  <img
+    src={`${import.meta.env.BASE_URL}northward-icon-128.png`}
+    width={size}
+    height={size}
+    alt={alt}
+    {...p}
+  />
 )
 
 export const TrainIcon = ({ size = 16, ...p }: IconProps) => (

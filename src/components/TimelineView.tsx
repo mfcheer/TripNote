@@ -283,7 +283,7 @@ function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => void }) {
     const url = URL.createObjectURL(blob)
     const anchor = document.createElement('a')
     anchor.href = url
-    anchor.download = 'TripNote-预算明细.json'
+    anchor.download = '北向-预算明细.json'
     anchor.click()
     URL.revokeObjectURL(url)
   }
