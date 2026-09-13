@@ -296,8 +296,8 @@ export function MobileHeader({ onExport, exporting }: { onExport: () => void; ex
 
   return (
     <header className="trip-topbar mobile-safe-top relative z-[900] flex shrink-0 items-center gap-1.5 border-b border-border px-3 pb-2 backdrop-blur md:hidden">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-xl shadow-[0_2px_8px_rgba(31,50,76,0.06)]" aria-label="北向">
-        <LogoIcon size={42} />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center" aria-label="北向">
+        <LogoIcon size={36} />
       </div>
       <TripSwitcher compact />
       <button
@@ -361,8 +361,8 @@ export default function Sidebar() {
     <aside className={`hidden h-full shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] transition-[width] duration-200 md:flex ${isWishlist ? 'w-[310px]' : 'w-[240px]'}`}>
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
-        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[11px] shadow-[0_2px_8px_rgba(32,40,46,0.07)]">
-          <LogoIcon size={46} />
+        <div className="flex h-10 w-10 items-center justify-center">
+          <LogoIcon size={40} />
         </div>
         <div>
           <div className="text-[15px] font-semibold leading-tight tracking-[0.08em]">北向</div>
