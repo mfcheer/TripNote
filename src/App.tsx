@@ -15,7 +15,6 @@ import { CalendarIcon, DownloadIcon, HeartIcon, MapIcon } from './components/Ico
 const PLAN_TABS: { key: PlanTab; label: string; Icon: typeof CalendarIcon }[] = [
   { key: 'timeline', label: '行程', Icon: CalendarIcon },
   { key: 'places', label: '想去', Icon: HeartIcon },
-  { key: 'map', label: '地图', Icon: MapIcon },
 ]
 
 interface BeforeInstallPromptEvent extends Event {
@@ -26,8 +25,10 @@ interface BeforeInstallPromptEvent extends Event {
 export default function App() {
   const { view, planTab, setPlanTab, setView } = useTripStore()
   const trip = useActiveTrip()
+  const visiblePlanTab = planTab === 'map' || planTab === 'budget' ? 'timeline' : planTab
   const [exportingImage, setExportingImage] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
+  const [fullScreenMapDayId, setFullScreenMapDayId] = useState<string | null>(() => planTab === 'map' ? 'all' : null)
 
   useEffect(() => {
     function onBeforeInstallPrompt(event: Event) {
@@ -46,10 +47,21 @@ export default function App() {
     }
   }, [])
 
-  // 兼容已保存的旧状态：预算已并入行程页，曾停留在预算标签时回到行程。
+  function closeFullScreenMap() {
+    setFullScreenMapDayId(null)
+    if (planTab === 'map' || planTab === 'budget') setPlanTab('timeline')
+  }
+
   useEffect(() => {
-    if (planTab === 'budget') setPlanTab('timeline')
-  }, [planTab, setPlanTab])
+    if (!fullScreenMapDayId) return
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return
+      setFullScreenMapDayId(null)
+      if (planTab === 'map' || planTab === 'budget') setPlanTab('timeline')
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [fullScreenMapDayId, planTab, setPlanTab])
 
   async function downloadImage() {
     setExportingImage(true)
@@ -71,7 +83,8 @@ export default function App() {
   }
 
   return (
-    <div className="flex h-full w-full overflow-hidden bg-bg">
+    <div className="relative h-full w-full overflow-hidden bg-bg">
+      <div className="flex h-full w-full overflow-hidden" aria-hidden={fullScreenMapDayId ? true : undefined} inert={fullScreenMapDayId ? true : undefined}>
       <Sidebar />
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <MobileHeader onExport={downloadImage} exporting={exportingImage} />
@@ -81,7 +94,7 @@ export default function App() {
             <div className="trip-topbar hidden h-[52px] shrink-0 items-end justify-between border-b border-border/80 px-7 md:flex">
               <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
                 {PLAN_TABS.map(({ key, label, Icon }) => {
-                  const active = planTab === key
+                  const active = visiblePlanTab === key
                   return (
                     <button
                       key={key}
@@ -116,13 +129,12 @@ export default function App() {
               </div>
             </div>
             <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
-              {planTab === 'timeline' && (
+              {visiblePlanTab === 'timeline' && (
                 <div className="h-full overflow-y-auto">
-                  <TimelineView />
+                  <TimelineView onOpenFullMap={(dayId) => setFullScreenMapDayId(dayId)} />
                 </div>
               )}
-              {planTab === 'places' && <WishlistView />}
-              {planTab === 'map' && <MapView />}
+              {visiblePlanTab === 'places' && <WishlistView />}
             </div>
           </>
         )}
@@ -133,7 +145,7 @@ export default function App() {
         )}
         {view === 'plan' && <nav className="mobile-safe-bottom flex shrink-0 border-t border-border/80 bg-white/96 px-1 pt-1 shadow-[0_-2px_10px_rgba(32,40,46,0.05)] backdrop-blur md:hidden" aria-label="主要导航">
           {PLAN_TABS.map(({ key, label, Icon }) => {
-            const active = view === 'plan' && planTab === key
+            const active = view === 'plan' && visiblePlanTab === key
             return (
               <button
                 key={key}
@@ -153,6 +165,30 @@ export default function App() {
           })}
         </nav>}
       </main>
+      </div>
+      {fullScreenMapDayId && (
+        <section role="dialog" aria-modal="true" className="fixed inset-0 z-[1000] flex flex-col bg-bg" aria-label="完整行程地图">
+          <header className="trip-topbar mobile-safe-top flex min-h-[58px] shrink-0 items-center gap-3 border-b border-border/80 px-3 sm:px-5">
+            <button
+              onClick={closeFullScreenMap}
+              className="shrink-0 rounded-md border border-border/80 bg-white/80 px-3 py-2 text-[12.5px] font-medium text-text-muted transition-colors hover:border-accent/50 hover:text-text"
+            >
+              返回行程
+            </button>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13.5px] font-semibold text-text">{trip.name}</div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-text-faint"><MapIcon size={12} /> 完整行程地图</div>
+            </div>
+            <span className="hidden shrink-0 text-[11.5px] text-text-faint sm:inline">Esc 关闭</span>
+          </header>
+          <div className="min-h-0 flex-1">
+            <MapView
+              initialDayId={fullScreenMapDayId}
+              onOpenActivity={closeFullScreenMap}
+            />
+          </div>
+        </section>
+      )}
       <ConfirmDialog />
       <Toast />
     </div>

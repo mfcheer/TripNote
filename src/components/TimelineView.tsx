@@ -18,7 +18,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
-import { CalendarIcon, CATEGORY_ICONS, OverviewIcon, PinIcon, PlusIcon, TrashIcon, WalletIcon } from './Icons'
+import { CalendarIcon, CATEGORY_ICONS, MapIcon, OverviewIcon, PinIcon, PlusIcon, TrashIcon, WalletIcon } from './Icons'
 import ActivityForm, { activityToFormValues } from './ActivityForm'
 import InlineActivityDetail from './ActivityDetail'
 import { useConfirmStore } from './confirmStore'
@@ -145,7 +145,7 @@ function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => 
   )
 }
 
-function DayOverview({ items, scheduleWarningCount }: { items: Activity[]; scheduleWarningCount: number }) {
+function DayOverview({ items, scheduleWarningCount, onOpenMap }: { items: Activity[]; scheduleWarningCount: number; onOpenMap?: () => void }) {
   const plannedMinutes = items.reduce((total, activity) => total + (activityDurationMinutes(activity) ?? 0), 0)
   const dayCost = items.reduce((total, activity) => total + activity.costs.reduce((sum, cost) => sum + cost.amount, 0), 0)
   const geoItems = useMemo(() => items.filter((activity) => activity.geo), [items])
@@ -187,6 +187,11 @@ function DayOverview({ items, scheduleWarningCount }: { items: Activity[]; sched
       <span className="hidden sm:inline">{geoItems.length} 个已定位地点</span>
       {visibleWalking?.durationMinutes && <span className="hidden md:inline">步行约 {visibleWalking.durationMinutes} 分钟</span>}
       {visibleWalking?.distanceMeters && <span className="hidden md:inline">{(visibleWalking.distanceMeters / 1000).toFixed(visibleWalking.distanceMeters >= 1000 ? 1 : 2)} km</span>}
+      {onOpenMap && (
+        <button onClick={onOpenMap} className="ml-auto inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11.5px] font-medium text-text-muted transition-colors hover:bg-white hover:text-text xl:hidden">
+          <MapIcon size={12} /> 查看地图
+        </button>
+      )}
       {(scheduleWarningCount > 0 || crossCityPending > 0 || insufficientTransit > 0) && (
         <span className="w-full rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
           {scheduleWarningCount > 0 && `${scheduleWarningCount} 处时间重叠`}
@@ -891,11 +896,13 @@ function DayHeaderInfo({ day }: { day: { id: string; date: string; place: string
 function DaySection({
   dayId,
   onQuickAdd,
+  onOpenMap,
   highlightedActivityId,
   onActivityHover,
 }: {
   dayId: string
   onQuickAdd: () => void
+  onOpenMap: (dayId: string) => void
   highlightedActivityId: string | null
   onActivityHover: (activityId: string | null) => void
 }) {
@@ -1016,7 +1023,7 @@ function DaySection({
           </details>
         </header>
 
-        <DayOverview items={items} scheduleWarningCount={warnings.size} />
+        <DayOverview items={items} scheduleWarningCount={warnings.size} onOpenMap={() => onOpenMap(dayId)} />
 
         {/* 时间轴 */}
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
@@ -1080,11 +1087,13 @@ function PlannerInspector({
   selectedActivityId,
   editingActivityId,
   highlightedActivityId,
+  onOpenMap,
 }: {
   dayId: string
   selectedActivityId: string | null
   editingActivityId: string | null
   highlightedActivityId: string | null
+  onOpenMap: (dayId: string) => void
 }) {
   const trip = useActiveTrip()
   const { selectActivity, setEditingActivity } = useTripStore()
@@ -1127,12 +1136,15 @@ function PlannerInspector({
             <div className="text-[13px] font-semibold">{day?.label} 地图</div>
             <div className="mt-0.5 text-[11.5px] text-text-faint">点击标记可定位行程</div>
           </div>
-          <button
-            onClick={() => selectActivity(null)}
-            className="rounded px-1.5 py-1 text-[11.5px] text-text-muted hover:bg-surface"
-          >
-            收起详情
-          </button>
+          <div className="flex items-center gap-1">
+            {activity && <button onClick={() => selectActivity(null)} className="rounded px-1.5 py-1 text-[11px] text-text-faint hover:bg-surface hover:text-text-muted">清除选择</button>}
+            <button
+              onClick={() => onOpenMap(dayId)}
+              className="inline-flex items-center gap-1 rounded-md border border-border/80 bg-white px-2 py-1 text-[11.5px] font-medium text-text-muted transition-colors hover:border-accent/50 hover:text-text"
+            >
+              <MapIcon size={12} /> 全屏地图
+            </button>
+          </div>
         </div>
         <DayMapPreview dayId={dayId} selectedActivityId={activityId ?? null} highlightedActivityId={highlightedActivityId} showLabels={panelWidth >= 420} />
       </div>
@@ -1222,7 +1234,7 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
   )
 }
 
-export default function TimelineView() {
+export default function TimelineView({ onOpenFullMap }: { onOpenFullMap: (dayId: string) => void }) {
   const trip = useActiveTrip()
   const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -1349,7 +1361,7 @@ export default function TimelineView() {
               </div>
             )}
             {trip.days.map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} />
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} onOpenMap={onOpenFullMap} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} />
             ))}
           </div>
           <div data-quick-add className="sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block lg:px-8">
@@ -1379,6 +1391,7 @@ export default function TimelineView() {
           selectedActivityId={selectedActivityId}
           editingActivityId={editingActivityId}
           highlightedActivityId={mapHighlightedActivityId}
+          onOpenMap={onOpenFullMap}
         />
       </div>
       <DragOverlay>

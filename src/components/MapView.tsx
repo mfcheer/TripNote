@@ -154,10 +154,16 @@ function DayRoute({ dayId, color, routeMode, onRouteFallback }: { dayId: string;
   </>
 }
 
-export default function MapView() {
+export default function MapView({
+  initialDayId = 'all',
+  onOpenActivity,
+}: {
+  initialDayId?: string
+  onOpenActivity?: (activityId: string) => void
+}) {
   const { setActiveDay, amapJsKey, amapWebServiceKey, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
-  const [filter, setFilter] = useState<'all' | string>('all')
+  const [filter, setFilter] = useState<'all' | string>(() => initialDayId === 'all' || trip.days.some((day) => day.id === initialDayId) ? initialDayId : 'all')
   const [amapUnavailable, setAmapUnavailable] = useState(false)
   const [routeFallback, setRouteFallback] = useState(false)
   const [openCluster, setOpenCluster] = useState<MapMarkerGroup | null>(null)
@@ -239,6 +245,10 @@ export default function MapView() {
     })
   }, [addWishPlace, pickedCategory, pickedLocation, pickedName, pickedPoint, removeWishPlace, stopPicking])
   const useAmap = !!amapJsKey && !amapUnavailable
+  const focusMapActivity = useCallback((activityId: string) => {
+    useTripStore.getState().focusActivity(activityId)
+    onOpenActivity?.(activityId)
+  }, [onOpenActivity])
   const amapLines = useMemo<AmapLine[]>(() => [
     ...visibleDays.flatMap((day) => {
       const points = activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => activity.geo!)
@@ -255,9 +265,9 @@ export default function MapView() {
   const amapMarkers = useMemo<AmapMarker[]>(() => [...markerGroups.map((group) => {
     const single = group.items[0]
     return group.items.length === 1
-      ? { id: single.activity.id, point: group.point, label: single.activity.title, color: single.color, simple: filter === 'all', wide: filter !== 'all', onClick: () => useTripStore.getState().focusActivity(single.activity.id) }
+      ? { id: single.activity.id, point: group.point, label: single.activity.title, color: single.color, simple: filter === 'all', wide: filter !== 'all', onClick: () => focusMapActivity(single.activity.id) }
       : { id: `cluster-${group.id}`, point: group.point, label: String(group.items.length), onClick: () => setOpenCluster(group) }
-  }), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, markerGroups, pickedPoint])
+  }), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, markerGroups, pickedPoint])
 
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
@@ -323,12 +333,12 @@ export default function MapView() {
         {markerGroups.map((group) => group.items.length === 1 ? (() => {
           const { activity, day, color } = group.items[0]
           const Icon = CATEGORY_ICONS[activity.category]
-          return <Marker key={activity.id} position={[group.point.lat, group.point.lng]} icon={filter === 'all' ? dotMarkerIcon(color) : markerIcon(color, activity.title)} eventHandlers={{ click: () => useTripStore.getState().focusActivity(activity.id) }}>
+          return <Marker key={activity.id} position={[group.point.lat, group.point.lng]} icon={filter === 'all' ? dotMarkerIcon(color) : markerIcon(color, activity.title)} eventHandlers={{ click: () => focusMapActivity(activity.id) }}>
             <Popup><div className="min-w-[160px]"><div className="flex items-center gap-1.5 font-medium" style={{ color }}><Icon size={13} />{activity.title}</div><div className="mt-1 text-[12px] text-text-muted">{day.label} {activity.time}{activity.location && ` · ${activity.location}`}</div></div></Popup>
           </Marker>
         })() : (
           <Marker key={`cluster-${group.id}`} position={[group.point.lat, group.point.lng]} icon={clusterIcon(group.items.length)}>
-            <Popup><div className="min-w-[180px]"><div className="mb-1.5 text-[12px] font-semibold">{group.items.length} 个重叠地点</div>{group.items.map(({ activity, day }) => <button key={activity.id} onClick={() => useTripStore.getState().focusActivity(activity.id)} className="block w-full truncate rounded px-1 py-1 text-left text-[12px] hover:bg-surface">{day.label} · {activity.title}</button>)}</div></Popup>
+            <Popup><div className="min-w-[180px]"><div className="mb-1.5 text-[12px] font-semibold">{group.items.length} 个重叠地点</div>{group.items.map(({ activity, day }) => <button key={activity.id} onClick={() => focusMapActivity(activity.id)} className="block w-full truncate rounded px-1 py-1 text-left text-[12px] hover:bg-surface">{day.label} · {activity.title}</button>)}</div></Popup>
           </Marker>
         ))}
         {pickedPoint && <Marker position={[pickedPoint.lat, pickedPoint.lng]} icon={pickedPointIcon} interactive={false} />}
@@ -363,7 +373,7 @@ export default function MapView() {
       {openCluster && (
         <div className="absolute top-16 left-4 z-[600] w-[230px] rounded-lg border border-border bg-white p-2 shadow-[0_4px_16px_rgba(0,0,0,0.14)]">
           <div className="mb-1 flex items-center justify-between px-1"><span className="text-[12px] font-semibold">{openCluster.items.length} 个重叠地点</span><button onClick={() => setOpenCluster(null)} className="text-[16px] leading-none text-text-faint">×</button></div>
-          {openCluster.items.map(({ activity, day }) => <button key={activity.id} onClick={() => useTripStore.getState().focusActivity(activity.id)} className="block w-full truncate rounded px-1.5 py-1.5 text-left text-[12px] hover:bg-surface"><span className="mr-1 text-text-faint">{day.label}</span>{activity.title}</button>)}
+          {openCluster.items.map(({ activity, day }) => <button key={activity.id} onClick={() => focusMapActivity(activity.id)} className="block w-full truncate rounded px-1.5 py-1.5 text-left text-[12px] hover:bg-surface"><span className="mr-1 text-text-faint">{day.label}</span>{activity.title}</button>)}
         </div>
       )}
 
