@@ -326,11 +326,27 @@ export default function Sidebar() {
     useTripStore()
   const trip = useActiveTrip()
   const [dropDayId, setDropDayId] = useState<string | null>(null)
+  const [previewDayId, setPreviewDayId] = useState<string | null>(null)
+  const [previewTop, setPreviewTop] = useState(0)
   const [showAddDayOptions, setShowAddDayOptions] = useState(false)
+
+  useEffect(() => {
+    const clearPreview = () => {
+      setDropDayId(null)
+      setPreviewDayId(null)
+    }
+    window.addEventListener('dragend', clearPreview)
+    window.addEventListener('drop', clearPreview)
+    return () => {
+      window.removeEventListener('dragend', clearPreview)
+      window.removeEventListener('drop', clearPreview)
+    }
+  }, [])
 
   function scheduleDroppedWish(event: DragEvent<HTMLButtonElement>, day: TripDay) {
     event.preventDefault()
     setDropDayId(null)
+    setPreviewDayId(null)
     const placeId = event.dataTransfer.getData('application/x-tripnote-wish-id')
     const place = trip.wishPlaces.find((item) => item.id === placeId)
     if (!place) return
@@ -350,8 +366,21 @@ export default function Sidebar() {
     useToastStore.getState().show(`已安排「${place.title}」到 ${day.label} · ${time}`)
   }
 
+  function previewDropDay(event: DragEvent<HTMLButtonElement>, dayId: string) {
+    if (!Array.from(event.dataTransfer.types).includes('application/x-tripnote-wish-id')) return
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+    const rect = event.currentTarget.getBoundingClientRect()
+    setDropDayId(dayId)
+    setPreviewDayId(dayId)
+    setPreviewTop(Math.max(12, Math.min(rect.top, window.innerHeight - 232)))
+  }
+
+  const previewDay = trip.days.find((day) => day.id === previewDayId)
+  const previewItems = previewDay ? activitiesByDay(trip, previewDay.id) : []
+
   return (
-    <aside className="hidden h-full w-[240px] shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] md:flex">
+    <aside className="relative hidden h-full w-[240px] shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] md:flex">
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-[11px] shadow-[0_2px_8px_rgba(32,40,46,0.07)]">
@@ -395,12 +424,11 @@ export default function Sidebar() {
                 setPlanTab('timeline')
                 selectActivity(null)
               }}
-              onDragOver={(event) => {
-                event.preventDefault()
-                event.dataTransfer.dropEffect = 'copy'
-                setDropDayId(d.id)
+              onDragOver={(event) => previewDropDay(event, d.id)}
+              onDragLeave={() => {
+                setDropDayId((id) => (id === d.id ? null : id))
+                setPreviewDayId((id) => (id === d.id ? null : id))
               }}
-              onDragLeave={() => setDropDayId((id) => (id === d.id ? null : id))}
               onDrop={(event) => scheduleDroppedWish(event, d)}
               className={`relative mb-1 flex w-full min-w-0 items-center gap-2.5 rounded-md border-l-2 px-2.5 py-2.5 text-left transition-[background-color,border-color,box-shadow] ${
                 dropDayId === d.id
@@ -472,6 +500,33 @@ export default function Sidebar() {
           )}
         </div>
       </nav>
+
+      {previewDay && (
+        <div
+          aria-live="polite"
+          className="pointer-events-none fixed z-[1000] w-[278px] rounded-xl border border-border/90 bg-white/95 p-3.5 shadow-[0_14px_34px_rgba(32,40,46,0.16)] backdrop-blur"
+          style={{ top: previewTop, left: 250 }}
+        >
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <span className="text-[12.5px] font-semibold text-text">{previewDay.label} · {previewDay.place || '待定地点'}</span>
+            <span className="shrink-0 text-[10.5px] text-text-faint">{/^\d{4}-\d{2}-\d{2}$/.test(previewDay.date) ? displayDate(previewDay.date).split(' ')[0] : previewDay.date}</span>
+          </div>
+          {previewItems.length > 0 ? (
+            <div className="space-y-1.5 border-t border-border/70 pt-2">
+              {previewItems.slice(0, 4).map((activity) => (
+                <div key={activity.id} className="flex min-w-0 items-center gap-2 text-[11.5px]">
+                  <span className="w-9 shrink-0 tabular-nums text-text-faint">{activity.time}</span>
+                  <span className="truncate text-text-muted">{activity.title}</span>
+                </div>
+              ))}
+              {previewItems.length > 4 && <div className="pl-11 text-[10.5px] text-text-faint">还有 {previewItems.length - 4} 项安排</div>}
+            </div>
+          ) : (
+            <div className="border-t border-border/70 pt-2 text-[11.5px] text-text-faint">当天还是空白，适合直接加入。</div>
+          )}
+          <div className="mt-2.5 border-t border-border/70 pt-2 text-[10.5px] text-accent-hover">松开即可加入 · 建议时间 {nextActivityTime(trip, previewDay.id)}</div>
+        </div>
+      )}
 
       {/* 底部导航 */}
       <nav className="border-t border-border/80 p-3">
