@@ -11,6 +11,7 @@ import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import MapPicker from './MapPicker'
 import AmapCanvas, { type AmapMarker } from './AmapCanvas'
+import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 
 const WISHLIST_MAP_WIDTH_KEY = 'tripnote-wishlist-map-width-v1'
 
@@ -64,14 +65,6 @@ function CustomMapWishDialog({
     ?? trip.wishPlaces.find((place) => place.geo)?.geo
   const initialCenter = nearbyPoint ?? { lat: 20, lng: 0 }
 
-  useEffect(() => {
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose])
-
   function save() {
     const title = name.trim()
     if (!title || !point) return
@@ -88,41 +81,32 @@ function CustomMapWishDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4 backdrop-blur-[1px]"
-      role="dialog"
-      aria-modal="true"
-      aria-label="地图选点收藏"
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+    <ModalShell
+      title="在地图上收藏地点"
+      description="点击地图上的位置，再给它起一个自己看得懂的名称。"
+      onClose={onClose}
+      size="lg"
+      mobile="sheet"
+      bodyClassName="sm:py-5"
+      footer={<>
+        {!point && <span className="mr-auto hidden text-[11.5px] text-text-faint sm:inline">需要先点击地图放置标记</span>}
+        <button onClick={onClose} className={overlaySecondaryButtonClass}>取消</button>
+        <button onClick={save} disabled={!name.trim() || !point} className={overlayPrimaryButtonClass}>收藏这个位置</button>
+      </>}
     >
-      <div className="max-h-[calc(100vh-32px)] w-full max-w-[760px] overflow-y-auto rounded-xl border border-border bg-white shadow-xl">
-        <div className="flex items-start justify-between gap-4 border-b border-border px-5 py-4">
-          <div>
-            <div className="text-[16px] font-semibold">在地图上收藏地点</div>
-            <div className="mt-1 text-[12px] text-text-muted">拖动、缩放地图并点击任意位置，再给它起一个自己看得懂的名称。</div>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-md px-2 py-1 text-[18px] leading-none text-text-faint hover:bg-surface hover:text-text"
-            aria-label="关闭"
-          >
-            ×
-          </button>
-        </div>
-        <div className="p-5">
-          <MapPicker
-            point={point}
-            label={location}
-            initialCenter={initialCenter}
-            initialZoom={nearbyPoint ? 10 : 2}
-            heightClassName="h-[260px] sm:h-[340px]"
-            onPick={(nextPoint, nextLocation) => {
-              setPoint(nextPoint)
-              if (nextLocation) setLocation(nextLocation)
-            }}
-          />
+      <MapPicker
+        point={point}
+        label={location}
+        initialCenter={initialCenter}
+        initialZoom={nearbyPoint ? 10 : 2}
+        heightClassName="h-[230px] sm:h-[340px]"
+        onPick={(nextPoint, nextLocation) => {
+          setPoint(nextPoint)
+          if (nextLocation) setLocation(nextLocation)
+        }}
+      />
 
-          <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_130px]">
+      <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_130px]">
             <label className="text-[12px] font-medium text-text-muted">
               自定义名称
               <input
@@ -145,9 +129,9 @@ function CustomMapWishDialog({
                 ))}
               </select>
             </label>
-          </div>
+      </div>
 
-          <label className="mt-3 block text-[12px] font-medium text-text-muted">
+      <label className="mt-3 block text-[12px] font-medium text-text-muted">
             位置说明 <span className="font-normal text-text-faint">（选点后自动识别，也可自己修改）</span>
             <input
               value={location}
@@ -155,22 +139,8 @@ function CustomMapWishDialog({
               placeholder={point ? '没有识别到地址，可以手动填写' : '请先在地图上点击一个位置'}
               className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
             />
-          </label>
-
-          <div className="mt-4 flex items-center gap-2">
-            <button
-              onClick={save}
-              disabled={!name.trim() || !point}
-              className="rounded-md bg-action px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              收藏这个位置
-            </button>
-            <button onClick={onClose} className="rounded-md px-3 py-2 text-[13px] text-text-muted hover:bg-surface">取消</button>
-            {!point && <span className="ml-auto text-[11.5px] text-text-faint">需要先点击地图放置标记</span>}
-          </div>
-        </div>
-      </div>
-    </div>
+      </label>
+    </ModalShell>
   )
 }
 
@@ -190,14 +160,6 @@ function ScheduleWishDialog({
   )
   const day = trip.days.find((item) => item.id === dayId)
 
-  useEffect(() => {
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose])
-
   function submit(values: ActivityFormValues) {
     if (!dayId) return
     if (scheduleWishPlace(place.id, dayId, values)) {
@@ -207,28 +169,13 @@ function ScheduleWishDialog({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/30 p-4 backdrop-blur-[1px]"
-      role="dialog"
-      aria-modal="true"
-      aria-label={`安排${place.title}`}
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+    <ModalShell
+      title={`安排「${place.title}」`}
+      description="选择日期并补充时间、地点或花费。"
+      onClose={onClose}
+      size="lg"
+      mobile="sheet"
     >
-      <div className="max-h-[calc(100vh-32px)] w-full max-w-[680px] overflow-y-auto rounded-xl border border-border bg-white shadow-xl">
-        <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-border bg-white px-5 py-4">
-          <div>
-            <div className="text-[16px] font-semibold">安排到行程</div>
-            <div className="mt-1 text-[12px] text-text-muted">确认日期和时间后再加入，不会直接生成默认安排。</div>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-md px-2 py-1 text-[18px] leading-none text-text-faint hover:bg-surface hover:text-text"
-            aria-label="关闭"
-          >
-            ×
-          </button>
-        </div>
-        <div className="p-5">
           <label className="mb-4 block text-[12px] font-medium text-text-muted">
             安排日期
             <select
@@ -256,10 +203,9 @@ function ScheduleWishDialog({
             submitLabel="确认安排"
             onSubmit={submit}
             onCancel={onClose}
+            stickyActions
           />
-        </div>
-      </div>
-    </div>
+    </ModalShell>
   )
 }
 

@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DragEvent, ReactElement } from 'react'
-import { createPortal } from 'react-dom'
 import { useActiveTrip, useTripStore, displayDate, nextActivityTime } from '../store'
 import type { TripDay, ViewKey } from '../types'
 import { CalendarIcon, ChevronDownIcon, DownloadIcon, EditIcon, LogoIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
+import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 
 const NAV_ITEMS: { key: ViewKey; label: string; Icon: (p: { size?: number }) => ReactElement }[] = [
   { key: 'plan', label: '行程规划', Icon: CalendarIcon },
@@ -29,14 +29,6 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
     ) + 1,
   )
 
-  useEffect(() => {
-    function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', closeOnEscape)
-    return () => window.removeEventListener('keydown', closeOnEscape)
-  }, [onClose])
-
   function submit() {
     if (endDate < startDate) {
       setError('返程日期不能早于出发日期')
@@ -52,24 +44,19 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
     onClose()
   }
 
-  return createPortal(
-    <div
-      className="fixed inset-0 z-[1000] flex items-stretch bg-black/30 sm:items-center sm:justify-center sm:p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-label="创建旅程"
-      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+  return (
+    <ModalShell
+      title="创建旅程"
+      description="先确定去哪里和哪几天，名称会自动生成。"
+      onClose={onClose}
+      size="md"
+      mobile="fullscreen"
+      footer={<>
+        <button onClick={onClose} className={overlaySecondaryButtonClass}>取消</button>
+        <button onClick={submit} className={overlayPrimaryButtonClass}>创建并开始规划</button>
+      </>}
     >
-      <div className="flex h-[100dvh] w-full flex-col bg-white shadow-xl sm:h-auto sm:max-h-[calc(100vh-32px)] sm:max-w-[440px] sm:rounded-xl">
-        <div className="mobile-safe-top flex shrink-0 items-start justify-between gap-4 border-b border-border/80 px-5 pb-4 sm:pt-5">
-          <div>
-            <div className="text-[18px] font-semibold">创建旅程</div>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">先确定去哪里和哪几天，名称会自动生成。</p>
-          </div>
-          <button onClick={onClose} className="-mr-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[22px] leading-none text-text-muted hover:bg-surface-2" aria-label="关闭">×</button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-4">
           <label className="text-[12px] font-medium text-text-muted">
             主要目的地
             <input
@@ -144,19 +131,8 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
             </div>
           </details>
           {error && <p className="text-[12px] text-red-600">{error}</p>}
-          </div>
-        </div>
-        <div className="mobile-safe-bottom flex shrink-0 items-center justify-end gap-2 border-t border-border/80 bg-white px-5 py-3">
-          <button onClick={onClose} className="rounded-md px-4 py-2.5 text-[13px] text-text-muted hover:bg-surface">
-            取消
-          </button>
-          <button onClick={submit} className="rounded-md bg-action px-5 py-2.5 text-[13px] font-medium text-white hover:bg-action-hover">
-            创建并开始规划
-          </button>
-        </div>
       </div>
-    </div>,
-    document.body,
+    </ModalShell>
   )
 }
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { createPortal } from 'react-dom'
 import {
   DndContext,
   DragOverlay,
@@ -26,6 +27,7 @@ import { CATEGORY_META, type Activity, type ActivityCategory, type Trip } from '
 import { searchPlaces, type GeoResult } from '../api/geocode'
 import { fetchWalkingRouteInfo, straightLineDistanceMeters, WALKING_DISTANCE_THRESHOLD_METERS } from '../api/route'
 import DayMapPreview from './DayMapPreview'
+import ModalShell, { OverlayHeader, SheetHandle } from './OverlayShell'
 
 const PLANNER_PANEL_WIDTH_KEY = 'tripnote-planner-panel-width-v1'
 const BUDGET_DRAWER_WIDTH_KEY = 'tripnote-budget-drawer-width-v1'
@@ -233,6 +235,14 @@ function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => void }) {
     localStorage.setItem(BUDGET_DRAWER_WIDTH_KEY, String(drawerWidth))
   }, [drawerWidth])
 
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape' && !editingBudget) onClose()
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [editingBudget, onClose])
+
   function startDrawerResize(event: ReactPointerEvent<HTMLDivElement>) {
     if (event.button !== 0) return
     event.preventDefault()
@@ -272,20 +282,15 @@ function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => void }) {
     URL.revokeObjectURL(url)
   }
 
-  return (
-    <div className="fixed inset-0 z-[800] bg-black/25 backdrop-blur-[1px]" role="dialog" aria-modal="true" aria-label="预算详情" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="mobile-safe-bottom absolute inset-x-0 bottom-0 max-h-[84vh] overflow-y-auto rounded-t-[22px] bg-white px-4 pt-3 shadow-[0_-12px_36px_rgba(15,23,42,0.18)] sm:inset-y-0 sm:left-auto sm:max-h-none sm:rounded-none sm:border-l sm:border-border sm:px-5 sm:pt-5 sm:w-[var(--budget-drawer-width)]" style={{ '--budget-drawer-width': `${drawerWidth}px` } as CSSProperties}>
+  return createPortal(
+    <div className="fixed inset-0 z-[1000] bg-black/30 backdrop-blur-[1.5px]" role="dialog" aria-modal="true" aria-label="预算详情" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
+      <aside className="mobile-safe-bottom absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-[22px] bg-white shadow-[0_18px_60px_rgba(25,34,42,0.2)] sm:inset-y-0 sm:left-auto sm:max-h-none sm:rounded-none sm:border-l sm:border-border sm:w-[var(--budget-drawer-width)]" style={{ '--budget-drawer-width': `${drawerWidth}px` } as CSSProperties}>
         <div role="separator" aria-label="调整预算详情宽度" aria-orientation="vertical" onPointerDown={startDrawerResize} className="group absolute inset-y-0 -left-2 hidden w-3 cursor-col-resize touch-none items-center justify-center sm:flex">
           <span className="h-11 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
         </div>
-        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border sm:hidden" />
-        <div className="flex items-start justify-between gap-4 border-b border-border pb-3">
-          <div>
-            <div className="text-[16px] font-semibold">预算详情</div>
-            <div className="mt-0.5 text-[11.5px] text-text-muted">花费来自行程中的每一条安排</div>
-          </div>
-          <button onClick={onClose} className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-[20px] leading-none text-text-muted transition-colors hover:bg-surface-2 hover:text-text" aria-label="关闭预算详情">×</button>
-        </div>
+        <div className="pt-2.5 sm:hidden"><SheetHandle /></div>
+        <OverlayHeader title="预算详情" description="花费来自行程中的每一条安排" onClose={onClose} />
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-5">
 
         <div className="grid grid-cols-3 gap-2.5 py-4">
           <div className="rounded-lg bg-surface px-2.5 py-2.5">
@@ -349,8 +354,10 @@ function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => void }) {
             ))}
           </div>
         </section>
+        </div>
       </aside>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -654,7 +661,7 @@ function EditActivityForm({ activity, onDone }: { activity: Activity; onDone: ()
   // 恢复属于当前条目的草稿
   const draft = useTripStore((s) => (s.activityDraft?.activityId === activity.id ? s.activityDraft : null))
   return (
-    <div className="rounded-lg border border-accent/50 bg-white p-3.5 shadow-[0_2px_8px_rgba(49,92,125,0.12)]">
+    <div className="rounded-lg border border-border/90 bg-white p-3.5 shadow-[0_2px_10px_rgba(32,40,46,0.07)] sm:p-4">
       <ActivityForm
         initial={draft ? { ...activityToFormValues(activity), ...draft.values } : activityToFormValues(activity)}
         submitLabel="保存"
@@ -1381,35 +1388,23 @@ export default function TimelineView() {
         )}
       </DragOverlay>
       {mobileQuickAddOpen && (
-        <div className="fixed inset-0 z-[700] flex items-end bg-black/30 sm:hidden" role="dialog" aria-modal="true" aria-label="新增安排">
-          <button className="absolute inset-0" onClick={() => setMobileQuickAddOpen(false)} aria-label="关闭新增安排" />
-          <div className="mobile-safe-bottom relative max-h-[84vh] w-full overflow-y-auto rounded-t-[22px] bg-[#fbfcfe] px-4 pt-3 shadow-[0_-12px_36px_rgba(15,23,42,0.18)]">
-            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-border" />
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <div className="text-[16px] font-semibold">新增安排</div>
-                <div className="mt-0.5 text-[11.5px] text-text-muted">
-                  {activeDay?.label ?? '当前天'}{activeDay?.place ? ` · ${activeDay.place}` : ''}
-                </div>
-              </div>
-              <button
-                onClick={() => setMobileQuickAddOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-surface text-[20px] leading-none text-text-muted"
-                aria-label="关闭"
-              >
-                ×
-              </button>
-            </div>
-            <AddActivityForm
-              key={`mobile-${activeDayId}-${quickAddKey}`}
-              dayId={activeDayId}
-              onDone={() => {
-                setQuickAddKey((key) => key + 1)
-                setMobileQuickAddOpen(false)
-              }}
-            />
-          </div>
-        </div>
+        <ModalShell
+          title="新增安排"
+          description={`${activeDay?.label ?? '当前天'}${activeDay?.place ? ` · ${activeDay.place}` : ''}`}
+          onClose={() => setMobileQuickAddOpen(false)}
+          size="md"
+          mobile="sheet"
+          bodyClassName="pt-3"
+        >
+          <AddActivityForm
+            key={`mobile-${activeDayId}-${quickAddKey}`}
+            dayId={activeDayId}
+            onDone={() => {
+              setQuickAddKey((key) => key + 1)
+              setMobileQuickAddOpen(false)
+            }}
+          />
+        </ModalShell>
       )}
       {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     </DndContext>

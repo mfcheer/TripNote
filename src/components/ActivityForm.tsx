@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { searchPlaces, type GeoResult } from '../api/geocode'
-import { CATEGORY_ICONS } from './Icons'
+import { CATEGORY_ICONS, MapIcon } from './Icons'
 import MapPicker from './MapPicker'
 import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint } from '../types'
 import { useTripStore } from '../store'
@@ -39,7 +39,8 @@ function addMinutes(time: string, minutes: number) {
 }
 
 const inputCls =
-  'rounded-md border border-border px-2.5 py-1.5 text-[13px] outline-none focus:border-accent'
+  'min-h-10 rounded-md border border-border bg-white px-3 py-2 text-[13px] text-text outline-none transition-colors focus:border-accent'
+const labelCls = 'text-[11.5px] font-medium text-text-muted'
 
 // 行程条目表单：新增与编辑共用（展示与交互保持一致）
 export default function ActivityForm({
@@ -48,6 +49,7 @@ export default function ActivityForm({
   onSubmit,
   onCancel,
   onDraftChange,
+  stickyActions = false,
 }: {
   initial?: Partial<ActivityFormValues>
   submitLabel: string
@@ -55,6 +57,7 @@ export default function ActivityForm({
   onCancel: () => void
   // 编辑模式：表单变化/卸载时上报草稿（防切换丢输入）
   onDraftChange?: (values: ActivityFormValues) => void
+  stickyActions?: boolean
 }) {
   const amapWebServiceKey = useTripStore((state) => state.amapWebServiceKey)
   const [form, setForm] = useState({
@@ -154,48 +157,60 @@ export default function ActivityForm({
   }
 
   return (
-    <div className="flex flex-col gap-2.5">
-      <div className="flex gap-2">
-        <input
-          type="time"
-          value={form.time}
-          onChange={(e) => setForm({ ...form, time: e.target.value })}
-          className={`${inputCls} w-[104px] shrink-0 tabular-nums`}
-        />
-        <input
-          value={form.title}
-          onChange={(e) => setForm({ ...form, title: e.target.value })}
-          placeholder="行程名称，如：京都塔"
-          className={`${inputCls} min-w-0 flex-1`}
-          autoFocus
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
-        />
+    <div className="flex flex-col gap-3.5">
+      <div className="grid gap-3 sm:grid-cols-[116px_1fr]">
+        <label className={labelCls}>
+          时间
+          <input
+            type="time"
+            value={form.time}
+            onChange={(e) => setForm({ ...form, time: e.target.value })}
+            className={`${inputCls} mt-1.5 w-full tabular-nums`}
+          />
+        </label>
+        <label className={labelCls}>
+          安排名称
+          <input
+            value={form.title}
+            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            placeholder="例如：京都塔"
+            className={`${inputCls} mt-1.5 w-full`}
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && submit()}
+          />
+        </label>
       </div>
       {/* 分类选择 */}
-      <div className="flex flex-wrap gap-1">
-        {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((c) => {
-          const meta = CATEGORY_META[c]
-          const Icon = CATEGORY_ICONS[c]
-          const active = form.category === c
-          return (
-            <button
-              key={c}
-              onClick={() => setForm({ ...form, category: c })}
-              className="flex items-center gap-1 rounded-md px-2 py-1 text-[12px] transition-opacity"
-              style={{
-                background: active ? meta.soft : 'transparent',
-                color: active ? meta.color : 'var(--color-text-muted)',
-                border: `1px solid ${active ? meta.color + '55' : 'var(--color-border)'}`,
-              }}
-            >
-              <Icon size={13} /> {meta.label}
-            </button>
-          )
-        })}
+      <div>
+        <div className={`${labelCls} mb-1.5`}>分类</div>
+        <div className="flex flex-wrap gap-1.5">
+          {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((c) => {
+            const meta = CATEGORY_META[c]
+            const Icon = CATEGORY_ICONS[c]
+            const active = form.category === c
+            return (
+              <button
+                type="button"
+                key={c}
+                onClick={() => setForm({ ...form, category: c })}
+                className="flex min-h-9 items-center gap-1 rounded-md px-2.5 py-1.5 text-[12px] transition-colors"
+                style={{
+                  background: active ? meta.soft : 'transparent',
+                  color: active ? meta.color : 'var(--color-text-muted)',
+                  border: `1px solid ${active ? meta.color + '55' : 'var(--color-border)'}`,
+                }}
+              >
+                <Icon size={13} /> {meta.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="grid gap-3 sm:grid-cols-2">
         {/* 地点输入 + 地理编码候选 */}
-        <div className="relative min-w-[200px] flex-1">
+        <label className={`${labelCls} relative sm:col-span-2`}>
+          地点 <span className="font-normal text-text-faint">（选填）</span>
+          <div className="relative mt-1.5">
           <input
             value={form.location}
             onChange={(e) => onLocationChange(e.target.value)}
@@ -213,7 +228,7 @@ export default function ActivityForm({
                 }
               }
             }}
-            placeholder="地点（选填，自动定位地图）"
+            placeholder="输入地点名称，可自动定位地图"
             className={`${inputCls} w-full`}
           />
           {geoLoading && (
@@ -245,35 +260,45 @@ export default function ActivityForm({
               ))}
             </ul>
           )}
-        </div>
-        <div className="relative w-[170px]">
+          </div>
+        </label>
+        <label className={labelCls}>
+          预计时长 <span className="font-normal text-text-faint">（选填）</span>
+          <div className="relative mt-1.5">
           <input
-          value={form.duration}
+            value={form.duration}
             onChange={(e) => setForm({ ...form, duration: e.target.value.replace(/[^\d]/g, '') })}
-            placeholder="预计时长（选填）"
+            placeholder="例如：90"
             inputMode="numeric"
             className={`${inputCls} w-full pr-9 tabular-nums`}
           />
-          <span className="absolute top-2 right-2.5 text-[12px] text-text-faint">分钟</span>
-        </div>
-        <input
-          value={form.cost}
-          onChange={(e) => onCostChange(e.target.value)}
-          placeholder="花费 ¥（选填）"
-          type="number"
-          min="0"
-          className={`${inputCls} w-[130px] tabular-nums`}
-        />
+          <span className="absolute top-3 right-3 text-[12px] text-text-faint">分钟</span>
+          </div>
+        </label>
+        <label className={labelCls}>
+          花费 <span className="font-normal text-text-faint">（选填）</span>
+          <div className="relative mt-1.5">
+            <span className="absolute top-2.5 left-3 text-[13px] text-text-faint">¥</span>
+            <input
+              value={form.cost}
+              onChange={(e) => onCostChange(e.target.value)}
+              placeholder="0"
+              type="number"
+              min="0"
+              className={`${inputCls} w-full pl-7 tabular-nums`}
+            />
+          </div>
+        </label>
         <button
           type="button"
           onClick={() => setShowMapPicker(!showMapPicker)}
-          className={`rounded-md border px-2.5 py-1.5 text-[12.5px] transition-colors ${
+          className={`flex min-h-10 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-[12.5px] transition-colors sm:col-span-2 sm:justify-start ${
             showMapPicker
               ? 'border-accent bg-accent-soft text-accent-hover'
               : 'border-border text-text-muted hover:border-accent hover:text-accent'
           }`}
         >
-          🗺 {showMapPicker ? '收起地图' : '地图选点'}
+          <MapIcon size={14} /> {showMapPicker ? '收起地图' : '在地图上选择位置'}
         </button>
       </div>
       {/* 地图手动选点 */}
@@ -289,26 +314,29 @@ export default function ActivityForm({
           }}
         />
       )}
-      <textarea
-        value={form.note}
-        onChange={(e) => setForm({ ...form, note: e.target.value })}
-        placeholder="备注（选填）"
-        rows={2}
-        className={`${inputCls} resize-none leading-relaxed`}
-      />
-      <div className="flex items-center gap-2">
+      <label className={labelCls}>
+        备注 <span className="font-normal text-text-faint">（选填）</span>
+        <textarea
+          value={form.note}
+          onChange={(e) => setForm({ ...form, note: e.target.value })}
+          placeholder="交通提醒、预约信息或其他备注"
+          rows={2}
+          className={`${inputCls} mt-1.5 w-full resize-none leading-relaxed`}
+        />
+      </label>
+      <div className={`flex items-center justify-end gap-2 border-t border-border/80 ${stickyActions ? 'sticky bottom-0 z-10 bg-white py-3 shadow-[0_-8px_16px_rgba(255,255,255,0.96)]' : 'pt-3'}`}>
+        <button
+          onClick={onCancel}
+          className="min-h-10 rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-text-muted hover:bg-surface-2 hover:text-text"
+        >
+          取消
+        </button>
         <button
           onClick={submit}
           disabled={!form.title.trim()}
-          className="rounded-md bg-action px-4 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className="min-h-10 rounded-md bg-action px-5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
           {submitLabel}
-        </button>
-        <button
-          onClick={onCancel}
-          className="rounded-md px-3 py-1.5 text-[13px] text-text-muted hover:bg-surface"
-        >
-          取消
         </button>
       </div>
     </div>
