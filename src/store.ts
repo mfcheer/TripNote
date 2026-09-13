@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { Activity, Cost, Trip, TripDay, ViewKey, PlanTab, WishPlace } from './types'
 import type { ActivityFormValues } from './components/ActivityForm'
 import { seedTrip } from './data/seed'
+import type { BackupData } from './utils/localBackup'
 
 export interface TripCreateInput {
   name?: string
@@ -42,6 +43,7 @@ interface TripState {
   deleteTrip: (tripId: string) => void
   renameTrip: (tripId: string, name: string) => void
   importTrip: (data: unknown) => boolean
+  restoreBackup: (data: BackupData) => boolean
   resetAll: () => void
   // 删除撤销：恢复删除前的 trips 快照
   restoreTrips: (snapshot: Trip[], activeTripId: string) => void
@@ -174,6 +176,18 @@ function normalizeImportedTrip(raw: unknown): Trip | null {
     }),
     wishPlaces: Array.isArray(t.wishPlaces) ? t.wishPlaces.map(normalizeWishPlace) : [],
   } as Trip
+}
+
+function normalizeRestoredTrips(rawTrips: unknown[]): Trip[] {
+  const usedIds = new Set<string>()
+  return rawTrips.flatMap((raw) => {
+    const trip = normalizeImportedTrip(raw)
+    if (!trip) return []
+    const rawId = (raw as Partial<Trip>)?.id
+    const id = typeof rawId === 'string' && rawId && !usedIds.has(rawId) ? rawId : trip.id
+    usedIds.add(id)
+    return [{ ...trip, id }]
+  })
 }
 
 function wishScheduledActivityIds(wish: WishPlace) {
@@ -379,6 +393,24 @@ export const useTripStore = create<TripState>()(
           view: 'plan',
           planTab: 'timeline',
         }))
+        return true
+      },
+
+      restoreBackup: (data) => {
+        const trips = normalizeRestoredTrips(data.trips)
+        if (trips.length === 0) return false
+        const activeTrip = trips.find((trip) => trip.id === data.activeTripId) ?? trips[0]
+        set({
+          trips,
+          activeTripId: activeTrip.id,
+          activeDayId: activeTrip.days[0]?.id ?? '',
+          selectedActivityId: null,
+          editingActivityId: null,
+          activityDraft: null,
+          mapRouteMode: data.mapRouteMode === 'walking' ? 'walking' : 'direct',
+          view: 'plan',
+          planTab: 'timeline',
+        })
         return true
       },
 

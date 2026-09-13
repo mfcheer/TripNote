@@ -1,7 +1,17 @@
-import { useState } from 'react'
-import { useActiveTrip, useTripStore } from '../store'
+import { useEffect, useState } from 'react'
+import { useTripStore } from '../store'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
+import {
+  backupFileName,
+  buildBackup,
+  chooseLocalBackupDirectory,
+  getLocalBackupStatus,
+  isNorthwardBackup,
+  type BackupData,
+  type LocalBackupStatus,
+  writeLocalBackup,
+} from '../utils/localBackup'
 
 // 设置视图：数据管理（自用工具，轻量）
 export default function SettingsView({
@@ -11,15 +21,39 @@ export default function SettingsView({
   canInstall?: boolean
   onInstall?: () => void
 }) {
-  const { importTrip, resetAll, amapJsKey, amapWebServiceKey, mapRouteMode, setAmapKeys, setMapRouteMode } = useTripStore()
+  const {
+    trips,
+    activeTripId,
+    importTrip,
+    restoreBackup,
+    resetAll,
+    amapJsKey,
+    amapWebServiceKey,
+    mapRouteMode,
+    setAmapKeys,
+    setMapRouteMode,
+  } = useTripStore()
   const askConfirm = useConfirmStore((s) => s.ask)
   const info = useConfirmStore((s) => s.info)
-  const trip = useActiveTrip()
   const [jsKey, setJsKey] = useState(amapJsKey)
   const [webServiceKey, setWebServiceKey] = useState(amapWebServiceKey)
   const [copied, setCopied] = useState(false)
+  const [backupStatus, setBackupStatus] = useState<LocalBackupStatus | null>(null)
+  const [backupBusy, setBackupBusy] = useState(false)
   const [isIos] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent))
   const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
+
+  const backupData: BackupData = { trips, activeTripId, mapRouteMode }
+
+  async function refreshBackupStatus() {
+    setBackupStatus(await getLocalBackupStatus())
+  }
+
+  useEffect(() => {
+    void refreshBackupStatus()
+    window.addEventListener('focus', refreshBackupStatus)
+    return () => window.removeEventListener('focus', refreshBackupStatus)
+  }, [])
 
   async function copyAccessLink() {
     try {
@@ -31,31 +65,43 @@ export default function SettingsView({
     }
   }
 
-  function exportTrip() {
-    const backup = {
-      version: 2,
-      exportedAt: new Date().toISOString(),
-      trip,
-      mapSettings: {
-        amapJsKey,
-        amapWebServiceKey,
-        mapRouteMode,
-      },
-    }
+  function downloadBackup() {
+    const backup = buildBackup(backupData)
     const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
-    const now = new Date()
-    const stamp = [
-      now.getFullYear(),
-      String(now.getMonth() + 1).padStart(2, '0'),
-      String(now.getDate()).padStart(2, '0'),
-    ].join('-') + `-${String(now.getHours()).padStart(2, '0')}-${String(now.getMinutes()).padStart(2, '0')}-${String(now.getSeconds()).padStart(2, '0')}`
-    const safeName = (trip.name.trim() || '未命名行程').replace(/[\\/:*?"<>|]/g, '-').replace(/\s+/g, ' ')
-    a.download = `北向-${safeName}-备份-${stamp}.json`
+    a.download = backupFileName(new Date(backup.exportedAt))
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  async function selectBackupFolder() {
+    setBackupBusy(true)
+    try {
+      const status = await chooseLocalBackupDirectory()
+      await writeLocalBackup(backupData)
+      setBackupStatus(await getLocalBackupStatus())
+      useToastStore.getState().show(`已连接「${status.configured ? status.directoryName : '备份文件夹'}」，并完成首份完整备份`)
+    } catch (error) {
+      if ((error as DOMException)?.name !== 'AbortError') info({ title: '无法启用自动备份', message: error instanceof Error ? error.message : '请选择一个可写入的本机文件夹。' })
+    } finally {
+      setBackupBusy(false)
+    }
+  }
+
+  async function backupToFolderNow() {
+    setBackupBusy(true)
+    try {
+      const result = await writeLocalBackup(backupData)
+      setBackupStatus(await getLocalBackupStatus())
+      useToastStore.getState().show(`已备份到「${result.directoryName} / 北向备份」`)
+    } catch (error) {
+      info({ title: '备份未完成', message: error instanceof Error ? error.message : '请重新选择备份文件夹后再试。' })
+      void refreshBackupStatus()
+    } finally {
+      setBackupBusy(false)
+    }
   }
 
   function importFromFile(file: File) {
@@ -63,6 +109,21 @@ export default function SettingsView({
     reader.onload = () => {
       try {
         const data = JSON.parse(String(reader.result))
+        if (isNorthwardBackup(data)) {
+          const count = data.data.trips.length
+          askConfirm({
+            title: '恢复完整备份？',
+            message: `将用这份备份中的 ${count} 个旅行替换当前全部旅行。恢复前建议先下载一份当前完整备份。`,
+            onConfirm: () => {
+              if (!restoreBackup(data.data)) {
+                info({ title: '恢复失败', message: '备份中的旅行数据不完整。' })
+                return
+              }
+              useToastStore.getState().show(`已恢复 ${count} 个旅行`)
+            },
+          })
+          return
+        }
         const backup = data as {
           trip?: unknown
           mapSettings?: { amapJsKey?: unknown; amapWebServiceKey?: unknown; mapRouteMode?: unknown }
@@ -140,17 +201,17 @@ export default function SettingsView({
         <section className="border-b border-border/80 py-6">
           <div className="mb-1 text-[15px] font-semibold">数据管理</div>
           <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">
-            数据保存在浏览器本地（localStorage）。备份包含当前旅程、高德地图配置和地图连线方式；导入会作为新旅程加入列表并恢复配置。
+            数据仍保存在当前浏览器。完整备份包含全部旅行、当前旅行和地图连线方式，不包含高德 Key；可下载保存，也可在桌面 Chrome / Edge 自动归档到电脑文件夹。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
-              onClick={exportTrip}
+              onClick={downloadBackup}
               className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover"
             >
-              导出备份
+              下载完整备份
             </button>
             <label className="cursor-pointer rounded-md bg-surface-2 px-4 py-2 text-center text-[13px] font-medium text-text-muted transition-colors hover:text-text">
-              导入备份 / 旅程
+              恢复备份 / 导入旅程
               <input
                 type="file"
                 accept="application/json"
@@ -170,6 +231,36 @@ export default function SettingsView({
             >
               重置数据
             </button>
+          </div>
+          <div className="mt-5 rounded-lg border border-border/80 bg-surface/75 p-4 sm:p-4.5">
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+              <div>
+                <div className="text-[13px] font-semibold text-text">自动备份到电脑文件夹</div>
+                {backupStatus?.supported ? (
+                  <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">
+                    {backupStatus.configured
+                      ? backupStatus.permission === 'granted'
+                        ? `已连接「${backupStatus.directoryName} / 北向备份」。修改后约 30 秒自动归档，并保留最近 100 份历史。${backupStatus.lastBackupAt ? ` 上次备份：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
+                        : `已记住「${backupStatus.directoryName}」，但浏览器需要重新授权后才能继续自动写入。`
+                      : '选择一个本机文件夹后，北向会在应用打开期间自动创建完整备份。'}
+                  </p>
+                ) : (
+                  <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">当前浏览器不支持直接写入指定文件夹。可继续使用上方“下载完整备份”；桌面 Chrome、Edge 在 HTTPS 页面中可开启自动归档。</p>
+                )}
+              </div>
+              {backupStatus?.supported && (
+                <div className="flex shrink-0 gap-2">
+                  <button onClick={selectBackupFolder} disabled={backupBusy} className="rounded-md bg-surface-2 px-3 py-2 text-[12px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50">
+                    {backupStatus.configured ? '更换文件夹' : '选择文件夹'}
+                  </button>
+                  {backupStatus.configured && (
+                    <button onClick={backupToFolderNow} disabled={backupBusy || backupStatus.permission !== 'granted'} className="rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50">
+                      {backupBusy ? '备份中…' : '立即备份'}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </section>
 

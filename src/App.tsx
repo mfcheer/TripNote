@@ -11,6 +11,7 @@ import type { PlanTab } from './types'
 import { exportTripImage } from './utils/exportTripImage'
 import { useToastStore } from './components/toastStore'
 import { CalendarIcon, DownloadIcon, HeartIcon, MapIcon } from './components/Icons'
+import { flushScheduledBackup, scheduleLocalBackup, type BackupData } from './utils/localBackup'
 
 const PLAN_TABS: { key: PlanTab; label: string; Icon: typeof CalendarIcon }[] = [
   { key: 'places', label: '想去', Icon: HeartIcon },
@@ -62,6 +63,26 @@ export default function App() {
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [fullScreenMapDayId, planTab, setPlanTab])
+
+  useEffect(() => {
+    function toBackupData(state: ReturnType<typeof useTripStore.getState>): BackupData {
+      return {
+        trips: state.trips,
+        activeTripId: state.activeTripId,
+        mapRouteMode: state.mapRouteMode,
+      }
+    }
+    const unsubscribe = useTripStore.subscribe((state) => scheduleLocalBackup(toBackupData(state)))
+    const flushWhenHidden = () => {
+      if (document.visibilityState === 'hidden') void flushScheduledBackup()
+    }
+    document.addEventListener('visibilitychange', flushWhenHidden)
+    return () => {
+      unsubscribe()
+      document.removeEventListener('visibilitychange', flushWhenHidden)
+      void flushScheduledBackup()
+    }
+  }, [])
 
   async function downloadImage() {
     setExportingImage(true)
