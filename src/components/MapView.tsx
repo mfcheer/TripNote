@@ -34,6 +34,15 @@ function markerIcon(color: string, label: string) {
   })
 }
 
+function dotMarkerIcon(color: string) {
+  return L.divIcon({
+    className: '',
+    html: `<div class="map-marker map-dot" style="border-color:${color};background:${color}"></div>`,
+    iconSize: [15, 15],
+    iconAnchor: [8, 8],
+  })
+}
+
 function clusterIcon(count: number) {
   return L.divIcon({
     className: '',
@@ -245,12 +254,12 @@ export default function MapView() {
   const amapMarkers = useMemo<AmapMarker[]>(() => [...markerGroups.map((group) => {
     const single = group.items[0]
     return group.items.length === 1
-      ? { id: single.activity.id, point: group.point, label: single.activity.title, color: single.color, wide: true, onClick: () => useTripStore.getState().focusActivity(single.activity.id) }
+      ? { id: single.activity.id, point: group.point, label: single.activity.title, color: single.color, simple: filter === 'all', wide: filter !== 'all', onClick: () => useTripStore.getState().focusActivity(single.activity.id) }
       : { id: `cluster-${group.id}`, point: group.point, label: String(group.items.length), onClick: () => setOpenCluster(group) }
-  }), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [markerGroups, pickedPoint])
+  }), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, markerGroups, pickedPoint])
 
   return (
-    <div className={`trip-map-view relative h-full w-full ${isPicking ? 'cursor-crosshair' : ''}`}>
+    <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
       {/* 天数筛选 */}
       <div className="absolute inset-x-3 top-3 z-[500] overflow-x-auto pb-1 md:inset-x-auto md:top-4 md:left-[64px]">
         <div className="mx-auto flex w-max items-center gap-1 rounded-lg border border-white/80 bg-white/94 p-1.5 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
@@ -313,7 +322,7 @@ export default function MapView() {
         {markerGroups.map((group) => group.items.length === 1 ? (() => {
           const { activity, day, color } = group.items[0]
           const Icon = CATEGORY_ICONS[activity.category]
-          return <Marker key={activity.id} position={[group.point.lat, group.point.lng]} icon={markerIcon(color, activity.title)} eventHandlers={{ click: () => useTripStore.getState().focusActivity(activity.id) }}>
+          return <Marker key={activity.id} position={[group.point.lat, group.point.lng]} icon={filter === 'all' ? dotMarkerIcon(color) : markerIcon(color, activity.title)} eventHandlers={{ click: () => useTripStore.getState().focusActivity(activity.id) }}>
             <Popup><div className="min-w-[160px]"><div className="flex items-center gap-1.5 font-medium" style={{ color }}><Icon size={13} />{activity.title}</div><div className="mt-1 text-[12px] text-text-muted">{day.label} {activity.time}{activity.location && ` · ${activity.location}`}</div></div></Popup>
           </Marker>
         })() : (

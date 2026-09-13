@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { DragEvent, ReactElement } from 'react'
+import { createPortal } from 'react-dom'
 import { useActiveTrip, useTripStore, displayDate, nextActivityTime } from '../store'
 import type { TripDay, ViewKey } from '../types'
 import { CalendarIcon, ChevronDownIcon, DownloadIcon, EditIcon, LogoIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
@@ -28,6 +29,14 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
     ) + 1,
   )
 
+  useEffect(() => {
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', closeOnEscape)
+    return () => window.removeEventListener('keydown', closeOnEscape)
+  }, [onClose])
+
   function submit() {
     if (endDate < startDate) {
       setError('返程日期不能早于出发日期')
@@ -43,31 +52,32 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
     onClose()
   }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" role="dialog" aria-modal="true" aria-label="创建旅程">
-      <div className="max-h-[calc(100vh-32px)] w-full max-w-[440px] overflow-y-auto rounded-xl bg-white p-5 shadow-xl">
-        <div className="mb-1 text-[18px] font-semibold">创建旅程</div>
-        <p className="mb-4 text-[12.5px] leading-relaxed text-text-muted">
-          填好目的地和日期后，会自动生成每天的行程框架，之后再逐条补充安排即可。
-        </p>
-        <div className="flex flex-col gap-3">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[1000] flex items-stretch bg-black/30 sm:items-center sm:justify-center sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-label="创建旅程"
+      onMouseDown={(event) => event.target === event.currentTarget && onClose()}
+    >
+      <div className="flex h-[100dvh] w-full flex-col bg-white shadow-xl sm:h-auto sm:max-h-[calc(100vh-32px)] sm:max-w-[440px] sm:rounded-xl">
+        <div className="mobile-safe-top flex shrink-0 items-start justify-between gap-4 border-b border-border/80 px-5 pb-4 sm:pt-5">
+          <div>
+            <div className="text-[18px] font-semibold">创建旅程</div>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">先确定去哪里和哪几天，名称会自动生成。</p>
+          </div>
+          <button onClick={onClose} className="-mr-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[22px] leading-none text-text-muted hover:bg-surface-2" aria-label="关闭">×</button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="flex flex-col gap-4">
           <label className="text-[12px] font-medium text-text-muted">
-            旅程名称 <span className="font-normal text-text-faint">（可选）</span>
+            主要目的地
             <input
               autoFocus
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="例如：日本关西之旅"
-              className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
-            />
-          </label>
-          <label className="text-[12px] font-medium text-text-muted">
-            主要目的地 <span className="font-normal text-text-faint">（可选）</span>
-            <input
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
               placeholder="例如：大阪、京都、奈良"
-              className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
+              className="mt-1.5 w-full rounded-md border border-border px-3 py-2.5 text-[14px] font-normal text-text outline-none focus:border-accent"
             />
           </label>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -102,33 +112,51 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
           <div className="rounded-md bg-accent-soft px-3 py-2 text-[12px] text-accent-hover">
             将自动创建 <span className="font-semibold">{daysCount} 天</span>的连续行程，从 {displayDate(startDate)} 到 {displayDate(endDate)}。
           </div>
-          <label className="text-[12px] font-medium text-text-muted">
-            总预算 <span className="font-normal text-text-faint">（可选）</span>
-            <div className="relative mt-1.5">
-              <span className="absolute top-2 left-3 text-[13px] text-text-faint">¥</span>
-              <input
-                type="number"
-                min="0"
-                inputMode="decimal"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                placeholder="例如：12000"
-                className="w-full rounded-md border border-border py-2 pr-3 pl-7 text-[13px] font-normal text-text outline-none focus:border-accent"
-              />
+          <details className="group rounded-lg border border-border/80 bg-surface/60">
+            <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-[12.5px] font-medium text-text-muted [&::-webkit-details-marker]:hidden">
+              更多选项 <span className="text-[11px] text-text-faint transition-transform group-open:rotate-180">⌄</span>
+            </summary>
+            <div className="flex flex-col gap-3 border-t border-border/70 px-3 py-3">
+              <label className="text-[12px] font-medium text-text-muted">
+                旅程名称 <span className="font-normal text-text-faint">（不填则按目的地生成）</span>
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={destination.trim() ? `${destination.trim()}之旅` : '例如：日本关西之旅'}
+                  className="mt-1.5 w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
+                />
+              </label>
+              <label className="text-[12px] font-medium text-text-muted">
+                总预算 <span className="font-normal text-text-faint">（可选）</span>
+                <div className="relative mt-1.5">
+                  <span className="absolute top-2 left-3 text-[13px] text-text-faint">¥</span>
+                  <input
+                    type="number"
+                    min="0"
+                    inputMode="decimal"
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
+                    placeholder="例如：12000"
+                    className="w-full rounded-md border border-border bg-white py-2 pr-3 pl-7 text-[13px] font-normal text-text outline-none focus:border-accent"
+                  />
+                </div>
+              </label>
             </div>
-          </label>
-          {error && <p className="text-[12px] text-red-500">{error}</p>}
+          </details>
+          {error && <p className="text-[12px] text-red-600">{error}</p>}
+          </div>
         </div>
-        <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-md px-3.5 py-2 text-[13px] text-text-muted hover:bg-surface">
+        <div className="mobile-safe-bottom flex shrink-0 items-center justify-end gap-2 border-t border-border/80 bg-white px-5 py-3">
+          <button onClick={onClose} className="rounded-md px-4 py-2.5 text-[13px] text-text-muted hover:bg-surface">
             取消
           </button>
-          <button onClick={submit} className="rounded-md bg-action px-4 py-2 text-[13px] font-medium text-white hover:bg-action-hover">
+          <button onClick={submit} className="rounded-md bg-action px-5 py-2.5 text-[13px] font-medium text-white hover:bg-action-hover">
             创建并开始规划
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -176,7 +204,7 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
       </button>
 
       {open && (
-        <div className={`absolute top-full z-[650] mt-1 rounded-lg border border-border bg-white py-1.5 shadow-lg ${compact ? 'left-0 w-[min(280px,calc(100vw-32px))]' : 'left-5 w-[calc(100%-40px)]'}`}>
+        <div className={`z-[950] max-h-[min(360px,60dvh)] overflow-y-auto rounded-lg border border-border bg-white py-1.5 shadow-lg ${compact ? 'fixed top-[62px] right-3 left-3' : 'absolute top-full left-5 mt-1 w-[calc(100%-40px)]'}`}>
           {trips.map((t) => {
             const active = t.id === activeTripId
             const renaming = renamingId === t.id

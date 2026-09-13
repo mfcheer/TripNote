@@ -342,7 +342,7 @@ function SortableWishCard({
         </div>
         <button
           onClick={onRemove}
-          className="h-fit shrink-0 rounded p-1 text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500 focus:opacity-100"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded text-text-faint opacity-100 transition-opacity hover:text-red-500 focus:opacity-100 md:h-auto md:w-auto md:p-1 md:opacity-0 md:group-hover:opacity-100"
           title={scheduledItems.length > 0 ? '移出清单，已排行程会保留' : '移出清单'}
         >
           <TrashIcon size={14} />
@@ -572,15 +572,16 @@ export default function WishlistView() {
   return (
     <div className="flex h-full min-w-0">
       <section className="min-w-0 flex-1 overflow-y-auto">
-        <div className="mr-auto max-w-[1000px] px-4 py-5 sm:px-7 sm:py-7 lg:px-10">
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+        <div className="mr-auto max-w-[1000px] px-4 py-4 sm:px-7 sm:py-7 lg:px-10">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 sm:mb-5">
             <h1 className="text-[20px] font-semibold tracking-[-0.02em]">想去</h1>
             <p className="text-[12px] text-text-muted">
               待安排 {trip.wishPlaces.length - scheduledCount} · 已安排 {scheduledCount}
             </p>
           </div>
 
-          <div className="relative mb-4 rounded-lg bg-white p-3 shadow-[0_1px_4px_rgba(32,40,46,0.055)]">
+          <div className="relative mb-3 rounded-lg bg-white p-2.5 shadow-[0_1px_4px_rgba(32,40,46,0.055)] sm:mb-4 sm:p-3">
+            <div className="mb-2 text-[11.5px] font-medium text-text-muted">搜索并收藏新地点</div>
             <div className="flex flex-wrap gap-2">
               <div className="relative min-w-full flex-1 sm:min-w-[250px]">
                 <input
@@ -591,8 +592,9 @@ export default function WishlistView() {
                     if (event.target.value.trim().length < 2) setResults([])
                   }}
                   onKeyDown={(event) => event.key === 'Enter' && addManual()}
-                  placeholder="搜索地点，或直接输入想去的安排"
-                  className="w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-accent"
+                  placeholder="输入地点名称，搜索并收藏"
+                  aria-label="搜索并收藏新地点"
+                  className="w-full rounded-md border border-border bg-white px-3 py-2.5 text-[13px] outline-none focus:border-accent sm:py-2"
                 />
                 {results.length > 0 && (
                   <ul className="absolute top-full left-0 z-20 mt-1 max-h-[230px] w-full overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
@@ -640,12 +642,14 @@ export default function WishlistView() {
             </div>
           </div>
 
-          <div className="mb-3 flex flex-wrap items-center gap-1.5 border-b border-border/80 pb-3">
+          <div className="mb-3 flex flex-wrap items-center gap-1.5 border-b border-border/80 pb-2.5">
+            <span className="w-full text-[11.5px] font-medium text-text-muted sm:w-auto">筛选清单</span>
             <input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="筛选地点或城市"
-                className="w-full rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent sm:w-[180px]"
+              placeholder="筛选想去清单"
+              aria-label="筛选想去清单"
+              className="w-full rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent sm:w-[180px]"
             />
             <button onClick={() => setCategory('all')} className={`border-b-2 px-2.5 py-1 text-[12px] font-medium ${category === 'all' ? 'border-action text-text' : 'border-transparent text-text-muted hover:text-text'}`}>全部 {trip.wishPlaces.length}</button>
             {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => (

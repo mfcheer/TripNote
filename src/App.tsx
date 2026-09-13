@@ -115,7 +115,7 @@ export default function App() {
                 </button>
               </div>
             </div>
-            <div className="min-h-0 flex-1">
+            <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
               {planTab === 'timeline' && (
                 <div className="h-full overflow-y-auto">
                   <TimelineView />
@@ -131,7 +131,7 @@ export default function App() {
             <SettingsView canInstall={!!installPrompt} onInstall={installApp} />
           </div>
         )}
-        <nav className="mobile-safe-bottom flex shrink-0 border-t border-border/80 bg-white/96 px-1 pt-1 shadow-[0_-2px_10px_rgba(32,40,46,0.05)] backdrop-blur md:hidden" aria-label="主要导航">
+        {view === 'plan' && <nav className="mobile-safe-bottom flex shrink-0 border-t border-border/80 bg-white/96 px-1 pt-1 shadow-[0_-2px_10px_rgba(32,40,46,0.05)] backdrop-blur md:hidden" aria-label="主要导航">
           {PLAN_TABS.map(({ key, label, Icon }) => {
             const active = view === 'plan' && planTab === key
             return (
@@ -151,7 +151,7 @@ export default function App() {
               </button>
             )
           })}
-        </nav>
+        </nav>}
       </main>
       <ConfirmDialog />
       <Toast />
