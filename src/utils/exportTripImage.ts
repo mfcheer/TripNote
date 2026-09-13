@@ -1,5 +1,6 @@
 import { activitiesByDay, displayDate } from '../store'
 import { type Activity, type Trip } from '../types'
+import { straightLineDistanceMeters } from '../api/route'
 
 const WIDTH = 1080
 const PADDING = 72
@@ -35,6 +36,22 @@ function clip(ctx: CanvasRenderingContext2D, value: string, width: number) {
 
 function activityCost(activity: Activity) {
   return activity.costs.reduce((sum, item) => sum + item.amount, 0)
+}
+
+// 与左侧日期列表一致：当天内部相邻点，外加前一天末站到当天首站的衔接。
+function dayMovementMeters(trip: Trip, dayIndex: number) {
+  const todayPoints = activitiesByDay(trip, trip.days[dayIndex].id).flatMap((activity) => activity.geo ? [activity.geo] : [])
+  if (todayPoints.length === 0) return 0
+  const previousLastPoint = dayIndex > 0
+    ? activitiesByDay(trip, trip.days[dayIndex - 1].id).flatMap((activity) => activity.geo ? [activity.geo] : []).at(-1)
+    : undefined
+  const points = previousLastPoint ? [previousLastPoint, ...todayPoints] : todayPoints
+  return points.slice(1).reduce((total, point, index) => total + straightLineDistanceMeters(points[index], point), 0)
+}
+
+function formatMovement(meters: number) {
+  if (meters >= 1000) return `${(meters / 1000).toFixed(meters >= 10_000 ? 0 : 1)} km`
+  return `${Math.round(meters)} m`
 }
 
 function activityHeight(activity: Activity) {
@@ -168,6 +185,7 @@ export async function exportTripImage(trip: Trip) {
     const items = activitiesByDay(trip, day.id)
     const accent = dayColor(index, trip.days.length)
     const dayCost = items.reduce((sum, activity) => sum + activityCost(activity), 0)
+    const movementMeters = dayMovementMeters(trip, index)
     const date = /^\d{4}-\d{2}-\d{2}$/.test(day.date) ? displayDate(day.date) : day.date
     ctx.fillStyle = accent
     ctx.fillRect(PADDING, y + 3, 6, 62)
@@ -179,7 +197,7 @@ export async function exportTripImage(trip: Trip) {
     ctx.fillText(clip(ctx, [date, day.place].filter(Boolean).join('  ·  '), 510), PADDING + 132, y + 29)
     ctx.fillStyle = '#99a4af'
     ctx.font = '400 17px "PingFang SC", sans-serif'
-    ctx.fillText(`${items.length} 个安排${dayCost ? `  ·  ¥${dayCost.toLocaleString()}` : ''}`, PADDING + 24, y + 58)
+    ctx.fillText(clip(ctx, `${items.length} 个安排${dayCost ? `  ·  ¥${dayCost.toLocaleString()}` : ''}${movementMeters > 0 ? `  ·  移动约 ${formatMovement(movementMeters)}` : ''}`, WIDTH - PADDING * 2 - 24), PADDING + 24, y + 58)
     y += 88
 
     if (!items.length) {
