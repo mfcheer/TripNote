@@ -18,6 +18,11 @@ const PLAN_TABS: { key: PlanTab; label: string; Icon: typeof CalendarIcon }[] = 
   { key: 'timeline', label: '行程', Icon: CalendarIcon },
 ]
 
+const MOBILE_NAV_ITEMS = [
+  ...PLAN_TABS,
+  { key: 'map' as const, label: '地图', Icon: MapIcon },
+]
+
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
@@ -167,12 +172,18 @@ export default function App() {
           </div>
         )}
         {view === 'plan' && <nav className="mobile-safe-bottom flex shrink-0 border-t border-border/80 bg-white/96 px-1 pt-1 shadow-[0_-2px_10px_rgba(32,40,46,0.05)] backdrop-blur md:hidden" aria-label="主要导航">
-          {PLAN_TABS.map(({ key, label, Icon }) => {
-            const active = view === 'plan' && visiblePlanTab === key
+          {MOBILE_NAV_ITEMS.map(({ key, label, Icon }) => {
+            const active = key === 'map'
+              ? fullScreenMapDayId === 'all'
+              : view === 'plan' && visiblePlanTab === key
             return (
               <button
                 key={key}
                 onClick={() => {
+                  if (key === 'map') {
+                    setFullScreenMapDayId('all')
+                    return
+                  }
                   setView('plan')
                   setPlanTab(key)
                 }}
