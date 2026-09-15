@@ -342,7 +342,7 @@ export default function Sidebar() {
     const place = trip.wishPlaces.find((item) => item.id === placeId)
     if (!place) return
     const time = nextActivityTime(trip, day.id)
-    const activityId = scheduleWishPlace(place.id, day.id, {
+    const scheduled = scheduleWishPlace(place.id, day.id, {
       time,
       title: place.title,
       category: place.category,
@@ -350,10 +350,7 @@ export default function Sidebar() {
       note: place.note,
       geo: place.geo,
     })
-    if (!activityId) return
-    setView('plan')
-    setPlanTab('timeline')
-    selectActivity(activityId)
+    if (!scheduled) return
     useToastStore.getState().show(`已安排「${place.title}」到 ${day.label} · ${time}`)
   }
 
