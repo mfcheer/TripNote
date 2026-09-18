@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent as NativeDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { searchPlaces, type GeoResult } from '../api/geocode'
 import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, SettingsIcon } from './Icons'
+import { CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type WishPlace } from '../types'
 import MapView from './MapView'
 import TimelineView, { BudgetDrawer } from './TimelineView'
 import { useToastStore } from './toastStore'
 import ModalShell from './OverlayShell'
 import SettingsView from './SettingsView'
+import { useConfirmStore } from './confirmStore'
 
 const WISH_DRAG_TYPE = 'application/x-tripnote-wish-id'
 
@@ -21,7 +22,8 @@ function dayCost(trip: ReturnType<typeof useActiveTrip>, dayId: string) {
 
 function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPlaceId, onSelectWishPlace, onScheduleSuccess }: { onStartMapPick: () => void; recentlyScheduledPlaceId: string | null; selectedWishPlaceId: string | null; onSelectWishPlace: (placeId: string | null) => void; onScheduleSuccess: (activityId: string, placeId: string) => void }) {
   const trip = useActiveTrip()
-  const { addWishPlace, scheduleWishPlace, amapWebServiceKey } = useTripStore()
+  const { addWishPlace, removeWishPlace, scheduleWishPlace, amapWebServiceKey } = useTripStore()
+  const askConfirm = useConfirmStore((state) => state.ask)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeoResult[]>([])
   const [loading, setLoading] = useState(false)
@@ -106,6 +108,21 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     onSelectWishPlace(place.id)
   }
 
+  function removePlace(place: WishPlace, scheduled: boolean) {
+    askConfirm({
+      title: `移除「${place.title}」？`,
+      message: scheduled ? '这只会将地点移出想去清单，已经安排进日程的事项会保留。' : '移除后不会影响其他行程。',
+      onConfirm: () => {
+        const { trips, activeTripId } = useTripStore.getState()
+        removeWishPlace(place.id)
+        onSelectWishPlace(null)
+        useToastStore.getState().show(`已移除「${place.title}」`, {
+          undo: () => useTripStore.getState().restoreTrips(trips, activeTripId),
+        })
+      },
+    })
+  }
+
   function renderPlace(place: WishPlace, scheduled = false) {
     const meta = CATEGORY_META[place.category]
     const Icon = CATEGORY_ICONS[place.category]
@@ -122,6 +139,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
         <span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{place.location || '未补充位置'}</span>
       </button>
       <button onClick={() => schedule(place)} className="rounded px-1.5 py-1 text-[11px] text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white hover:text-accent" title="安排到当前日期">＋</button>
+      <button onClick={() => removePlace(place, scheduled)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-faint/70 transition-colors hover:bg-red-50 hover:text-red-500" title="从想去清单移除" aria-label={`移除 ${place.title}`}><TrashIcon size={12} /></button>
     </div>
   }
 
