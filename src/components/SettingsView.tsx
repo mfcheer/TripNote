@@ -17,9 +17,11 @@ import {
 export default function SettingsView({
   canInstall = false,
   onInstall,
+  embedded = false,
 }: {
   canInstall?: boolean
   onInstall?: () => void
+  embedded?: boolean
 }) {
   const {
     trips,
@@ -162,13 +164,13 @@ export default function SettingsView({
   }
 
   return (
-    <div className="mx-auto max-w-[760px] px-4 py-6 sm:px-8 sm:py-10">
-      <div className="mb-7">
+    <div className={embedded ? 'mx-auto max-w-[760px] px-0 py-0' : 'mx-auto max-w-[760px] px-4 py-6 sm:px-8 sm:py-10'}>
+      {!embedded && <div className="mb-7">
         <h1 className="text-[22px] font-semibold tracking-[-0.025em]">设置</h1>
         <p className="mt-1 text-[13px] text-text-muted">管理安装方式、本地数据与地图服务。</p>
-      </div>
+      </div>}
 
-      <div className="overflow-hidden rounded-xl border border-border/70 bg-white/90 px-5 shadow-[0_10px_34px_rgba(32,40,46,0.05)] sm:px-7">
+      <div className={`overflow-hidden border-border/70 bg-white/90 px-5 sm:px-7 ${embedded ? '' : 'rounded-xl border shadow-[0_10px_34px_rgba(32,40,46,0.05)]'}`}>
         <section className="border-b border-border/80 py-6">
           <div className="mb-1 text-[15px] font-semibold">安装与分享</div>
           <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">

@@ -895,6 +895,7 @@ function DaySection({
   onActivityHover,
   forceInlineDetails = false,
   compact = false,
+  hideQuickAdd = false,
 }: {
   dayId: string
   onQuickAdd: () => void
@@ -902,6 +903,7 @@ function DaySection({
   onActivityHover: (activityId: string | null) => void
   forceInlineDetails?: boolean
   compact?: boolean
+  hideQuickAdd?: boolean
 }) {
   const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
@@ -1067,12 +1069,12 @@ function DaySection({
                   </div>
                 </div>
               ))}
-              <button
+              {!hideQuickAdd && <button
                 onClick={onQuickAdd}
                 className={`hidden items-center gap-2 rounded-md border border-transparent bg-surface-2/65 font-medium text-text-muted transition-colors hover:border-border hover:bg-white hover:text-text sm:flex ${compact ? 'px-3 py-2 text-[12px]' : 'px-3.5 py-2.5 text-[13px]'}`}
               >
                 <PlusIcon size={15} /> 在这里添加安排
-              </button>
+              </button>}
             </div>
           </div>
         </SortableContext>
@@ -1224,7 +1226,7 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
   )
 }
 
-export default function TimelineView({ onOpenFullMap, workspace = false }: { onOpenFullMap: () => void; workspace?: boolean }) {
+export default function TimelineView({ onOpenFullMap, workspace = false, hideQuickAdd = false }: { onOpenFullMap: () => void; workspace?: boolean; hideQuickAdd?: boolean }) {
   const trip = useActiveTrip()
   const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -1360,10 +1362,10 @@ export default function TimelineView({ onOpenFullMap, workspace = false }: { onO
               </div>
             )}
             {(workspace ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace} />
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace} hideQuickAdd={hideQuickAdd} />
             ))}
           </div>
-          <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
+          {!hideQuickAdd && <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
             <div className={workspace ? '' : 'mr-auto max-w-[980px]'}>
               <div className="mb-1.5 flex items-center justify-between text-[11.5px] font-medium text-text-faint">
                 <span>
@@ -1374,8 +1376,8 @@ export default function TimelineView({ onOpenFullMap, workspace = false }: { onO
               </div>
               <AddActivityForm key={`${activeDayId}-${quickAddKey}`} dayId={activeDayId} onDone={() => setQuickAddKey((key) => key + 1)} compact={workspace} />
             </div>
-          </div>
-          <div className="sticky bottom-0 z-20 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:hidden">
+          </div>}
+          {!hideQuickAdd && <div className="sticky bottom-0 z-20 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:hidden">
             <button
               onClick={() => setMobileQuickAddOpen(true)}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-action px-4 py-2.5 text-[13px] font-medium text-white shadow-[0_3px_10px_rgba(90,48,39,0.16)] active:bg-action-hover"
@@ -1383,7 +1385,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false }: { onO
               <PlusIcon size={16} />
               添加到 {activeDay?.label ?? '当前天'}{activeDay?.place ? ` · ${activeDay.place}` : ''}
             </button>
-          </div>
+          </div>}
         </div>
         {!workspace && <PlannerInspector
           dayId={activeDayId}
@@ -1399,7 +1401,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false }: { onO
           </div>
         )}
       </DragOverlay>
-      {mobileQuickAddOpen && (
+      {!hideQuickAdd && mobileQuickAddOpen && (
         <ModalShell
           title="新增安排"
           description={`${activeDay?.label ?? '当前天'}${activeDay?.place ? ` · ${activeDay.place}` : ''}`}
