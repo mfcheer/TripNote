@@ -869,7 +869,7 @@ export const useTripStore = create<TripState>()(
     }),
     {
       name: 'tripnote-store',
-      version: 10,
+      version: 11,
       migrate: (persisted: unknown) => {
         const state = persisted as
           | { trips?: Trip[]; activeTripId?: string; trip?: unknown; theme?: unknown }
@@ -879,7 +879,16 @@ export const useTripStore = create<TripState>()(
         const { theme: _legacyTheme, ...stateWithoutTheme } = state
         // v4：为既有多旅程补上想去清单字段，并继续兼容更早的花费结构。
         if (stateWithoutTheme.trips) {
-          return { ...stateWithoutTheme, trips: stateWithoutTheme.trips.map((trip) => migrateTrip(trip)) }
+          // v11：将从未改名的旧关西示例换成东北大环线；用户创建或改名过的旅行不受影响。
+          const replacingLegacySample = stateWithoutTheme.trips.some((trip) => trip.id === 'trip-kansai' && trip.name === '日本关西之旅（示例）')
+          const trips = stateWithoutTheme.trips.map((trip) =>
+            trip.id === 'trip-kansai' && trip.name === '日本关西之旅（示例）' ? seedTrip : migrateTrip(trip),
+          )
+          return {
+            ...stateWithoutTheme,
+            trips,
+            activeTripId: replacingLegacySample && stateWithoutTheme.activeTripId === 'trip-kansai' ? seedTrip.id : stateWithoutTheme.activeTripId,
+          }
         }
         // v2 及更早：单个 trip → 包装成数组
         if (stateWithoutTheme.trip) {
