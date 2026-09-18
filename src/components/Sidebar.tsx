@@ -17,7 +17,8 @@ const SIDEBAR_WIDTH_KEY = 'tripnote-sidebar-width-v1'
 
 function savedSidebarWidth() {
   const saved = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY))
-  return Number.isFinite(saved) ? saved : null
+  // 旧版本或异常写入的值不应把整个桌面布局压成一条窄缝。
+  return Number.isFinite(saved) ? Math.max(220, Math.min(420, saved)) : null
 }
 
 // 一天的移动里程按连续动线累计：当天内部相邻地点，加上前一天最后一个定位点到当天第一个定位点。

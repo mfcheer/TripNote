@@ -3,6 +3,7 @@ import Sidebar, { MobileHeader } from './components/Sidebar'
 import TimelineView from './components/TimelineView'
 import MapView from './components/MapView'
 import WishlistView from './components/WishlistView'
+import ArrangeView from './components/ArrangeView'
 import SettingsView from './components/SettingsView'
 import ConfirmDialog from './components/ConfirmDialog'
 import Toast from './components/Toast'
@@ -10,11 +11,12 @@ import { useActiveTrip, useTripStore } from './store'
 import type { PlanTab } from './types'
 import { exportTripImage } from './utils/exportTripImage'
 import { useToastStore } from './components/toastStore'
-import { CalendarIcon, DownloadIcon, HeartIcon, MapIcon } from './components/Icons'
+import { CalendarIcon, DownloadIcon, HeartIcon, MapIcon, PinIcon } from './components/Icons'
 import { flushScheduledBackup, scheduleLocalBackup, type BackupData } from './utils/localBackup'
 
 const PLAN_TABS: { key: PlanTab; label: string; Icon: typeof CalendarIcon }[] = [
   { key: 'places', label: '想去', Icon: HeartIcon },
+  { key: 'arrange', label: '编排', Icon: PinIcon },
   { key: 'timeline', label: '行程', Icon: CalendarIcon },
 ]
 
@@ -122,7 +124,7 @@ export default function App() {
                     <button
                       key={key}
                       onClick={() => setPlanTab(key)}
-                      className={`relative flex shrink-0 items-center gap-1.5 px-3 pb-3 pt-2 text-[13px] transition-colors ${
+                      className={`relative shrink-0 items-center gap-1.5 px-3 pb-3 pt-2 text-[13px] transition-colors ${key === 'arrange' ? 'hidden lg:flex' : 'flex'} ${
                         active ? 'font-semibold text-text' : 'text-text-muted hover:text-text'
                       }`}
                     >
@@ -158,6 +160,7 @@ export default function App() {
                 </div>
               )}
               {visiblePlanTab === 'places' && <WishlistView />}
+              {visiblePlanTab === 'arrange' && <ArrangeView />}
             </div>
           </>
         )}
@@ -167,7 +170,7 @@ export default function App() {
           </div>
         )}
         {view === 'plan' && <nav className="mobile-safe-bottom flex shrink-0 border-t border-border/80 bg-white/96 px-1 pt-1 shadow-[0_-2px_10px_rgba(32,40,46,0.05)] backdrop-blur md:hidden" aria-label="主要导航">
-          {PLAN_TABS.map(({ key, label, Icon }) => {
+          {PLAN_TABS.filter(({ key }) => key !== 'arrange').map(({ key, label, Icon }) => {
             const active = view === 'plan' && visiblePlanTab === key
             return (
               <button

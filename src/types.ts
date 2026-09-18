@@ -2,7 +2,7 @@
 
 export type ViewKey = 'plan' | 'settings'
 
-export type PlanTab = 'timeline' | 'places' | 'map' | 'budget'
+export type PlanTab = 'timeline' | 'places' | 'arrange' | 'map' | 'budget'
 
 export type ActivityCategory = 'traffic' | 'sight' | 'food' | 'stay' | 'shop'
 

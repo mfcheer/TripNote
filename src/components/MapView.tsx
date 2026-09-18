@@ -4,7 +4,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS, MapIcon, PlusIcon } from './Icons'
-import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint, type TripDay } from '../types'
+import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint, type TripDay, type WishPlace } from '../types'
 import { fetchRouteInfo, routeProfileForSegment, straightLineDistanceMeters } from '../api/route'
 import { reverseGeocode } from '../api/geocode'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
@@ -41,6 +41,15 @@ function dotMarkerIcon(color: string) {
     html: `<div class="map-marker map-dot" style="border-color:${color};background:${color}"></div>`,
     iconSize: [15, 15],
     iconAnchor: [8, 8],
+  })
+}
+
+function selectedWishIcon(label: string) {
+  return L.divIcon({
+    className: '',
+    html: `<div class="map-place-marker map-selected-wish-marker" style="border-color:#af6959;color:#8d4e42">${escapeHtml(label)}</div>`,
+    iconSize: [160, 28],
+    iconAnchor: [80, 14],
   })
 }
 
@@ -150,9 +159,11 @@ function RouteSegment({ from, to, color, routeMode, onRouteFallback }: { from: A
 export default function MapView({
   initialDayId = 'all',
   onOpenActivity,
+  highlightWishPlace,
 }: {
   initialDayId?: string
   onOpenActivity?: (activityId: string) => void
+  highlightWishPlace?: WishPlace | null
 }) {
   const { setActiveDay, amapJsKey, amapWebServiceKey, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
@@ -171,11 +182,14 @@ export default function MapView({
   const visibleDays = filter === 'all' ? trip.days : trip.days.filter((d) => d.id === filter)
   const routeRequestKey = visibleDays.flatMap((day) => activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => `${activity.id}@${activity.geo!.lat},${activity.geo!.lng}`)).join('|')
 
-  const allPoints = visibleDays.flatMap((d) =>
+  const allPoints = [
+    ...visibleDays.flatMap((d) =>
     activitiesByDay(trip, d.id)
       .filter((a) => a.geo)
       .map((a) => [a.geo!.lat, a.geo!.lng] as [number, number]),
-  )
+    ),
+    ...(highlightWishPlace?.geo ? [[highlightWishPlace.geo.lat, highlightWishPlace.geo.lng] as [number, number]] : []),
+  ]
   const markerGroups = useMemo(() => groupNearbyMarkers(visibleDays.flatMap((day) => {
     const color = routeColor(trip.days.indexOf(day), trip.days.length)
     return activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => ({ activity, day, color }))
@@ -280,7 +294,14 @@ export default function MapView({
       wide: true,
       onClick: () => focusMapActivity(firstActivity.id),
     }]
-  }) : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, markerGroups, pickedPoint, trip])
+  }) : []), ...(highlightWishPlace?.geo ? [{
+    id: `selected-wish-${highlightWishPlace.id}`,
+    point: highlightWishPlace.geo,
+    label: highlightWishPlace.title,
+    color: '#af6959',
+    wide: true,
+    active: true,
+  }] : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, highlightWishPlace, markerGroups, pickedPoint, trip])
 
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
@@ -377,6 +398,11 @@ export default function MapView({
             eventHandlers={{ click: () => focusMapActivity(firstActivity.id) }}
           />
         })}
+        {highlightWishPlace?.geo && <Marker
+          position={[highlightWishPlace.geo.lat, highlightWishPlace.geo.lng]}
+          icon={selectedWishIcon(highlightWishPlace.title)}
+          zIndexOffset={1000}
+        ><Popup><div className="min-w-[150px]"><div className="font-medium text-[#8d4e42]">待安排 · {highlightWishPlace.title}</div><div className="mt-1 text-[12px] text-text-muted">{highlightWishPlace.location || '未补充位置'}</div></div></Popup></Marker>}
         {pickedPoint && <Marker position={[pickedPoint.lat, pickedPoint.lng]} icon={pickedPointIcon} interactive={false} />}
       </MapContainer>
       )}
