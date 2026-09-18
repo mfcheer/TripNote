@@ -104,22 +104,22 @@ function PlaceLibrary({ onStartMapPick }: { onStartMapPick: () => void }) {
     setSelectedId(place.id)
   }
 
-  function renderPlace(place: WishPlace, muted = false) {
+  function renderPlace(place: WishPlace, scheduled = false) {
     const meta = CATEGORY_META[place.category]
     const Icon = CATEGORY_ICONS[place.category]
     const selected = selectedId === place.id
     return <div
       key={place.id}
-      draggable={!muted}
-      onDragStart={(event) => !muted && dragStart(event, place)}
-      className={`group flex items-center gap-2 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${selected ? 'bg-action-soft/45' : 'hover:bg-surface/70'} ${muted ? 'opacity-62' : 'cursor-grab active:cursor-grabbing'}`}
+      draggable
+      onDragStart={(event) => dragStart(event, place)}
+      className={`group flex items-center gap-2 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${selected ? 'bg-action-soft/45' : 'hover:bg-surface/70'} ${scheduled ? 'bg-surface/25' : ''} cursor-grab active:cursor-grabbing`}
     >
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ background: meta.soft, color: meta.color }}><Icon size={14} /></span>
       <button onClick={() => setSelectedId(selected ? null : place.id)} className="min-w-0 flex-1 text-left">
         <span className="block truncate text-[12.5px] font-medium text-text">{place.title}</span>
         <span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{place.location || '未补充位置'}</span>
       </button>
-      {!muted && <button onClick={() => schedule(place)} className="rounded px-1.5 py-1 text-[11px] text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white hover:text-accent" title="安排到当前日期">＋</button>}
+      <button onClick={() => schedule(place)} className="rounded px-1.5 py-1 text-[11px] text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white hover:text-accent" title="安排到当前日期">＋</button>
     </div>
   }
 
@@ -145,7 +145,7 @@ function PlaceLibrary({ onStartMapPick }: { onStartMapPick: () => void }) {
       <div className="flex items-center justify-between px-4 pt-3 pb-1.5"><span className="text-[10.5px] font-semibold tracking-[0.12em] text-text-faint">待安排</span><span className="text-[10.5px] text-text-faint">{places.unscheduled.length} 个</span></div>
       <div>{places.unscheduled.length ? places.unscheduled.map((place) => renderPlace(place)) : <p className="px-4 py-5 text-[11.5px] leading-relaxed text-text-faint">地点都已安排完，可以用上方地图按钮继续收藏。</p>}</div>
       {places.scheduled.length > 0 && <details className="mt-2 border-t border-border/70" open>
-        <summary className="cursor-pointer list-none px-4 py-3 text-[10.5px] font-semibold tracking-[0.12em] text-text-faint [&::-webkit-details-marker]:hidden">已安排 · {places.scheduled.length}</summary>
+        <summary className="cursor-pointer list-none px-4 py-3 text-[10.5px] font-semibold tracking-[0.12em] text-text-faint [&::-webkit-details-marker]:hidden">已安排 · {places.scheduled.length} <span className="font-normal tracking-normal">（可再次安排）</span></summary>
         <div>{places.scheduled.map((place) => renderPlace(place, true))}</div>
       </details>}
     </div>
