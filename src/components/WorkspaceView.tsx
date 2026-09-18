@@ -186,23 +186,21 @@ function DayRail() {
     for (let index = 0; index < Math.abs(toIndex - fromIndex); index++) moveDay(dayId, direction)
   }
 
-  return <footer className="shrink-0 border-t border-border/80 bg-white/96 px-4 py-3">
-    <div className="mb-2 flex items-center justify-between px-1"><span className="text-[11.5px] font-semibold text-text">行程日期</span><span className="text-[10.5px] text-text-faint">拖动调整顺序</span></div>
-    <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
+  return <footer className="shrink-0 border-t border-border/60 bg-[#fbfcfc]/92 px-4 py-2 backdrop-blur-sm">
+    <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {trip.days.map((day) => {
         const active = activeDayId === day.id
         const items = activitiesByDay(trip, day.id)
         const cost = dayCost(trip, day.id)
         const isDragTarget = draggingDayId !== null && draggingDayId !== day.id
-        return <button key={day.id} draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-tripnote-day-id', day.id); setDraggingDayId(day.id) }} onDragEnd={() => setDraggingDayId(null)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const sourceId = event.dataTransfer.getData('application/x-tripnote-day-id'); if (sourceId) moveDayTo(sourceId, day.id); setDraggingDayId(null) }} onClick={() => setActiveDay(day.id)} className={`w-[178px] shrink-0 rounded-lg border px-3 py-2.5 text-left transition-[border-color,background-color,transform] ${active ? 'border-action/45 bg-action-soft/50' : 'border-border/80 bg-white hover:border-accent/40'} ${isDragTarget ? 'border-dashed border-accent/55 bg-accent-soft/35' : ''} ${draggingDayId === day.id ? 'scale-[0.98] opacity-55' : 'cursor-grab active:cursor-grabbing'}`}>
-          <span className="flex items-center justify-between gap-1"><span className="text-[11.5px] font-semibold text-text">{day.label} · {day.place || '待定'}</span><span className="text-[10px] text-text-faint">{items.length} 项</span></span>
-          <span className="mt-1 block text-[10.5px] text-text-muted">{displayDate(day.date)}</span>
-          <span className="mt-1 block truncate text-[10.5px] text-text-faint">{items.slice(0, 2).map((item) => item.title).join(' · ') || '尚未安排'}{cost > 0 ? ` · ¥${cost.toLocaleString()}` : ''}</span>
+        return <button key={day.id} draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-tripnote-day-id', day.id); setDraggingDayId(day.id) }} onDragEnd={() => setDraggingDayId(null)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const sourceId = event.dataTransfer.getData('application/x-tripnote-day-id'); if (sourceId) moveDayTo(sourceId, day.id); setDraggingDayId(null) }} onClick={() => setActiveDay(day.id)} className={`w-[138px] shrink-0 rounded-md px-2.5 py-1.5 text-left transition-[background-color,transform] ${active ? 'bg-action-soft/72 text-text shadow-[0_1px_3px_rgba(120,73,60,0.06)]' : 'text-text-muted hover:bg-white'} ${isDragTarget ? 'bg-accent-soft/70 ring-1 ring-dashed ring-accent/45' : ''} ${draggingDayId === day.id ? 'scale-[0.98] opacity-55' : 'cursor-grab active:cursor-grabbing'}`}>
+          <span className="flex items-center gap-1"><span className="truncate text-[11px] font-semibold">{day.label}{day.place ? ` · ${day.place}` : ''}</span><span className="ml-auto shrink-0 text-[9.5px] text-text-faint">{items.length}项</span></span>
+          <span className="mt-0.5 block truncate text-[10px] text-text-faint">{displayDate(day.date)}{cost > 0 ? ` · ¥${cost.toLocaleString()}` : ''}</span>
         </button>
       })}
-      <button onClick={() => addDay(trip.days.at(-1)?.id)} className="flex min-h-[76px] w-[112px] shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface/45 text-[11px] text-text-muted hover:border-accent/50 hover:text-accent"><PlusIcon size={15} /><span className="mt-1">添加一天</span></button>
+      <button onClick={() => addDay(trip.days.at(-1)?.id)} className="flex h-[43px] w-[68px] shrink-0 items-center justify-center gap-1 rounded-md text-[10.5px] text-text-faint hover:bg-white hover:text-accent" title="添加一天"><PlusIcon size={14} /> 添加</button>
+      {trip.days.length > 0 && <button onClick={() => copyDay(activeDayId)} className="flex h-[43px] w-[54px] shrink-0 items-center justify-center rounded-md text-[10px] text-text-faint hover:bg-white hover:text-text-muted" title="复制当前天">复制</button>}
     </div>
-    {trip.days.length > 0 && <button onClick={() => copyDay(activeDayId)} className="mt-2 inline-flex items-center gap-1 rounded px-1.5 py-1 text-[10.5px] text-text-faint hover:bg-surface hover:text-text-muted">复制当前天</button>}
   </footer>
 }
 
