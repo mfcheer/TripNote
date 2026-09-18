@@ -702,6 +702,7 @@ function ActivityCard({
   onHoverChange,
   warning,
   compact = false,
+  introduced = false,
 }: {
   activity: Activity
   selected: boolean
@@ -710,6 +711,7 @@ function ActivityCard({
   onHoverChange?: (hovered: boolean) => void
   warning?: string
   compact?: boolean
+  introduced?: boolean
 }) {
   const meta = CATEGORY_META[activity.category]
   const Icon = CATEGORY_ICONS[activity.category]
@@ -719,7 +721,7 @@ function ActivityCard({
     <div
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
-      className={`relative flex min-w-0 w-full items-center ${compact ? 'gap-2 py-1.5 pr-1 pl-2' : 'gap-2.5 py-2 pr-1 pl-2.5 sm:py-2.5 sm:pr-2 sm:pl-3'} rounded-md border-l-2 transition-[border-color,background-color,box-shadow] ${
+      className={`relative flex min-w-0 w-full items-center ${compact ? 'gap-2 py-1.5 pr-1 pl-2' : 'gap-2.5 py-2 pr-1 pl-2.5 sm:py-2.5 sm:pr-2 sm:pl-3'} rounded-md border-l-2 transition-[border-color,background-color,box-shadow] ${introduced ? 'activity-drop-in' : ''} ${
         selected ? 'border-action bg-white shadow-[0_2px_9px_rgba(32,40,46,0.07)]' : highlighted ? 'border-accent/40 bg-accent-soft/70' : 'border-transparent hover:bg-white/80'
       }`}
     >
@@ -780,6 +782,7 @@ function SortableActivity({
   onHoverChange,
   warning,
   compact = false,
+  introduced = false,
 }: {
   activity: Activity
   selected: boolean
@@ -788,6 +791,7 @@ function SortableActivity({
   onHoverChange?: (hovered: boolean) => void
   warning?: string
   compact?: boolean
+  introduced?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: activity.id,
@@ -801,7 +805,7 @@ function SortableActivity({
       {...attributes}
       {...listeners}
     >
-      <ActivityCard activity={activity} selected={selected} highlighted={highlighted} onClick={onClick} onHoverChange={onHoverChange} warning={warning} compact={compact} />
+      <ActivityCard activity={activity} selected={selected} highlighted={highlighted} onClick={onClick} onHoverChange={onHoverChange} warning={warning} compact={compact} introduced={introduced} />
     </div>
   )
 }
@@ -896,6 +900,7 @@ function DaySection({
   forceInlineDetails = false,
   compact = false,
   hideQuickAdd = false,
+  introducedActivityId = null,
 }: {
   dayId: string
   onQuickAdd: () => void
@@ -904,6 +909,7 @@ function DaySection({
   forceInlineDetails?: boolean
   compact?: boolean
   hideQuickAdd?: boolean
+  introducedActivityId?: string | null
 }) {
   const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
@@ -1047,6 +1053,7 @@ function DaySection({
                       onHoverChange={(hovered) => onActivityHover(hovered ? a.id : null)}
                       warning={warnings.get(a.id)}
                       compact={compact}
+                      introduced={introducedActivityId === a.id}
                     />
                     {/* 小屏幕没有右侧栏时，保留内嵌详情与编辑作为降级交互。 */}
                     {editingActivityId === a.id && (
@@ -1226,7 +1233,7 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
   )
 }
 
-export default function TimelineView({ onOpenFullMap, workspace = false, hideQuickAdd = false }: { onOpenFullMap: () => void; workspace?: boolean; hideQuickAdd?: boolean }) {
+export default function TimelineView({ onOpenFullMap, workspace = false, hideQuickAdd = false, introducedActivityId = null }: { onOpenFullMap: () => void; workspace?: boolean; hideQuickAdd?: boolean; introducedActivityId?: string | null }) {
   const trip = useActiveTrip()
   const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -1362,7 +1369,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
               </div>
             )}
             {(workspace ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace} hideQuickAdd={hideQuickAdd} />
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} />
             ))}
           </div>
           {!hideQuickAdd && <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>

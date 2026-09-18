@@ -76,6 +76,22 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
 @keyframes ui-spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .ui-spinner { animation-duration: 1.8s; } }
 
+/* 拖放安排的轻反馈：确认落点，但不遮挡时间轴。 */
+@keyframes activity-drop-in {
+  0% { opacity: .3; transform: translateY(-7px); background-color: color-mix(in srgb, var(--color-action-soft) 75%, white); }
+  55% { opacity: 1; transform: translateY(0); background-color: color-mix(in srgb, var(--color-action-soft) 42%, white); }
+  100% { background-color: transparent; }
+}
+@keyframes wish-place-complete {
+  0% { background-color: color-mix(in srgb, var(--color-action-soft) 72%, white); transform: translateX(-3px); }
+  100% { background-color: transparent; transform: translateX(0); }
+}
+.activity-drop-in { animation: activity-drop-in .46s cubic-bezier(.2,.7,.2,1) both; }
+.wish-place-complete { animation: wish-place-complete .52s ease-out both; }
+@media (prefers-reduced-motion: reduce) {
+  .activity-drop-in, .wish-place-complete { animation: none; }
+}
+
 .ui-empty-state {
   display: flex;
   min-height: 190px;

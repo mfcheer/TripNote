@@ -19,7 +19,7 @@ function dayCost(trip: ReturnType<typeof useActiveTrip>, dayId: string) {
   return activitiesByDay(trip, dayId).reduce((sum, activity) => sum + activity.costs.reduce((subtotal, cost) => subtotal + cost.amount, 0), 0)
 }
 
-function PlaceLibrary({ onStartMapPick }: { onStartMapPick: () => void }) {
+function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, onScheduleSuccess }: { onStartMapPick: () => void; recentlyScheduledPlaceId: string | null; onScheduleSuccess: (activityId: string, placeId: string) => void }) {
   const trip = useActiveTrip()
   const { addWishPlace, scheduleWishPlace, amapWebServiceKey } = useTripStore()
   const [query, setQuery] = useState('')
@@ -95,7 +95,10 @@ function PlaceLibrary({ onStartMapPick }: { onStartMapPick: () => void }) {
       note: place.note,
       geo: place.geo,
     })
-    if (id) useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`)
+    if (id) {
+      onScheduleSuccess(id, place.id)
+      useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`)
+    }
   }
 
   function dragStart(event: NativeDragEvent<HTMLElement>, place: WishPlace) {
@@ -112,7 +115,7 @@ function PlaceLibrary({ onStartMapPick }: { onStartMapPick: () => void }) {
       key={place.id}
       draggable
       onDragStart={(event) => dragStart(event, place)}
-      className={`group flex items-center gap-2 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${selected ? 'bg-action-soft/45' : 'hover:bg-surface/70'} ${scheduled ? 'bg-surface/25' : ''} cursor-grab active:cursor-grabbing`}
+      className={`group flex items-center gap-2 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${selected ? 'bg-action-soft/45' : 'hover:bg-surface/70'} ${scheduled ? 'bg-surface/25' : ''} ${recentlyScheduledPlaceId === place.id ? 'wish-place-complete' : ''} cursor-grab active:cursor-grabbing`}
     >
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ background: meta.soft, color: meta.color }}><Icon size={14} /></span>
       <button onClick={() => setSelectedId(selected ? null : place.id)} className="min-w-0 flex-1 text-left">
@@ -183,6 +186,9 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
   const [createTripOpen, setCreateTripOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [mapPickRequest, setMapPickRequest] = useState(0)
+  const [isWishDropTarget, setIsWishDropTarget] = useState(false)
+  const [introducedActivityId, setIntroducedActivityId] = useState<string | null>(null)
+  const [recentlyScheduledPlaceId, setRecentlyScheduledPlaceId] = useState<string | null>(null)
   const today = new Date().toISOString().slice(0, 10)
   const [newTripName, setNewTripName] = useState('')
   const [newTripDestination, setNewTripDestination] = useState('')
@@ -199,6 +205,14 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
 
   useEffect(() => localStorage.setItem('tripnote-workspace-library-width-v1', String(Math.round(libraryWidth))), [libraryWidth])
   useEffect(() => localStorage.setItem('tripnote-workspace-map-width-v1', String(Math.round(mapWidth))), [mapWidth])
+  useEffect(() => {
+    if (!introducedActivityId && !recentlyScheduledPlaceId) return
+    const timer = window.setTimeout(() => {
+      setIntroducedActivityId(null)
+      setRecentlyScheduledPlaceId(null)
+    }, 760)
+    return () => window.clearTimeout(timer)
+  }, [introducedActivityId, recentlyScheduledPlaceId])
 
   function startResize(event: ReactPointerEvent<HTMLDivElement>, edge: 'library' | 'map') {
     if (event.button !== 0) return
@@ -225,12 +239,31 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
 
   function scheduleDrop(event: NativeDragEvent<HTMLElement>) {
     event.preventDefault()
+    setIsWishDropTarget(false)
     const placeId = event.dataTransfer.getData(WISH_DRAG_TYPE)
     const place = trip.wishPlaces.find((item) => item.id === placeId)
     const day = trip.days.find((item) => item.id === activeDayId)
     if (!place || !day) return
     const id = scheduleWishPlace(place.id, day.id, { time: nextActivityTime(trip, day.id), title: place.title, category: place.category, location: place.location, note: place.note, geo: place.geo })
-    if (id) useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`)
+    if (id) {
+      setIntroducedActivityId(id)
+      setRecentlyScheduledPlaceId(place.id)
+      useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`)
+    }
+  }
+
+  function handleWishDragOver(event: NativeDragEvent<HTMLElement>) {
+    event.preventDefault()
+    if (event.dataTransfer.types.includes(WISH_DRAG_TYPE)) setIsWishDropTarget(true)
+  }
+
+  function handleWishDragLeave(event: NativeDragEvent<HTMLElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setIsWishDropTarget(false)
+  }
+
+  function handleScheduleSuccess(activityId: string, placeId: string) {
+    setIntroducedActivityId(activityId)
+    setRecentlyScheduledPlaceId(placeId)
   }
 
   function submitNewTrip() {
@@ -267,10 +300,11 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
       </div>
     </header>
     <div className="flex min-h-0 flex-1">
-      <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} />
+      <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} onScheduleSuccess={handleScheduleSuccess} />
       <div role="separator" aria-label="调整想去清单宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group -ml-1 flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
-      <main onDragOver={(event) => event.preventDefault()} onDrop={scheduleDrop} className="min-w-[380px] flex-1 overflow-y-auto bg-white/56">
-        <TimelineView workspace hideQuickAdd onOpenFullMap={onOpenFullMap} />
+      <main onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto bg-white/56 transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
+        {isWishDropTarget && <div className="pointer-events-none sticky top-3 z-20 mx-3 flex items-center justify-center rounded-lg border border-dashed border-action/55 bg-white/88 px-3 py-2 text-[12px] font-medium text-action-hover shadow-[0_4px_14px_rgba(175,105,89,0.10)]">松开即可安排到 {trip.days.find((day) => day.id === activeDayId)?.label ?? '当前天'}</div>}
+        <TimelineView workspace hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
       <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
       <aside className="min-w-[360px] shrink-0 border-l border-border/80" style={{ width: 'var(--workspace-map-width)' }}><MapView key={activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} /></aside>
