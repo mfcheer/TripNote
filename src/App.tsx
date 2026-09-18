@@ -4,6 +4,7 @@ import TimelineView from './components/TimelineView'
 import MapView from './components/MapView'
 import WishlistView from './components/WishlistView'
 import ArrangeView from './components/ArrangeView'
+import WorkspaceView from './components/WorkspaceView'
 import SettingsView from './components/SettingsView'
 import ConfirmDialog from './components/ConfirmDialog'
 import Toast from './components/Toast'
@@ -110,13 +111,13 @@ export default function App() {
   return (
     <div className="relative h-full w-full overflow-hidden bg-bg">
       <div className="flex h-full w-full overflow-hidden" aria-hidden={fullScreenMapDayId ? true : undefined} inert={fullScreenMapDayId ? true : undefined}>
-      <Sidebar />
+      {view !== 'plan' && <Sidebar />}
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <MobileHeader onExport={downloadImage} exporting={exportingImage} />
         {view === 'plan' && (
           <>
             {/* 行程规划子标签 */}
-            <div className="trip-topbar hidden h-[52px] shrink-0 items-end justify-between border-b border-border/80 px-7 md:flex">
+            <div className="trip-topbar hidden h-[52px] shrink-0 items-end justify-between border-b border-border/80 px-7 md:flex lg:hidden">
               <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
                 {PLAN_TABS.map(({ key, label, Icon }) => {
                   const active = visiblePlanTab === key
@@ -153,7 +154,10 @@ export default function App() {
                 </button>
               </div>
             </div>
-            <div className="min-h-0 min-w-0 flex-1 overflow-hidden">
+            <div className="hidden min-h-0 min-w-0 flex-1 overflow-hidden lg:block">
+              <WorkspaceView onExport={downloadImage} exporting={exportingImage} onOpenFullMap={() => setFullScreenMapDayId('all')} />
+            </div>
+            <div className="min-h-0 min-w-0 flex-1 overflow-hidden lg:hidden">
               {visiblePlanTab === 'timeline' && (
                 <div className="h-full overflow-y-auto">
                   <TimelineView onOpenFullMap={() => setFullScreenMapDayId('all')} />

@@ -160,10 +160,12 @@ export default function MapView({
   initialDayId = 'all',
   onOpenActivity,
   highlightWishPlace,
+  compact = false,
 }: {
   initialDayId?: string
   onOpenActivity?: (activityId: string) => void
   highlightWishPlace?: WishPlace | null
+  compact?: boolean
 }) {
   const { setActiveDay, amapJsKey, amapWebServiceKey, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
@@ -306,7 +308,7 @@ export default function MapView({
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
       {/* 天数筛选 */}
-      <div className="absolute inset-x-3 top-3 z-[500] overflow-x-auto pb-1 md:inset-x-auto md:top-4 md:left-[64px]">
+      {!compact && <div className="absolute inset-x-3 top-3 z-[500] overflow-x-auto pb-1 md:inset-x-auto md:top-4 md:left-[64px]">
         <div className="mx-auto flex w-max items-center gap-1 rounded-lg border border-white/80 bg-white/94 p-1.5 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
           <div className="mr-1 hidden max-w-[190px] items-center gap-2 border-r border-border/80 px-2 pr-3 md:flex">
             <span className="truncate text-[12px] font-semibold text-text">{trip.name}</span>
@@ -327,11 +329,11 @@ export default function MapView({
             )
           })}
         </div>
-      </div>
+      </div>}
 
       <button
         onClick={() => isPicking ? stopPicking() : setIsPicking(true)}
-        className={`absolute top-[52px] right-3 z-[550] flex items-center gap-1.5 rounded-md border px-3 py-2 text-[12px] font-medium shadow-[0_5px_18px_rgba(32,40,46,0.12)] transition-colors md:top-4 md:right-4 ${
+        className={`absolute right-3 z-[550] flex items-center gap-1.5 rounded-md border px-3 py-2 text-[12px] font-medium shadow-[0_5px_18px_rgba(32,40,46,0.12)] transition-colors ${compact ? 'top-3' : 'top-[52px] md:top-4'} md:right-4 ${
           isPicking ? 'border-action bg-action text-white' : 'border-white/80 bg-white/94 text-text-muted backdrop-blur-md hover:text-text'
         }`}
       >
@@ -440,7 +442,7 @@ export default function MapView({
       )}
 
       {/* 桌面端默认展开行程进度，仍可随时手动收起。 */}
-      <details open className="group absolute right-4 bottom-6 z-[500] hidden w-[238px] rounded-md border border-white/80 bg-white/94 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md md:block">
+      {!compact && <details open className="group absolute right-4 bottom-6 z-[500] hidden w-[238px] rounded-md border border-white/80 bg-white/94 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md md:block">
         <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[11.5px] font-medium text-text-muted [&::-webkit-details-marker]:hidden">
           <span>行程进度 · {trip.daysCount} 天</span>
           <span className="text-text-faint group-open:hidden">展开</span>
@@ -475,7 +477,7 @@ export default function MapView({
         )}
         {routeFallback && mapRouteMode === 'walking' && <div className="mt-1.5 text-[11px] text-amber-700">路线请求失败，已显示直线连线。</div>}
         </div>
-      </details>
+      </details>}
 
       <span className="hidden">{CATEGORY_META.sight.label}</span>
     </div>

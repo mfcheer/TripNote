@@ -889,11 +889,13 @@ function DaySection({
   onQuickAdd,
   highlightedActivityId,
   onActivityHover,
+  forceInlineDetails = false,
 }: {
   dayId: string
   onQuickAdd: () => void
   highlightedActivityId: string | null
   onActivityHover: (activityId: string | null) => void
+  forceInlineDetails?: boolean
 }) {
   const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
@@ -1039,7 +1041,7 @@ function DaySection({
                     />
                     {/* 小屏幕没有右侧栏时，保留内嵌详情与编辑作为降级交互。 */}
                     {editingActivityId === a.id && (
-                      <div className="mt-2 xl:hidden">
+                      <div className={`mt-2 ${forceInlineDetails ? '' : 'xl:hidden'}`}>
                         <EditActivityForm
                           activity={a}
                           onDone={() => {
@@ -1050,7 +1052,7 @@ function DaySection({
                       </div>
                     )}
                     {selectedActivityId === a.id && editingActivityId !== a.id && (
-                      <div className="mt-2 xl:hidden">
+                      <div className={`mt-2 ${forceInlineDetails ? '' : 'xl:hidden'}`}>
                         <InlineActivityDetail activity={a} />
                       </div>
                     )}
@@ -1215,7 +1217,7 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
   )
 }
 
-export default function TimelineView({ onOpenFullMap }: { onOpenFullMap: () => void }) {
+export default function TimelineView({ onOpenFullMap, workspace = false }: { onOpenFullMap: () => void; workspace?: boolean }) {
   const trip = useActiveTrip()
   const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -1312,9 +1314,9 @@ export default function TimelineView({ onOpenFullMap }: { onOpenFullMap: () => v
     >
       <div className="flex min-h-full min-w-0">
         <div className="min-w-0 flex-1">
-          <div className="mr-auto max-w-[980px] px-3 py-4 sm:px-7 sm:py-7 lg:px-10">
-            <MobileDayStrip trip={trip} />
-            <div className="mb-3 flex items-center justify-between sm:mb-4">
+          <div className={`${workspace ? 'max-w-none px-5 py-5' : 'mr-auto max-w-[980px] px-3 py-4 sm:px-7 sm:py-7 lg:px-10'}`}>
+            {!workspace && <MobileDayStrip trip={trip} />}
+            {!workspace && <div className="mb-3 flex items-center justify-between sm:mb-4">
               <span className="text-[12px] font-medium tracking-[0.08em] text-text-faint">行程概览</span>
               <button
                 onClick={onOpenFullMap}
@@ -1322,8 +1324,8 @@ export default function TimelineView({ onOpenFullMap }: { onOpenFullMap: () => v
               >
                 <MapIcon size={13} /> 查看全程地图
               </button>
-            </div>
-            <TripStatsBar trip={trip} onOpenBudget={() => setBudgetDrawerOpen(true)} />
+            </div>}
+            {!workspace && <TripStatsBar trip={trip} onOpenBudget={() => setBudgetDrawerOpen(true)} />}
             {/* 空旅程引导：还没有任何行程时给出第一步指引 */}
             {trip.activities.length === 0 && (
               <div className="mb-6 rounded-xl border border-border/90 bg-surface px-5 py-5 shadow-[0_8px_28px_rgba(32,40,46,0.045)] sm:px-6 sm:py-6">
@@ -1350,12 +1352,12 @@ export default function TimelineView({ onOpenFullMap }: { onOpenFullMap: () => v
                 </div>
               </div>
             )}
-            {trip.days.map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} />
+            {(workspace ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} />
             ))}
           </div>
-          <div data-quick-add className="sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block lg:px-8">
-            <div className="mr-auto max-w-[980px]">
+          <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
+            <div className={workspace ? '' : 'mr-auto max-w-[980px]'}>
               <div className="mb-1.5 flex items-center justify-between text-[11.5px] font-medium text-text-faint">
                 <span>
                   快速添加到 {activeDay?.label ?? '当前天'}
@@ -1376,12 +1378,12 @@ export default function TimelineView({ onOpenFullMap }: { onOpenFullMap: () => v
             </button>
           </div>
         </div>
-        <PlannerInspector
+        {!workspace && <PlannerInspector
           dayId={activeDayId}
           selectedActivityId={selectedActivityId}
           editingActivityId={editingActivityId}
           highlightedActivityId={mapHighlightedActivityId}
-        />
+        />}
       </div>
       <DragOverlay>
         {draggingActivity && (
@@ -1409,7 +1411,7 @@ export default function TimelineView({ onOpenFullMap }: { onOpenFullMap: () => v
           />
         </ModalShell>
       )}
-      {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
+      {!workspace && budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     </DndContext>
   )
 }
