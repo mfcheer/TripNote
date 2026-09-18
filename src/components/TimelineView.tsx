@@ -145,7 +145,7 @@ function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => 
   )
 }
 
-function DayOverview({ items, scheduleWarningCount }: { items: Activity[]; scheduleWarningCount: number }) {
+function DayOverview({ items, scheduleWarningCount, compact = false }: { items: Activity[]; scheduleWarningCount: number; compact?: boolean }) {
   const plannedMinutes = items.reduce((total, activity) => total + (activityDurationMinutes(activity) ?? 0), 0)
   const dayCost = items.reduce((total, activity) => total + activity.costs.reduce((sum, cost) => sum + cost.amount, 0), 0)
   const geoItems = useMemo(() => items.filter((activity) => activity.geo), [items])
@@ -180,13 +180,13 @@ function DayOverview({ items, scheduleWarningCount }: { items: Activity[]; sched
   }).length
 
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 px-0.5 text-[12px] text-text-muted">
+    <div className={`${compact ? 'mb-2 gap-x-2 text-[11px]' : 'mb-4 gap-x-3 text-[12px]'} flex flex-wrap items-center gap-y-1 px-0.5 text-text-muted`}>
       <span>{items.length} 个安排</span>
       {dayCost > 0 && <span className="font-medium text-accent-hover">当天 ¥{dayCost.toLocaleString()}</span>}
-      {plannedMinutes > 0 && <span className="hidden sm:inline">已安排 {formatMinutes(plannedMinutes)}</span>}
-      <span className="hidden sm:inline">{geoItems.length} 个已定位地点</span>
-      {visibleWalking?.durationMinutes && <span className="hidden md:inline">步行约 {visibleWalking.durationMinutes} 分钟</span>}
-      {visibleWalking?.distanceMeters && <span className="hidden md:inline">{(visibleWalking.distanceMeters / 1000).toFixed(visibleWalking.distanceMeters >= 1000 ? 1 : 2)} km</span>}
+      {!compact && plannedMinutes > 0 && <span className="hidden sm:inline">已安排 {formatMinutes(plannedMinutes)}</span>}
+      {!compact && <span className="hidden sm:inline">{geoItems.length} 个已定位地点</span>}
+      {!compact && visibleWalking?.durationMinutes && <span className="hidden md:inline">步行约 {visibleWalking.durationMinutes} 分钟</span>}
+      {!compact && visibleWalking?.distanceMeters && <span className="hidden md:inline">{(visibleWalking.distanceMeters / 1000).toFixed(visibleWalking.distanceMeters >= 1000 ? 1 : 2)} km</span>}
       {(scheduleWarningCount > 0 || crossCityPending > 0 || insufficientTransit > 0) && (
         <span className="w-full rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
           {scheduleWarningCount > 0 && `${scheduleWarningCount} 处时间重叠`}
@@ -404,7 +404,7 @@ function TransitHint({ from, to }: { from: Activity; to: Activity }) {
 
 // 新增行程采用快速录入：先填时间和地点/事项，地点候选被选中后自动写入地址和地图坐标。
 // 分类、花费和备注等细节可在添加后从卡片详情继续补充。
-function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void }) {
+function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; onDone: () => void; compact?: boolean }) {
   const addActivity = useTripStore((s) => s.addActivity)
   const removeActivity = useTripStore((s) => s.removeActivity)
   const addWishPlace = useTripStore((s) => s.addWishPlace)
@@ -592,7 +592,7 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
           清空
         </button>
       </div>
-      <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
+      {!compact && <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
         <span className="mr-0.5 text-[11.5px] text-text-faint">分类</span>
         {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => {
           const active = category === value
@@ -614,7 +614,7 @@ function AddActivityForm({ dayId, onDone }: { dayId: string; onDone: () => void 
             ✓ 已定位 · {pickedPlace.label}
           </span>
         )}
-      </div>
+      </div>}
       {showOptions && (
         <div className="mt-2 grid gap-2 border-t border-border pt-2 sm:grid-cols-[150px_140px_1fr]">
           <label className="relative">
@@ -701,6 +701,7 @@ function ActivityCard({
   onClick,
   onHoverChange,
   warning,
+  compact = false,
 }: {
   activity: Activity
   selected: boolean
@@ -708,6 +709,7 @@ function ActivityCard({
   onClick: () => void
   onHoverChange?: (hovered: boolean) => void
   warning?: string
+  compact?: boolean
 }) {
   const meta = CATEGORY_META[activity.category]
   const Icon = CATEGORY_ICONS[activity.category]
@@ -717,21 +719,21 @@ function ActivityCard({
     <div
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
-      className={`relative flex min-w-0 w-full items-center gap-2.5 rounded-md border-l-2 py-2 pr-1 pl-2.5 transition-[border-color,background-color,box-shadow] sm:py-2.5 sm:pr-2 sm:pl-3 ${
+      className={`relative flex min-w-0 w-full items-center ${compact ? 'gap-2 py-1.5 pr-1 pl-2' : 'gap-2.5 py-2 pr-1 pl-2.5 sm:py-2.5 sm:pr-2 sm:pl-3'} rounded-md border-l-2 transition-[border-color,background-color,box-shadow] ${
         selected ? 'border-action bg-white shadow-[0_2px_9px_rgba(32,40,46,0.07)]' : highlighted ? 'border-accent/40 bg-accent-soft/70' : 'border-transparent hover:bg-white/80'
       }`}
     >
       <div
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px]"
+        className={`flex shrink-0 items-center justify-center rounded-[7px] ${compact ? 'h-6 w-6' : 'h-7 w-7'}`}
         style={{ background: meta.soft, color: meta.color }}
       >
-        <Icon size={16} />
+        <Icon size={compact ? 14 : 16} />
       </div>
       {/* 可点击主体（展开/收起详情） */}
       <button onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 text-left">
         <div className="min-w-0 flex-1">
-          <div className="truncate text-[13.5px] font-semibold tracking-[-0.01em] sm:text-[14px]">{activity.title}</div>
-          <div className="mt-0.5 flex items-center gap-2.5 text-[11.5px] text-text-muted sm:text-[12px]">
+          <div className={`truncate font-semibold tracking-[-0.01em] ${compact ? 'text-[12.5px]' : 'text-[13.5px] sm:text-[14px]'}`}>{activity.title}</div>
+          <div className={`flex items-center gap-2.5 text-text-muted ${compact ? 'mt-0 text-[10.5px]' : 'mt-0.5 text-[11.5px] sm:text-[12px]'}`}>
             {activity.duration && <span>{activity.duration}</span>}
             {activity.location && <span className="truncate">{activity.location}</span>}
           </div>
@@ -757,7 +759,7 @@ function ActivityCard({
             },
           })
         }}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-text-faint transition-colors hover:bg-red-50 hover:text-red-500 sm:h-auto sm:w-auto sm:p-1.5"
+        className={`flex shrink-0 items-center justify-center rounded-md text-text-faint transition-colors hover:bg-red-50 hover:text-red-500 ${compact ? 'h-7 w-7' : 'h-10 w-10 sm:h-auto sm:w-auto sm:p-1.5'}`}
         title="删除安排"
       >
         <TrashIcon size={14} />
@@ -777,6 +779,7 @@ function SortableActivity({
   onClick,
   onHoverChange,
   warning,
+  compact = false,
 }: {
   activity: Activity
   selected: boolean
@@ -784,6 +787,7 @@ function SortableActivity({
   onClick: () => void
   onHoverChange?: (hovered: boolean) => void
   warning?: string
+  compact?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: activity.id,
@@ -797,7 +801,7 @@ function SortableActivity({
       {...attributes}
       {...listeners}
     >
-      <ActivityCard activity={activity} selected={selected} highlighted={highlighted} onClick={onClick} onHoverChange={onHoverChange} warning={warning} />
+      <ActivityCard activity={activity} selected={selected} highlighted={highlighted} onClick={onClick} onHoverChange={onHoverChange} warning={warning} compact={compact} />
     </div>
   )
 }
@@ -890,12 +894,14 @@ function DaySection({
   highlightedActivityId,
   onActivityHover,
   forceInlineDetails = false,
+  compact = false,
 }: {
   dayId: string
   onQuickAdd: () => void
   highlightedActivityId: string | null
   onActivityHover: (activityId: string | null) => void
   forceInlineDetails?: boolean
+  compact?: boolean
 }) {
   const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
@@ -933,10 +939,10 @@ function DaySection({
   }
 
   return (
-      <section ref={setNodeRef} className={`mb-5 border-b border-border/70 pb-5 transition-colors last:border-b-0 sm:mb-7 sm:pb-7 ${isOver ? 'bg-accent-soft/30' : ''}`}>
+      <section ref={setNodeRef} className={`${compact ? 'mb-3 pb-3' : 'mb-5 pb-5 sm:mb-7 sm:pb-7'} border-b border-border/70 transition-colors last:border-b-0 ${isOver ? 'bg-accent-soft/30' : ''}`}>
         {/* 天标题 */}
-        <header className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-2 px-0.5">
-          <h2 className="text-[19px] font-semibold tracking-[-0.02em]">{day.label}</h2>
+        <header className={`${compact ? 'mb-2 gap-x-2' : 'mb-3 gap-x-3 gap-y-2'} flex flex-wrap items-center px-0.5`}>
+          <h2 className={`${compact ? 'text-[17px]' : 'text-[19px]'} font-semibold tracking-[-0.02em]`}>{day.label}</h2>
           <DayHeaderInfo day={day} />
           <details className="relative ml-auto">
             <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md px-2 py-1.5 text-[12px] font-medium text-text-muted transition-colors hover:bg-white hover:text-text [&::-webkit-details-marker]:hidden">
@@ -1014,20 +1020,20 @@ function DaySection({
           </details>
         </header>
 
-        <DayOverview items={items} scheduleWarningCount={warnings.size} />
+        <DayOverview items={items} scheduleWarningCount={warnings.size} compact={compact} />
 
         {/* 时间轴 */}
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          <div className="relative pl-[44px] sm:pl-[52px]">
-            <div className="flex flex-col gap-2.5">
+          <div className={`relative ${compact ? 'pl-[38px]' : 'pl-[44px] sm:pl-[52px]'}`}>
+            <div className={`flex flex-col ${compact ? 'gap-1.5' : 'gap-2.5'}`}>
               {items.map((a, index) => (
                 <div key={a.id} className="relative flex min-w-0 items-start gap-2 sm:gap-3" data-activity-id={a.id}>
                   {(!items[index - 1] || periodLabel(items[index - 1].time) !== periodLabel(a.time)) && (
-                    <div className="absolute -left-[43px] mt-0.5 w-[35px] text-right text-[10.5px] font-medium text-text-faint sm:-left-[51px] sm:w-[42px] sm:text-[11px]">
+                    <div className={`absolute mt-0.5 text-right text-[10.5px] font-medium text-text-faint ${compact ? '-left-[37px] w-[30px]' : '-left-[43px] w-[35px] sm:-left-[51px] sm:w-[42px] sm:text-[11px]'}`}>
                       {periodLabel(a.time)}
                     </div>
                   )}
-                  <div className="w-[40px] shrink-0 pt-3 text-right text-[11.5px] font-medium tabular-nums text-text-muted sm:w-[48px] sm:text-[12.5px]">
+                  <div className={`${compact ? 'w-[34px] pt-2 text-[11px]' : 'w-[40px] pt-3 text-[11.5px] sm:w-[48px] sm:text-[12.5px]'} shrink-0 text-right font-medium tabular-nums text-text-muted`}>
                     {a.time}
                   </div>
                   <div className="relative min-w-0 flex-1">
@@ -1038,6 +1044,7 @@ function DaySection({
                       onClick={() => selectActivity(selectedActivityId === a.id ? null : a.id)}
                       onHoverChange={(hovered) => onActivityHover(hovered ? a.id : null)}
                       warning={warnings.get(a.id)}
+                      compact={compact}
                     />
                     {/* 小屏幕没有右侧栏时，保留内嵌详情与编辑作为降级交互。 */}
                     {editingActivityId === a.id && (
@@ -1062,7 +1069,7 @@ function DaySection({
               ))}
               <button
                 onClick={onQuickAdd}
-                className="hidden items-center gap-2 rounded-md border border-transparent bg-surface-2/65 px-3.5 py-2.5 text-[13px] font-medium text-text-muted transition-colors hover:border-border hover:bg-white hover:text-text sm:flex"
+                className={`hidden items-center gap-2 rounded-md border border-transparent bg-surface-2/65 font-medium text-text-muted transition-colors hover:border-border hover:bg-white hover:text-text sm:flex ${compact ? 'px-3 py-2 text-[12px]' : 'px-3.5 py-2.5 text-[13px]'}`}
               >
                 <PlusIcon size={15} /> 在这里添加安排
               </button>
@@ -1353,7 +1360,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false }: { onO
               </div>
             )}
             {(workspace ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} />
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace} />
             ))}
           </div>
           <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
@@ -1365,7 +1372,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false }: { onO
                 </span>
                 <span className="hidden rounded border border-border bg-white px-1.5 py-0.5 text-[10.5px] font-normal sm:inline">按 / 快速输入</span>
               </div>
-              <AddActivityForm key={`${activeDayId}-${quickAddKey}`} dayId={activeDayId} onDone={() => setQuickAddKey((key) => key + 1)} />
+              <AddActivityForm key={`${activeDayId}-${quickAddKey}`} dayId={activeDayId} onDone={() => setQuickAddKey((key) => key + 1)} compact={workspace} />
             </div>
           </div>
           <div className="sticky bottom-0 z-20 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:hidden">

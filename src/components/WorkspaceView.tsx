@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type DragEvent as NativeDragEvent } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties, type DragEvent as NativeDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { searchPlaces, type GeoResult } from '../api/geocode'
 import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, SettingsIcon } from './Icons'
@@ -121,7 +121,7 @@ function PlaceLibrary() {
     </div>
   }
 
-  return <aside className="flex min-h-0 w-[286px] shrink-0 flex-col border-r border-border/80 bg-[#fbfcfc]">
+  return <aside className="flex min-h-0 shrink-0 flex-col border-r border-border/80 bg-[#fbfcfc]" style={{ width: 'var(--workspace-library-width)' }}>
     <div className="border-b border-border/70 px-4 pt-4 pb-3">
       <div className="flex items-center justify-between">
         <div className="text-[14px] font-semibold text-text">地点库</div>
@@ -174,6 +174,40 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
   const trip = useActiveTrip()
   const { trips, activeTripId, switchTrip, createTrip, setView, scheduleWishPlace, activeDayId } = useTripStore()
   const totalCost = trip.activities.reduce((sum, activity) => sum + activity.costs.reduce((subtotal, cost) => subtotal + cost.amount, 0), 0)
+  const [libraryWidth, setLibraryWidth] = useState(() => {
+    const saved = Number(localStorage.getItem('tripnote-workspace-library-width-v1'))
+    return Number.isFinite(saved) ? Math.max(220, Math.min(380, saved)) : 286
+  })
+  const [mapWidth, setMapWidth] = useState(() => {
+    const saved = Number(localStorage.getItem('tripnote-workspace-map-width-v1'))
+    return Number.isFinite(saved) ? Math.max(360, Math.min(620, saved)) : 440
+  })
+
+  useEffect(() => localStorage.setItem('tripnote-workspace-library-width-v1', String(Math.round(libraryWidth))), [libraryWidth])
+  useEffect(() => localStorage.setItem('tripnote-workspace-map-width-v1', String(Math.round(mapWidth))), [mapWidth])
+
+  function startResize(event: ReactPointerEvent<HTMLDivElement>, edge: 'library' | 'map') {
+    if (event.button !== 0) return
+    event.preventDefault()
+    const startX = event.clientX
+    const startWidth = edge === 'library' ? libraryWidth : mapWidth
+    const update = (moveEvent: PointerEvent) => {
+      const delta = moveEvent.clientX - startX
+      if (edge === 'library') {
+        const max = Math.max(220, Math.min(380, window.innerWidth - mapWidth - 380))
+        setLibraryWidth(Math.max(220, Math.min(max, startWidth + delta)))
+      } else {
+        const max = Math.max(360, Math.min(620, window.innerWidth - libraryWidth - 380))
+        setMapWidth(Math.max(360, Math.min(max, startWidth - delta)))
+      }
+    }
+    const finish = () => {
+      window.removeEventListener('pointermove', update)
+      window.removeEventListener('pointerup', finish)
+    }
+    window.addEventListener('pointermove', update)
+    window.addEventListener('pointerup', finish, { once: true })
+  }
 
   function scheduleDrop(event: NativeDragEvent<HTMLElement>) {
     event.preventDefault()
@@ -185,7 +219,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
     if (id) useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`)
   }
 
-  return <div className="flex h-full min-w-0 flex-col bg-bg">
+  return <div className="flex h-full min-w-0 flex-col bg-bg" style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
     <header className="flex h-[58px] shrink-0 items-center gap-3 border-b border-border/80 bg-white/92 px-5">
       <MapIcon size={19} className="shrink-0 text-accent" />
       <select value={activeTripId} onChange={(event) => switchTrip(event.target.value)} className="min-w-0 max-w-[280px] truncate bg-transparent text-[14px] font-semibold outline-none">
@@ -202,10 +236,12 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
     </header>
     <div className="flex min-h-0 flex-1">
       <PlaceLibrary />
-      <main onDragOver={(event) => event.preventDefault()} onDrop={scheduleDrop} className="min-w-[420px] flex-[1.15] overflow-y-auto border-r border-border/80 bg-white/56">
+      <div role="separator" aria-label="调整地点库宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group -ml-1 flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
+      <main onDragOver={(event) => event.preventDefault()} onDrop={scheduleDrop} className="min-w-[380px] flex-1 overflow-y-auto bg-white/56">
         <TimelineView workspace onOpenFullMap={onOpenFullMap} />
       </main>
-      <aside className="min-w-[360px] flex-1"><MapView key={activeDayId} initialDayId={activeDayId} compact /></aside>
+      <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
+      <aside className="min-w-[360px] shrink-0 border-l border-border/80" style={{ width: 'var(--workspace-map-width)' }}><MapView key={activeDayId} initialDayId={activeDayId} compact /></aside>
     </div>
     <DayRail />
   </div>
