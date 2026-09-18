@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { DragEvent, ReactElement } from 'react'
+import type { DragEvent, PointerEvent as ReactPointerEvent, ReactElement } from 'react'
 import { activitiesByDay, useActiveTrip, useTripStore, displayDate, nextActivityTime } from '../store'
 import { straightLineDistanceMeters } from '../api/route'
 import type { TripDay, ViewKey } from '../types'
@@ -12,6 +12,13 @@ const NAV_ITEMS: { key: ViewKey; label: string; Icon: (p: { size?: number }) => 
   { key: 'plan', label: '行程规划', Icon: CalendarIcon },
   { key: 'settings', label: '设置', Icon: SettingsIcon },
 ]
+
+const SIDEBAR_WIDTH_KEY = 'tripnote-sidebar-width-v1'
+
+function savedSidebarWidth() {
+  const saved = Number(localStorage.getItem(SIDEBAR_WIDTH_KEY))
+  return Number.isFinite(saved) ? saved : null
+}
 
 // 一天的移动里程按连续动线累计：当天内部相邻地点，加上前一天最后一个定位点到当天第一个定位点。
 // 使用直线里程作为不调用路线服务的稳定概览；打开智能地图后可看到对应的道路路线。
@@ -328,7 +335,10 @@ export default function Sidebar() {
   const [dropDayId, setDropDayId] = useState<string | null>(null)
   const [expandedDayId, setExpandedDayId] = useState(activeDayId)
   const [showAddDayOptions, setShowAddDayOptions] = useState(false)
+  const [customWidth, setCustomWidth] = useState<number | null>(savedSidebarWidth)
+  const [isResizing, setIsResizing] = useState(false)
   const isWishlist = view === 'plan' && planTab === 'places'
+  const sidebarWidth = customWidth ?? (isWishlist ? 310 : 240)
 
   useEffect(() => {
     if (!isWishlist || trip.days.some((day) => day.id === expandedDayId)) return
@@ -354,8 +364,30 @@ export default function Sidebar() {
     useToastStore.getState().show(`已安排「${place.title}」到 ${day.label} · ${time}`)
   }
 
+  function startResize(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    setIsResizing(true)
+    const startX = event.clientX
+    const startWidth = sidebarWidth
+    let nextWidth = startWidth
+    const maxWidth = Math.min(420, Math.max(280, window.innerWidth * 0.42))
+    const onMove = (moveEvent: PointerEvent) => {
+      nextWidth = Math.max(220, Math.min(maxWidth, startWidth + moveEvent.clientX - startX))
+      setCustomWidth(nextWidth)
+    }
+    const onEnd = () => {
+      localStorage.setItem(SIDEBAR_WIDTH_KEY, String(Math.round(nextWidth)))
+      setIsResizing(false)
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onEnd)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onEnd, { once: true })
+  }
+
   return (
-    <aside className={`hidden h-full shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] transition-[width] duration-200 md:flex ${isWishlist ? 'w-[310px]' : 'w-[240px]'}`}>
+    <aside style={{ width: sidebarWidth }} className={`relative hidden h-full shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] transition-[width] ${isResizing ? 'duration-0' : 'duration-200'} md:flex`}>
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
         <div className="flex h-10 w-10 items-center justify-center">
@@ -524,6 +556,16 @@ export default function Sidebar() {
           )}
         </div>
       </nav>
+      <div
+        role="separator"
+        aria-label="调整左侧栏宽度"
+        aria-orientation="vertical"
+        title="拖动调整左侧栏宽度"
+        onPointerDown={startResize}
+        className="group absolute top-0 right-[-5px] z-30 hidden h-full w-2 cursor-col-resize touch-none items-center justify-center md:flex"
+      >
+        <span className="h-12 w-px rounded-full bg-transparent transition-colors group-hover:bg-accent/70 group-active:bg-accent" />
+      </div>
 
       {/* 底部导航 */}
       <nav className="border-t border-border/80 p-3">
