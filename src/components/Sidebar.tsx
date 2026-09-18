@@ -407,6 +407,8 @@ export default function Sidebar() {
                   ? 'border-action bg-accent text-white shadow-[0_3px_10px_rgba(32,40,46,0.12)]'
                   : active
                   ? 'border-action bg-white text-text shadow-[0_1px_4px_rgba(32,40,46,0.06)]'
+                  : expanded
+                  ? 'border-border bg-white/90 text-text shadow-[0_3px_12px_rgba(39,50,58,0.045)]'
                   : 'border-transparent text-text-muted hover:bg-white/70'
               }`}
             >
@@ -460,21 +462,25 @@ export default function Sidebar() {
                 )}
               </div>
               {expanded && (
-                <div className={`border-t px-3.5 pt-2.5 pb-3 ${dropDayId === d.id ? 'border-white/20' : 'border-border/70 bg-white/45'}`}>
+                <div className={`mx-2 mb-2 rounded-md border px-2.5 py-2.5 ${dropDayId === d.id ? 'border-white/25 bg-white/10' : 'border-border/80 bg-surface shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]'}`}>
+                  <div className={`mb-1.5 flex items-center justify-between text-[9.5px] font-semibold tracking-[0.12em] ${dropDayId === d.id ? 'text-white/65' : 'text-text-faint'}`}>
+                    <span>当天安排</span>
+                    <span className="tracking-normal tabular-nums">{dayItems.length} 项</span>
+                  </div>
                   {dayItems.length > 0 ? (
-                    <div className="space-y-1.5">
+                    <div className="space-y-0.5">
                       {dayItems.slice(0, 4).map((activity) => (
-                        <div key={activity.id} className={`flex min-w-0 items-center gap-2 text-[11.5px] ${dropDayId === d.id ? 'text-white/88' : 'text-text-muted'}`}>
+                        <div key={activity.id} className={`flex min-w-0 items-center gap-2 rounded px-1.5 py-1 text-[11.5px] ${dropDayId === d.id ? 'text-white/88' : 'text-text-muted'}`}>
                           <span className={`w-9 shrink-0 tabular-nums ${dropDayId === d.id ? 'text-white/65' : 'text-text-faint'}`}>{activity.time}</span>
-                          <span className="truncate">{activity.title}</span>
+                          <span className="truncate font-medium">{activity.title}</span>
                         </div>
                       ))}
-                      {dayItems.length > 4 && <div className={`pl-11 text-[10.5px] ${dropDayId === d.id ? 'text-white/65' : 'text-text-faint'}`}>还有 {dayItems.length - 4} 项安排</div>}
+                      {dayItems.length > 4 && <div className={`px-1.5 pt-0.5 pl-11 text-[10.5px] ${dropDayId === d.id ? 'text-white/65' : 'text-text-faint'}`}>还有 {dayItems.length - 4} 项安排</div>}
                     </div>
                   ) : (
-                    <div className={`text-[11.5px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>当天还没有安排。</div>
+                    <div className={`px-1.5 py-1 text-[11.5px] ${dropDayId === d.id ? 'text-white/75' : 'text-text-faint'}`}>当天还没有安排。</div>
                   )}
-                  <div className={`mt-2.5 rounded-md border border-dashed px-2.5 py-2 text-[11px] font-medium ${dropDayId === d.id ? 'border-white/40 bg-white/10 text-white' : 'border-accent/35 bg-accent-soft/55 text-accent-hover'}`}>
+                  <div className={`mt-2 rounded border border-dashed px-2.5 py-1.5 text-[10.5px] font-medium ${dropDayId === d.id ? 'border-white/40 bg-white/10 text-white' : 'border-accent/35 bg-accent-soft/55 text-accent-hover'}`}>
                     拖到这里安排 · 建议 {nextActivityTime(trip, d.id)}
                   </div>
                 </div>
