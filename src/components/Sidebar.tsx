@@ -495,10 +495,6 @@ export default function Sidebar() {
               </div>
               {expanded && (
                 <div className={`mx-2 mb-2 rounded-md border px-2.5 py-2.5 ${dropDayId === d.id ? 'border-white/25 bg-white/10' : 'border-border/80 bg-surface shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]'}`}>
-                  <div className={`mb-1.5 flex items-center justify-between text-[9.5px] font-semibold tracking-[0.12em] ${dropDayId === d.id ? 'text-white/65' : 'text-text-faint'}`}>
-                    <span>当天安排</span>
-                    <span className="tracking-normal tabular-nums">{dayItems.length} 项</span>
-                  </div>
                   {dayItems.length > 0 ? (
                     <div className="space-y-0.5">
                       {dayItems.slice(0, 4).map((activity) => (
