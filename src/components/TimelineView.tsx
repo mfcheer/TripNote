@@ -201,7 +201,7 @@ function DayOverview({ items, scheduleWarningCount, compact = false }: { items: 
 }
 
 // 预算抽屉：把高频的预算判断留在行程上下文中，明细按需展开，不额外打断排程。
-function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => void }) {
+export function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => void }) {
   const { setBudget, focusActivity } = useTripStore()
   const [editingBudget, setEditingBudget] = useState(false)
   const [budgetDraft, setBudgetDraft] = useState(String(trip.totalBudget))

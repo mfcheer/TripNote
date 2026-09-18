@@ -4,7 +4,7 @@ import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripS
 import { CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, SettingsIcon } from './Icons'
 import { CATEGORY_META, type WishPlace } from '../types'
 import MapView from './MapView'
-import TimelineView from './TimelineView'
+import TimelineView, { BudgetDrawer } from './TimelineView'
 import { useToastStore } from './toastStore'
 import ModalShell from './OverlayShell'
 import SettingsView from './SettingsView'
@@ -19,13 +19,12 @@ function dayCost(trip: ReturnType<typeof useActiveTrip>, dayId: string) {
   return activitiesByDay(trip, dayId).reduce((sum, activity) => sum + activity.costs.reduce((subtotal, cost) => subtotal + cost.amount, 0), 0)
 }
 
-function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, onScheduleSuccess }: { onStartMapPick: () => void; recentlyScheduledPlaceId: string | null; onScheduleSuccess: (activityId: string, placeId: string) => void }) {
+function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPlaceId, onSelectWishPlace, onScheduleSuccess }: { onStartMapPick: () => void; recentlyScheduledPlaceId: string | null; selectedWishPlaceId: string | null; onSelectWishPlace: (placeId: string | null) => void; onScheduleSuccess: (activityId: string, placeId: string) => void }) {
   const trip = useActiveTrip()
   const { addWishPlace, scheduleWishPlace, amapWebServiceKey } = useTripStore()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeoResult[]>([])
   const [loading, setLoading] = useState(false)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
   const activeDayId = useTripStore((state) => state.activeDayId)
 
   useEffect(() => {
@@ -69,7 +68,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, onScheduleSucc
       return
     }
     const id = addWishPlace({ title, category: 'sight', location: result.label, geo: { lat: result.lat, lng: result.lng } })
-    setSelectedId(id)
+    onSelectWishPlace(id)
     setQuery('')
     setResults([])
     useToastStore.getState().show(`已加入想去清单：${title}`)
@@ -79,7 +78,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, onScheduleSucc
     const title = query.trim()
     if (!title) return
     const id = addWishPlace({ title, category: 'sight' })
-    setSelectedId(id)
+    onSelectWishPlace(id)
     setQuery('')
     useToastStore.getState().show(`已加入想去清单：${title}`)
   }
@@ -104,13 +103,13 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, onScheduleSucc
   function dragStart(event: NativeDragEvent<HTMLElement>, place: WishPlace) {
     event.dataTransfer.effectAllowed = 'copy'
     event.dataTransfer.setData(WISH_DRAG_TYPE, place.id)
-    setSelectedId(place.id)
+    onSelectWishPlace(place.id)
   }
 
   function renderPlace(place: WishPlace, scheduled = false) {
     const meta = CATEGORY_META[place.category]
     const Icon = CATEGORY_ICONS[place.category]
-    const selected = selectedId === place.id
+    const selected = selectedWishPlaceId === place.id
     return <div
       key={place.id}
       draggable
@@ -118,7 +117,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, onScheduleSucc
       className={`group flex items-center gap-2 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${selected ? 'bg-action-soft/45' : 'hover:bg-surface/70'} ${scheduled ? 'bg-surface/25' : ''} ${recentlyScheduledPlaceId === place.id ? 'wish-place-complete' : ''} cursor-grab active:cursor-grabbing`}
     >
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ background: meta.soft, color: meta.color }}><Icon size={14} /></span>
-      <button onClick={() => setSelectedId(selected ? null : place.id)} className="min-w-0 flex-1 text-left">
+      <button onClick={() => onSelectWishPlace(selected ? null : place.id)} className="min-w-0 flex-1 text-left">
         <span className="block truncate text-[12.5px] font-medium text-text">{place.title}</span>
         <span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{place.location || '未补充位置'}</span>
       </button>
@@ -158,21 +157,32 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, onScheduleSucc
 
 function DayRail() {
   const trip = useActiveTrip()
-  const { activeDayId, setActiveDay, addDay, copyDay } = useTripStore()
+  const { activeDayId, setActiveDay, addDay, copyDay, moveDay } = useTripStore()
+  const [draggingDayId, setDraggingDayId] = useState<string | null>(null)
+
+  function moveDayTo(dayId: string, targetDayId: string) {
+    const fromIndex = trip.days.findIndex((day) => day.id === dayId)
+    const toIndex = trip.days.findIndex((day) => day.id === targetDayId)
+    if (fromIndex < 0 || toIndex < 0 || fromIndex === toIndex) return
+    const direction = fromIndex < toIndex ? 1 : -1
+    for (let index = 0; index < Math.abs(toIndex - fromIndex); index++) moveDay(dayId, direction)
+  }
+
   return <footer className="shrink-0 border-t border-border/80 bg-white/96 px-4 py-3">
-    <div className="mb-2 flex items-center justify-between px-1"><span className="text-[11.5px] font-semibold text-text">行程日期</span><span className="text-[10.5px] text-text-faint">选择一天后在中间编辑</span></div>
-    <div className="grid grid-cols-[repeat(auto-fit,minmax(148px,1fr))] gap-2">
+    <div className="mb-2 flex items-center justify-between px-1"><span className="text-[11.5px] font-semibold text-text">行程日期</span><span className="text-[10.5px] text-text-faint">拖动调整顺序</span></div>
+    <div className="flex gap-2 overflow-x-auto pb-1 [scrollbar-width:thin]">
       {trip.days.map((day) => {
         const active = activeDayId === day.id
         const items = activitiesByDay(trip, day.id)
         const cost = dayCost(trip, day.id)
-        return <button key={day.id} onClick={() => setActiveDay(day.id)} className={`min-w-0 rounded-lg border px-3 py-2.5 text-left transition-colors ${active ? 'border-action/45 bg-action-soft/50' : 'border-border/80 bg-white hover:border-accent/40'}`}>
+        const isDragTarget = draggingDayId !== null && draggingDayId !== day.id
+        return <button key={day.id} draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-tripnote-day-id', day.id); setDraggingDayId(day.id) }} onDragEnd={() => setDraggingDayId(null)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const sourceId = event.dataTransfer.getData('application/x-tripnote-day-id'); if (sourceId) moveDayTo(sourceId, day.id); setDraggingDayId(null) }} onClick={() => setActiveDay(day.id)} className={`w-[178px] shrink-0 rounded-lg border px-3 py-2.5 text-left transition-[border-color,background-color,transform] ${active ? 'border-action/45 bg-action-soft/50' : 'border-border/80 bg-white hover:border-accent/40'} ${isDragTarget ? 'border-dashed border-accent/55 bg-accent-soft/35' : ''} ${draggingDayId === day.id ? 'scale-[0.98] opacity-55' : 'cursor-grab active:cursor-grabbing'}`}>
           <span className="flex items-center justify-between gap-1"><span className="text-[11.5px] font-semibold text-text">{day.label} · {day.place || '待定'}</span><span className="text-[10px] text-text-faint">{items.length} 项</span></span>
           <span className="mt-1 block text-[10.5px] text-text-muted">{displayDate(day.date)}</span>
           <span className="mt-1 block truncate text-[10.5px] text-text-faint">{items.slice(0, 2).map((item) => item.title).join(' · ') || '尚未安排'}{cost > 0 ? ` · ¥${cost.toLocaleString()}` : ''}</span>
         </button>
       })}
-      <button onClick={() => addDay(trip.days.at(-1)?.id)} className="flex min-h-[76px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface/45 text-[11px] text-text-muted hover:border-accent/50 hover:text-accent"><PlusIcon size={15} /><span className="mt-1">添加一天</span></button>
+      <button onClick={() => addDay(trip.days.at(-1)?.id)} className="flex min-h-[76px] w-[112px] shrink-0 flex-col items-center justify-center rounded-lg border border-dashed border-border bg-surface/45 text-[11px] text-text-muted hover:border-accent/50 hover:text-accent"><PlusIcon size={15} /><span className="mt-1">添加一天</span></button>
     </div>
     {trip.days.length > 0 && <button onClick={() => copyDay(activeDayId)} className="mt-2 inline-flex items-center gap-1 rounded px-1.5 py-1 text-[10.5px] text-text-faint hover:bg-surface hover:text-text-muted">复制当前天</button>}
   </footer>
@@ -185,10 +195,12 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
   const [tripMenuOpen, setTripMenuOpen] = useState(false)
   const [createTripOpen, setCreateTripOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const [mapPickRequest, setMapPickRequest] = useState(0)
   const [isWishDropTarget, setIsWishDropTarget] = useState(false)
   const [introducedActivityId, setIntroducedActivityId] = useState<string | null>(null)
   const [recentlyScheduledPlaceId, setRecentlyScheduledPlaceId] = useState<string | null>(null)
+  const [selectedWishPlaceId, setSelectedWishPlaceId] = useState<string | null>(null)
   const today = new Date().toISOString().slice(0, 10)
   const [newTripName, setNewTripName] = useState('')
   const [newTripDestination, setNewTripDestination] = useState('')
@@ -205,6 +217,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
 
   useEffect(() => localStorage.setItem('tripnote-workspace-library-width-v1', String(Math.round(libraryWidth))), [libraryWidth])
   useEffect(() => localStorage.setItem('tripnote-workspace-map-width-v1', String(Math.round(mapWidth))), [mapWidth])
+  useEffect(() => setSelectedWishPlaceId(null), [activeDayId])
   useEffect(() => {
     if (!introducedActivityId && !recentlyScheduledPlaceId) return
     const timer = window.setTimeout(() => {
@@ -266,6 +279,8 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
     setRecentlyScheduledPlaceId(placeId)
   }
 
+  const selectedWishPlace = trip.wishPlaces.find((place) => place.id === selectedWishPlaceId) ?? null
+
   function submitNewTrip() {
     if (newTripEnd < newTripStart) {
       useToastStore.getState().show('返程日期不能早于出发日期')
@@ -296,20 +311,21 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
         <button onClick={onOpenFullMap} className="hidden items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] text-text-muted hover:bg-surface lg:flex"><MapIcon size={13} /> 全程地图</button>
         <button onClick={() => setSettingsOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-surface" title="数据与设置"><SettingsIcon size={15} /></button>
         <button onClick={onExport} disabled={exporting} className="rounded-md border border-border bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-text-muted hover:border-accent/40 disabled:opacity-60">{exporting ? '生成中…' : '导出行程卡片'}</button>
-        <span className="hidden rounded-md bg-surface px-2 py-1 text-[10.5px] text-text-faint xl:inline">预算 ¥{totalCost.toLocaleString()}{trip.totalBudget ? ` / ¥${trip.totalBudget.toLocaleString()}` : ''}</span>
+        <button onClick={() => setBudgetDrawerOpen(true)} className="inline-flex rounded-md bg-surface px-2 py-1 text-[10.5px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent-hover" title="查看并设置旅行总预算">预算 ¥{totalCost.toLocaleString()}{trip.totalBudget ? ` / ¥${trip.totalBudget.toLocaleString()}` : ''}</button>
       </div>
     </header>
     <div className="flex min-h-0 flex-1">
-      <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} onScheduleSuccess={handleScheduleSuccess} />
+      <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} selectedWishPlaceId={selectedWishPlaceId} onSelectWishPlace={setSelectedWishPlaceId} onScheduleSuccess={handleScheduleSuccess} />
       <div role="separator" aria-label="调整想去清单宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group -ml-1 flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
       <main onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto bg-white/56 transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
         {isWishDropTarget && <div className="pointer-events-none sticky top-3 z-20 mx-3 flex items-center justify-center rounded-lg border border-dashed border-action/55 bg-white/88 px-3 py-2 text-[12px] font-medium text-action-hover shadow-[0_4px_14px_rgba(175,105,89,0.10)]">松开即可安排到 {trip.days.find((day) => day.id === activeDayId)?.label ?? '当前天'}</div>}
         <TimelineView workspace hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
       <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
-      <aside className="min-w-[360px] shrink-0 border-l border-border/80" style={{ width: 'var(--workspace-map-width)' }}><MapView key={activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} /></aside>
+      <aside className="min-w-[360px] shrink-0 border-l border-border/80" style={{ width: 'var(--workspace-map-width)' }}><MapView key={activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} /></aside>
     </div>
     <DayRail />
+    {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     {createTripOpen && <ModalShell title="创建新旅行" description="先确定目的地和日期，之后在想去清单慢慢补齐安排。" onClose={() => setCreateTripOpen(false)} size="md" footer={<><button onClick={() => setCreateTripOpen(false)} className="rounded-md px-3 py-2 text-[12px] text-text-muted hover:bg-surface">取消</button><button onClick={submitNewTrip} className="rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white hover:bg-action-hover">创建旅行</button></>}>
       <div className="grid gap-3"><label className="text-[12px] font-medium text-text-muted">旅行名称 <span className="font-normal text-text-faint">（可选）</span><input value={newTripName} onChange={(event) => setNewTripName(event.target.value)} placeholder="例如：日本关西之旅" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">主要目的地<input value={newTripDestination} onChange={(event) => setNewTripDestination(event.target.value)} placeholder="例如：大阪、京都、奈良" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><div className="grid grid-cols-2 gap-3"><label className="text-[12px] font-medium text-text-muted">出发日期<input type="date" value={newTripStart} onChange={(event) => { setNewTripStart(event.target.value); if (newTripEnd < event.target.value) setNewTripEnd(event.target.value) }} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">返程日期<input type="date" min={newTripStart} value={newTripEnd} onChange={(event) => setNewTripEnd(event.target.value)} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label></div></div>
     </ModalShell>}

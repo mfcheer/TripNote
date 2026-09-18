@@ -162,12 +162,14 @@ export default function MapView({
   highlightWishPlace,
   compact = false,
   mapPickRequest = 0,
+  wishOverview = false,
 }: {
   initialDayId?: string
   onOpenActivity?: (activityId: string) => void
   highlightWishPlace?: WishPlace | null
   compact?: boolean
   mapPickRequest?: number
+  wishOverview?: boolean
 }) {
   const { setActiveDay, amapJsKey, amapWebServiceKey, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
@@ -184,9 +186,13 @@ export default function MapView({
   const pickRequestRef = useRef(0)
 
   const visibleDays = filter === 'all' ? trip.days : trip.days.filter((d) => d.id === filter)
+  const wishPlacesWithGeo = useMemo(() => trip.wishPlaces.filter((place) => place.geo), [trip.wishPlaces])
+  const scheduledWishIds = useMemo(() => new Set(trip.activities.filter((activity) => activity.sourceWishId).map((activity) => activity.sourceWishId)), [trip.activities])
   const routeRequestKey = visibleDays.flatMap((day) => activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => `${activity.id}@${activity.geo!.lat},${activity.geo!.lng}`)).join('|')
 
-  const allPoints = [
+  const allPoints = wishOverview
+    ? wishPlacesWithGeo.map((place) => [place.geo!.lat, place.geo!.lng] as [number, number])
+    : [
     ...visibleDays.flatMap((d) =>
     activitiesByDay(trip, d.id)
       .filter((a) => a.geo)
@@ -216,6 +222,9 @@ export default function MapView({
   useEffect(() => setAmapUnavailable(false), [amapJsKey])
   useEffect(() => setRouteFallback(false), [mapRouteMode, routeRequestKey])
   useEffect(() => setOpenCluster(null), [filter])
+  useEffect(() => {
+    setFilter(wishOverview ? 'all' : initialDayId === 'all' || trip.days.some((day) => day.id === initialDayId) ? initialDayId : 'all')
+  }, [initialDayId, trip.days, wishOverview])
   useEffect(() => {
     if (mapPickRequest > 0) setIsPicking(true)
   }, [mapPickRequest])
@@ -285,12 +294,12 @@ export default function MapView({
       weight: 3,
     })),
   ], [visibleDays, trip, crossDaySegments, mapRouteMode])
-  const amapMarkers = useMemo<AmapMarker[]>(() => [...markerGroups.map((group) => {
+  const amapMarkers = useMemo<AmapMarker[]>(() => [...(!wishOverview ? markerGroups : []).map((group) => {
     const single = group.items[0]
     return group.items.length === 1
       ? { id: single.activity.id, point: group.point, label: single.activity.title, color: single.color, simple: filter === 'all', wide: filter !== 'all', onClick: () => focusMapActivity(single.activity.id) }
       : { id: `cluster-${group.id}`, point: group.point, label: String(group.items.length), onClick: () => setOpenCluster(group) }
-  }), ...(filter === 'all' ? trip.days.flatMap((day, index) => {
+  }), ...(!wishOverview && filter === 'all' ? trip.days.flatMap((day, index) => {
     const firstActivity = activitiesByDay(trip, day.id).find((activity) => activity.geo)
     if (!firstActivity?.geo) return []
     return [{
@@ -301,14 +310,22 @@ export default function MapView({
       wide: true,
       onClick: () => focusMapActivity(firstActivity.id),
     }]
-  }) : []), ...(highlightWishPlace?.geo ? [{
+  }) : []), ...(wishOverview ? wishPlacesWithGeo.map((place) => ({
+    id: `wish-overview-${place.id}`,
+    point: place.geo!,
+    color: scheduledWishIds.has(place.id) ? '#597988' : '#af6959',
+    simple: place.id !== highlightWishPlace?.id,
+    wide: place.id === highlightWishPlace?.id,
+    active: place.id === highlightWishPlace?.id,
+    label: place.id === highlightWishPlace?.id ? place.title : undefined,
+  })) : []), ...(!wishOverview && highlightWishPlace?.geo ? [{
     id: `selected-wish-${highlightWishPlace.id}`,
     point: highlightWishPlace.geo,
     label: highlightWishPlace.title,
     color: '#af6959',
     wide: true,
     active: true,
-  }] : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, highlightWishPlace, markerGroups, pickedPoint, trip])
+  }] : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, highlightWishPlace, markerGroups, pickedPoint, scheduledWishIds, trip, wishOverview, wishPlacesWithGeo])
 
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
@@ -344,6 +361,8 @@ export default function MapView({
       >
         {isPicking ? '取消选点' : <><PlusIcon size={14} /> 选点收藏</>}
       </button>}
+
+      {wishOverview && <div className="absolute top-3 left-3 z-[550] rounded-md border border-white/80 bg-white/94 px-2.5 py-1.5 text-[10.5px] text-text-muted shadow-[0_4px_14px_rgba(32,40,46,0.10)] backdrop-blur"><span className="font-medium text-text">地点总览</span><span className="mx-1.5 text-border">|</span><span className="text-action-hover">● 待安排</span><span className="ml-1.5 text-accent-hover">● 已安排</span></div>}
 
       {isPicking && !pickedPoint && (
         <div className="absolute top-[96px] left-3 z-[550] rounded-lg border border-accent/30 bg-white/95 px-3 py-2 text-[12px] text-text-muted shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:top-[64px] md:left-4">
@@ -383,7 +402,7 @@ export default function MapView({
             />
           ))
         })}
-        {markerGroups.map((group) => group.items.length === 1 ? (() => {
+        {!wishOverview && markerGroups.map((group) => group.items.length === 1 ? (() => {
           const { activity, day, color } = group.items[0]
           const Icon = CATEGORY_ICONS[activity.category]
           return <Marker key={activity.id} position={[group.point.lat, group.point.lng]} icon={filter === 'all' ? dotMarkerIcon(color) : markerIcon(color, activity.title)} eventHandlers={{ click: () => focusMapActivity(activity.id) }}>
@@ -394,7 +413,7 @@ export default function MapView({
             <Popup><div className="min-w-[180px]"><div className="mb-1.5 text-[12px] font-semibold">{group.items.length} 个重叠地点</div>{group.items.map(({ activity, day }) => <button key={activity.id} onClick={() => focusMapActivity(activity.id)} className="block w-full truncate rounded px-1 py-1 text-left text-[12px] hover:bg-surface">{day.label} · {activity.title}</button>)}</div></Popup>
           </Marker>
         ))}
-        {filter === 'all' && trip.days.map((day, index) => {
+        {!wishOverview && filter === 'all' && trip.days.map((day, index) => {
           const firstActivity = activitiesByDay(trip, day.id).find((activity) => activity.geo)
           if (!firstActivity?.geo) return null
           const label = day.place ? `${day.label} · ${day.place}` : day.label
@@ -405,7 +424,14 @@ export default function MapView({
             eventHandlers={{ click: () => focusMapActivity(firstActivity.id) }}
           />
         })}
-        {highlightWishPlace?.geo && <Marker
+        {wishOverview && wishPlacesWithGeo.map((place) => {
+          const scheduled = scheduledWishIds.has(place.id)
+          const selected = place.id === highlightWishPlace?.id
+          return <Marker key={`wish-overview-${place.id}`} position={[place.geo!.lat, place.geo!.lng]} icon={selected ? selectedWishIcon(place.title) : dotMarkerIcon(scheduled ? '#597988' : '#af6959')} zIndexOffset={selected ? 1000 : 0}>
+            <Popup><div className="min-w-[150px]"><div className="font-medium" style={{ color: scheduled ? '#405f6d' : '#8d4e42' }}>{scheduled ? '已安排' : '待安排'} · {place.title}</div><div className="mt-1 text-[12px] text-text-muted">{place.location || '未补充位置'}</div></div></Popup>
+          </Marker>
+        })}
+        {!wishOverview && highlightWishPlace?.geo && <Marker
           position={[highlightWishPlace.geo.lat, highlightWishPlace.geo.lng]}
           icon={selectedWishIcon(highlightWishPlace.title)}
           zIndexOffset={1000}
