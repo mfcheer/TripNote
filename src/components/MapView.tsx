@@ -269,7 +269,18 @@ export default function MapView({
     return group.items.length === 1
       ? { id: single.activity.id, point: group.point, label: single.activity.title, color: single.color, simple: filter === 'all', wide: filter !== 'all', onClick: () => focusMapActivity(single.activity.id) }
       : { id: `cluster-${group.id}`, point: group.point, label: String(group.items.length), onClick: () => setOpenCluster(group) }
-  }), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, markerGroups, pickedPoint])
+  }), ...(filter === 'all' ? trip.days.flatMap((day, index) => {
+    const firstActivity = activitiesByDay(trip, day.id).find((activity) => activity.geo)
+    if (!firstActivity?.geo) return []
+    return [{
+      id: `day-label-${day.id}`,
+      point: firstActivity.geo,
+      label: day.place ? `${day.label} · ${day.place}` : day.label,
+      color: routeColor(index, trip.days.length),
+      wide: true,
+      onClick: () => focusMapActivity(firstActivity.id),
+    }]
+  }) : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, markerGroups, pickedPoint, trip])
 
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
@@ -355,6 +366,17 @@ export default function MapView({
             <Popup><div className="min-w-[180px]"><div className="mb-1.5 text-[12px] font-semibold">{group.items.length} 个重叠地点</div>{group.items.map(({ activity, day }) => <button key={activity.id} onClick={() => focusMapActivity(activity.id)} className="block w-full truncate rounded px-1 py-1 text-left text-[12px] hover:bg-surface">{day.label} · {activity.title}</button>)}</div></Popup>
           </Marker>
         ))}
+        {filter === 'all' && trip.days.map((day, index) => {
+          const firstActivity = activitiesByDay(trip, day.id).find((activity) => activity.geo)
+          if (!firstActivity?.geo) return null
+          const label = day.place ? `${day.label} · ${day.place}` : day.label
+          return <Marker
+            key={`day-label-${day.id}`}
+            position={[firstActivity.geo.lat, firstActivity.geo.lng]}
+            icon={markerIcon(routeColor(index, trip.days.length), label)}
+            eventHandlers={{ click: () => focusMapActivity(firstActivity.id) }}
+          />
+        })}
         {pickedPoint && <Marker position={[pickedPoint.lat, pickedPoint.lng]} icon={pickedPointIcon} interactive={false} />}
       </MapContainer>
       )}
