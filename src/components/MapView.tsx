@@ -161,11 +161,13 @@ export default function MapView({
   onOpenActivity,
   highlightWishPlace,
   compact = false,
+  mapPickRequest = 0,
 }: {
   initialDayId?: string
   onOpenActivity?: (activityId: string) => void
   highlightWishPlace?: WishPlace | null
   compact?: boolean
+  mapPickRequest?: number
 }) {
   const { setActiveDay, amapJsKey, amapWebServiceKey, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
@@ -214,6 +216,9 @@ export default function MapView({
   useEffect(() => setAmapUnavailable(false), [amapJsKey])
   useEffect(() => setRouteFallback(false), [mapRouteMode, routeRequestKey])
   useEffect(() => setOpenCluster(null), [filter])
+  useEffect(() => {
+    if (mapPickRequest > 0) setIsPicking(true)
+  }, [mapPickRequest])
   const handleAmapError = useCallback(() => setAmapUnavailable(true), [])
   const handleRouteFallback = useCallback(() => setRouteFallback(true), [])
   const handleMapPick = useCallback(async (point: GeoPoint) => {
@@ -331,14 +336,14 @@ export default function MapView({
         </div>
       </div>}
 
-      <button
+      {!compact && <button
         onClick={() => isPicking ? stopPicking() : setIsPicking(true)}
         className={`absolute right-3 z-[550] flex items-center gap-1.5 rounded-md border px-3 py-2 text-[12px] font-medium shadow-[0_5px_18px_rgba(32,40,46,0.12)] transition-colors ${compact ? 'top-3' : 'top-[52px] md:top-4'} md:right-4 ${
           isPicking ? 'border-action bg-action text-white' : 'border-white/80 bg-white/94 text-text-muted backdrop-blur-md hover:text-text'
         }`}
       >
         {isPicking ? '取消选点' : <><PlusIcon size={14} /> 选点收藏</>}
-      </button>
+      </button>}
 
       {isPicking && !pickedPoint && (
         <div className="absolute top-[96px] left-3 z-[550] rounded-lg border border-accent/30 bg-white/95 px-3 py-2 text-[12px] text-text-muted shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:top-[64px] md:left-4">
@@ -414,7 +419,7 @@ export default function MapView({
           icon={<MapIcon size={18} />}
           title="地图上还没有地点"
           description="为行程补充已定位地点，或直接在地图上选点收藏。"
-          action={<button onClick={() => setIsPicking(true)} className="inline-flex items-center gap-1.5 rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white hover:bg-action-hover"><PlusIcon size={13} /> 选点收藏</button>}
+          action={!compact ? <button onClick={() => setIsPicking(true)} className="inline-flex items-center gap-1.5 rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white hover:bg-action-hover"><PlusIcon size={13} /> 选点收藏</button> : undefined}
           compact
           className="absolute left-1/2 top-1/2 z-[550] w-[min(340px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2 bg-white/94 shadow-[0_12px_32px_rgba(32,40,46,0.12)] backdrop-blur"
         />
