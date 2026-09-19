@@ -605,7 +605,7 @@ export default function WishlistView() {
       <section className="min-w-0 flex-1 overflow-y-auto">
         <div className="mr-auto max-w-[1000px] px-4 py-4 sm:px-7 sm:py-7 lg:px-10">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 sm:mb-5">
-            <h1 className="text-[20px] font-semibold tracking-[-0.02em]">想去</h1>
+            <h1 className="text-[20px] font-semibold tracking-[-0.02em]">待安排</h1>
             <p className="text-[12px] text-text-muted">
               待安排 {trip.wishPlaces.length - scheduledCount} · 已安排 {scheduledCount}
             </p>
@@ -727,13 +727,21 @@ export default function WishlistView() {
                           active={activeId === place.id}
                           highlighted={hoveredId === place.id}
                           scheduledItems={scheduledItems}
-                          onActivate={() => setActiveId(place.id)}
+                          onActivate={() => {
+                            setActiveId(place.id)
+                            // 手机端没有并列地图可以用来响应“选中”，因此点击整张地点卡片即进入安排流程。
+                            if (window.matchMedia('(max-width: 767px)').matches) setSchedulingPlaceId(place.id)
+                          }}
                           onHoverChange={(hovered) => setHoveredId(hovered ? place.id : null)}
                           onRemove={() => removePlace(place.id, place.title, scheduledItems.length > 0)}
                           onFocus={focusActivity}
                           onCancel={(activityId) => cancelSchedule(place, activityId)}
                           onSchedule={() => setSchedulingPlaceId(place.id)}
                           onCardDragStart={(event) => {
+                            if (window.matchMedia('(max-width: 767px)').matches) {
+                              event.preventDefault()
+                              return
+                            }
                             const origin = event.target as HTMLElement
                             if (origin.closest('button, input, select, textarea, a')) {
                               event.preventDefault()

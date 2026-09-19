@@ -16,7 +16,7 @@ import { CalendarIcon, DownloadIcon, HeartIcon, MapIcon, PinIcon } from './compo
 import { flushScheduledBackup, scheduleLocalBackup, type BackupData } from './utils/localBackup'
 
 const PLAN_TABS: { key: PlanTab; label: string; Icon: typeof CalendarIcon }[] = [
-  { key: 'places', label: '想去', Icon: HeartIcon },
+  { key: 'places', label: '待安排', Icon: HeartIcon },
   { key: 'arrange', label: '编排', Icon: PinIcon },
   { key: 'timeline', label: '行程', Icon: CalendarIcon },
 ]
