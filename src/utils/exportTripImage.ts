@@ -132,7 +132,7 @@ export async function exportTripImage(trip: Trip) {
     const image = new Image()
     image.onload = () => resolve(image)
     image.onerror = () => resolve(null)
-    image.src = `${import.meta.env.BASE_URL}northward-icon-128.png`
+    image.src = `${import.meta.env.BASE_URL}northward-icon-round.png`
   })
 
   ctx.fillStyle = PAPER
