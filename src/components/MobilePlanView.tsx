@@ -1,8 +1,8 @@
 import { useMemo, useRef, useState } from 'react'
 import { activitiesByDay, displayDate, useActiveTrip, useTripStore } from '../store'
-import { HeartIcon, MapIcon, PlusIcon } from './Icons'
+import { HeartIcon, MapIcon, PlusIcon, WalletIcon } from './Icons'
 import MapView from './MapView'
-import TimelineView from './TimelineView'
+import TimelineView, { BudgetDrawer } from './TimelineView'
 
 function dayDate(day: { date: string }) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day.date)) return day.date === '待定' ? '待定' : day.date
@@ -14,6 +14,7 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
   const trip = useActiveTrip()
   const { activeDayId, setActiveDay, selectActivity, setPlanTab } = useTripStore()
   const [quickAddRequest, setQuickAddRequest] = useState(0)
+  const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const railRef = useRef<HTMLDivElement>(null)
   const activeDay = trip.days.find((day) => day.id === activeDayId) ?? trip.days[0]
   const items = useMemo(() => activeDay ? activitiesByDay(trip, activeDay.id) : [], [activeDay, trip.activities])
@@ -21,6 +22,10 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
     const ids = [...(place.scheduledActivityIds ?? []), ...(place.scheduledActivityId ? [place.scheduledActivityId] : [])]
     return !ids.some((id) => trip.activities.some((activity) => activity.id === id))
   }).length
+  const totalCost = trip.activities.reduce(
+    (sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0),
+    0,
+  )
 
   function selectDay(id: string) {
     setActiveDay(id)
@@ -56,6 +61,13 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
         <div className="pointer-events-none absolute top-3 left-3 z-[600] rounded-md border border-white/80 bg-white/92 px-2.5 py-1.5 text-[11.5px] font-semibold text-text shadow-[0_3px_12px_rgba(32,40,46,0.11)] backdrop-blur">
           {activeDay.label}{activeDay.place ? ` · ${activeDay.place}` : ''} · {items.length} 项
         </div>
+        <button
+          onClick={() => setBudgetDrawerOpen(true)}
+          className="absolute bottom-3 left-3 z-[600] inline-flex min-h-9 items-center gap-1.5 rounded-md border border-white/85 bg-white/94 px-2.5 py-1.5 text-[11px] font-medium text-text-muted shadow-[0_3px_12px_rgba(32,40,46,0.12)] backdrop-blur active:bg-surface"
+          title="查看并设置旅行总预算"
+        >
+          <WalletIcon size={13} /> 预算 ¥{totalCost.toLocaleString()}{trip.totalBudget ? ` / ¥${trip.totalBudget.toLocaleString()}` : ''}
+        </button>
         <button onClick={onOpenFullMap} className="absolute right-3 bottom-3 z-[600] inline-flex items-center gap-1.5 rounded-md border border-white/85 bg-white/94 px-2.5 py-1.5 text-[11px] font-medium text-text-muted shadow-[0_3px_12px_rgba(32,40,46,0.12)] backdrop-blur active:bg-surface" title="查看完整行程地图">
           <MapIcon size={13} /> 全程地图
         </button>
@@ -73,6 +85,7 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
           <PlusIcon size={18} /> 添加安排
         </button>
       </nav>
+      {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     </div>
   )
 }
