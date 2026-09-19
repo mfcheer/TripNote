@@ -318,24 +318,39 @@ function SortableWishCard({
       }`}
       title="拖动卡片可调整顺序；拖到左侧日期可快速安排"
     >
-      <div className="flex items-start gap-1.5">
+      <div className="flex min-h-7 items-center gap-1.5">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ background: meta.soft, color: meta.color }}>
           <Icon size={15} />
         </div>
         <div className="min-w-0 flex-1 rounded">
           <div className="truncate text-[14px] font-semibold leading-[1.35] tracking-[-0.01em]">{place.title}</div>
           {place.location && <div className="truncate text-[12px] leading-[1.4] text-text-muted">{place.location}</div>}
-          {place.note && <div className="truncate text-[11.5px] leading-[1.4] text-text-faint">{place.note}</div>}
+          {place.note && <div className="hidden truncate text-[11.5px] leading-[1.4] text-text-faint md:block">{place.note}</div>}
         </div>
         <button
-          onClick={onRemove}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded text-text-faint opacity-100 transition-opacity hover:text-red-500 focus:opacity-100 md:h-auto md:w-auto md:p-1 md:opacity-0 md:group-hover:opacity-100"
+          onClick={(event) => {
+            event.stopPropagation()
+            onSchedule()
+          }}
+          className={`shrink-0 rounded-full px-2 py-1 text-[10.5px] font-semibold leading-none md:hidden ${
+            scheduledItems.length > 0 ? 'bg-surface-2 text-text-muted' : 'bg-action-soft text-action'
+          }`}
+          aria-label={scheduledItems.length > 0 ? `查看并追加安排「${place.title}」` : `安排「${place.title}」`}
+        >
+          {scheduledItems.length > 1 ? `已排 ${scheduledItems.length} 天` : scheduledItems.length === 1 ? scheduledItems[0].dayLabel : '待安排'}
+        </button>
+        <button
+          onClick={(event) => {
+            event.stopPropagation()
+            onRemove()
+          }}
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-text-faint opacity-100 transition-opacity hover:text-red-500 focus:opacity-100 md:h-auto md:w-auto md:p-1 md:opacity-0 md:group-hover:opacity-100"
           title={scheduledItems.length > 0 ? '移出清单，已排行程会保留' : '移出清单'}
         >
           <TrashIcon size={14} />
         </button>
       </div>
-      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-[34px] pt-0.5">
+      <div className="mt-1.5 hidden flex-wrap items-center gap-1.5 pl-[34px] pt-0.5 md:flex">
         {scheduledItems.length > 0 ? (
           <>
             <span className="mr-auto text-[11.5px] font-medium text-text-muted">已安排 {scheduledItems.length} 次</span>
