@@ -174,7 +174,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   </aside>
 }
 
-function DayRail() {
+function DayRail({ showAllDays, onShowAllDays, onSelectDay }: { showAllDays: boolean; onShowAllDays: () => void; onSelectDay: (dayId: string) => void }) {
   const trip = useActiveTrip()
   const { activeDayId, setActiveDay, addDay, copyDay, moveDay, scheduleWishPlace, reorderActivity } = useTripStore()
   const [draggingDayId, setDraggingDayId] = useState<string | null>(null)
@@ -226,12 +226,13 @@ function DayRail() {
 
   return <footer className="shrink-0 border-t border-border/60 bg-[#fbfcfc]/92 px-4 py-2 backdrop-blur-sm">
     <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <button onClick={onShowAllDays} className={`flex h-[43px] w-[56px] shrink-0 flex-col items-center justify-center rounded-md text-[10.5px] font-medium transition-colors ${showAllDays ? 'bg-action-soft/72 text-accent-hover shadow-[0_1px_3px_rgba(120,73,60,0.06)]' : 'text-text-muted hover:bg-white hover:text-text'}`} title="查看全部日期">全部<span className="mt-0.5 text-[9.5px] font-normal text-text-faint">{trip.days.length}天</span></button>
       {trip.days.map((day) => {
-        const active = activeDayId === day.id
+        const active = !showAllDays && activeDayId === day.id
         const items = activitiesByDay(trip, day.id)
         const cost = dayCost(trip, day.id)
         const isDragTarget = dropTargetId === day.id && draggingDayId !== day.id
-        return <button key={day.id} data-workspace-day-id={day.id} draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-tripnote-day-id', day.id); setDraggingDayId(day.id) }} onDragEnd={() => { setDraggingDayId(null); setDropTargetId(null) }} onDragOver={(event) => { const kind = dragKind(event); if (kind) { event.preventDefault(); event.dataTransfer.dropEffect = kind === 'wish' ? 'copy' : 'move'; setDropTargetId(day.id) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropTargetId(null) }} onDrop={(event) => dropOnDay(event, day.id)} onClick={() => setActiveDay(day.id)} className={`w-[138px] shrink-0 rounded-md px-2.5 py-1.5 text-left transition-[background-color,transform] ${active ? 'bg-action-soft/72 text-text shadow-[0_1px_3px_rgba(120,73,60,0.06)]' : 'text-text-muted hover:bg-white'} ${isDragTarget ? 'bg-accent-soft/70 ring-1 ring-dashed ring-accent/45' : ''} ${draggingDayId === day.id ? 'scale-[0.98] opacity-55' : 'cursor-grab active:cursor-grabbing'}`}>
+        return <button key={day.id} data-workspace-day-id={day.id} draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-tripnote-day-id', day.id); setDraggingDayId(day.id) }} onDragEnd={() => { setDraggingDayId(null); setDropTargetId(null) }} onDragOver={(event) => { const kind = dragKind(event); if (kind) { event.preventDefault(); event.dataTransfer.dropEffect = kind === 'wish' ? 'copy' : 'move'; setDropTargetId(day.id) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropTargetId(null) }} onDrop={(event) => dropOnDay(event, day.id)} onClick={() => onSelectDay(day.id)} className={`w-[138px] shrink-0 rounded-md px-2.5 py-1.5 text-left transition-[background-color,transform] ${active ? 'bg-action-soft/72 text-text shadow-[0_1px_3px_rgba(120,73,60,0.06)]' : 'text-text-muted hover:bg-white'} ${isDragTarget ? 'bg-accent-soft/70 ring-1 ring-dashed ring-accent/45' : ''} ${draggingDayId === day.id ? 'scale-[0.98] opacity-55' : 'cursor-grab active:cursor-grabbing'}`}>
           <span className="flex items-center gap-1"><span className="truncate text-[11px] font-semibold">{day.label}{day.place ? ` · ${day.place}` : ''}</span><span className="ml-auto shrink-0 text-[9.5px] text-text-faint">{items.length}项</span></span>
           <span className="mt-0.5 block truncate text-[10px] text-text-faint">{displayDate(day.date)}{cost > 0 ? ` · ¥${cost.toLocaleString()}` : ''}</span>
         </button>
@@ -244,7 +245,7 @@ function DayRail() {
 
 export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { onExport: () => void; exporting: boolean; onOpenFullMap: () => void }) {
   const trip = useActiveTrip()
-  const { trips, activeTripId, switchTrip, createTrip, deleteTrip, scheduleWishPlace, activeDayId } = useTripStore()
+  const { trips, activeTripId, switchTrip, createTrip, deleteTrip, scheduleWishPlace, activeDayId, setActiveDay } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
   const totalCost = trip.activities.reduce((sum, activity) => sum + activity.costs.reduce((subtotal, cost) => subtotal + cost.amount, 0), 0)
   const [tripMenuOpen, setTripMenuOpen] = useState(false)
@@ -256,6 +257,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
   const [introducedActivityId, setIntroducedActivityId] = useState<string | null>(null)
   const [recentlyScheduledPlaceId, setRecentlyScheduledPlaceId] = useState<string | null>(null)
   const [selectedWishPlaceId, setSelectedWishPlaceId] = useState<string | null>(null)
+  const [showAllDays, setShowAllDays] = useState(false)
   const today = new Date().toISOString().slice(0, 10)
   const [newTripName, setNewTripName] = useState('')
   const [newTripDestination, setNewTripDestination] = useState('')
@@ -392,12 +394,12 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
       <div role="separator" aria-label="调整想去宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group -ml-1 flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
       <main onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto bg-white/56 transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
         {isWishDropTarget && <div className="pointer-events-none sticky top-3 z-20 mx-3 flex items-center justify-center rounded-lg border border-dashed border-action/55 bg-white/88 px-3 py-2 text-[12px] font-medium text-action-hover shadow-[0_4px_14px_rgba(175,105,89,0.10)]">松开即可安排到 {trip.days.find((day) => day.id === activeDayId)?.label ?? '当前天'}</div>}
-        <TimelineView workspace hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
+        <TimelineView workspace showAllDays={showAllDays} hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
       <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
-      <aside className="min-w-[360px] shrink-0 border-l border-border/80" style={{ width: 'var(--workspace-map-width)' }}><MapView key={activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} /></aside>
+      <aside className="min-w-[360px] shrink-0 border-l border-border/80" style={{ width: 'var(--workspace-map-width)' }}><MapView key={showAllDays ? 'all' : activeDayId} initialDayId={showAllDays ? 'all' : activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} /></aside>
     </div>
-    <DayRail />
+    <DayRail showAllDays={showAllDays} onShowAllDays={() => setShowAllDays(true)} onSelectDay={(dayId) => { setActiveDay(dayId); setShowAllDays(false) }} />
     {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     {createTripOpen && <ModalShell title="创建新旅行" description="先确定目的地和日期，之后在想去中慢慢补齐安排。" onClose={() => setCreateTripOpen(false)} size="md" footer={<><button onClick={() => setCreateTripOpen(false)} className="rounded-md px-3 py-2 text-[12px] text-text-muted hover:bg-surface">取消</button><button onClick={submitNewTrip} className="rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white hover:bg-action-hover">创建旅行</button></>}>
       <div className="grid gap-3"><label className="text-[12px] font-medium text-text-muted">旅行名称 <span className="font-normal text-text-faint">（可选）</span><input value={newTripName} onChange={(event) => setNewTripName(event.target.value)} placeholder="例如：日本关西之旅" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">主要目的地<input value={newTripDestination} onChange={(event) => setNewTripDestination(event.target.value)} placeholder="例如：大阪、京都、奈良" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><div className="grid grid-cols-2 gap-3"><label className="text-[12px] font-medium text-text-muted">出发日期<input type="date" value={newTripStart} onChange={(event) => { setNewTripStart(event.target.value); if (newTripEnd < event.target.value) setNewTripEnd(event.target.value) }} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">返程日期<input type="date" min={newTripStart} value={newTripEnd} onChange={(event) => setNewTripEnd(event.target.value)} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label></div></div>

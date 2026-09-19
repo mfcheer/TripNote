@@ -902,6 +902,7 @@ function DaySection({
   compact = false,
   hideQuickAdd = false,
   introducedActivityId = null,
+  forceExpanded = false,
 }: {
   dayId: string
   onQuickAdd: () => void
@@ -911,6 +912,7 @@ function DaySection({
   compact?: boolean
   hideQuickAdd?: boolean
   introducedActivityId?: string | null
+  forceExpanded?: boolean
 }) {
   const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
@@ -922,7 +924,7 @@ function DaySection({
   const { setNodeRef, isOver } = useDroppable({ id: dayId, data: { type: 'day', dayId } })
 
   // 展开逻辑：非当前天折叠显示摘要
-  const isActiveDay = dayId === activeDayId
+  const isActiveDay = forceExpanded || dayId === activeDayId
 
   if (!isActiveDay) {
     // 折叠摘要行也是拖拽落点，可直接把项目拖到另一天
@@ -1234,7 +1236,7 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
   )
 }
 
-export default function TimelineView({ onOpenFullMap, workspace = false, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; workspace?: boolean; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
+export default function TimelineView({ onOpenFullMap, workspace = false, showAllDays = false, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; workspace?: boolean; showAllDays?: boolean; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
   const trip = useActiveTrip()
   const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, setActiveDay, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -1390,8 +1392,8 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
                 </div>
               </div>
             )}
-            {(workspace || mobilePresentation ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} />
+            {((workspace && !showAllDays) || mobilePresentation ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={workspace && showAllDays} />
             ))}
           </div>
           {!hideQuickAdd && !mobilePresentation && <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
