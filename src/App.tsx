@@ -27,7 +27,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export default function App() {
-  const { view, planTab, setPlanTab, setView } = useTripStore()
+  const { view, planTab, setPlanTab } = useTripStore()
   const trip = useActiveTrip()
   const visiblePlanTab = planTab === 'map' || planTab === 'budget' ? 'timeline' : planTab
   const [exportingImage, setExportingImage] = useState(false)
@@ -173,26 +173,20 @@ export default function App() {
             <SettingsView canInstall={!!installPrompt} onInstall={installApp} />
           </div>
         )}
-        {view === 'plan' && visiblePlanTab !== 'timeline' && <nav className="mobile-safe-bottom flex shrink-0 border-t border-border/80 bg-white/96 px-1 pt-1 shadow-[0_-2px_10px_rgba(32,40,46,0.05)] backdrop-blur md:hidden" aria-label="主要导航">
-          {PLAN_TABS.filter(({ key }) => key !== 'arrange').map(({ key, label, Icon }) => {
-            const active = view === 'plan' && visiblePlanTab === key
-            return (
-              <button
-                key={key}
-                onClick={() => {
-                  setView('plan')
-                  setPlanTab(key)
-                }}
-                className={`relative flex min-w-0 flex-1 flex-col items-center gap-0.5 px-1 py-1.5 text-[10.5px] transition-colors ${
-                  active ? 'rounded-lg bg-surface-2/55 font-semibold text-text' : 'text-text-faint active:bg-surface-2'
-                }`}
-              >
-                {active && <span className="absolute top-0 h-0.5 w-5 rounded-full bg-action" />}
-                <Icon size={19} />
-                <span>{label}</span>
-              </button>
-            )
-          })}
+        {view === 'plan' && visiblePlanTab !== 'timeline' && <nav className="mobile-plan-dock mobile-safe-bottom shrink-0 border-t border-border/80 bg-white/96 px-3 pt-2 shadow-[0_-4px_18px_rgba(32,40,46,0.06)]" aria-label="待安排操作">
+          <button
+            onClick={() => setPlanTab('places')}
+            className="mobile-plan-dock__secondary bg-surface-2/78 font-semibold text-text"
+            aria-current="page"
+          >
+            <HeartIcon size={17} /> 待安排
+          </button>
+          <button
+            onClick={() => setPlanTab('timeline')}
+            className="mobile-plan-dock__primary"
+          >
+            <CalendarIcon size={18} /> 返回行程
+          </button>
         </nav>}
       </main>
       </div>
