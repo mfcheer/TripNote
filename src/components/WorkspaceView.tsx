@@ -185,6 +185,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
   const [recentlyScheduledPlaceId, setRecentlyScheduledPlaceId] = useState<string | null>(null)
   const [selectedWishPlaceId, setSelectedWishPlaceId] = useState<string | null>(null)
   const [showAllDays, setShowAllDays] = useState(true)
+  const [workspaceMapScope, setWorkspaceMapScope] = useState<'follow' | 'all'>('follow')
   const today = new Date().toISOString().slice(0, 10)
   const [newTripName, setNewTripName] = useState('')
   const [newTripDestination, setNewTripDestination] = useState('')
@@ -201,6 +202,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
 
   useEffect(() => localStorage.setItem('tripnote-workspace-library-width-v1', String(Math.round(libraryWidth))), [libraryWidth])
   useEffect(() => localStorage.setItem('tripnote-workspace-map-width-v1', String(Math.round(mapWidth))), [mapWidth])
+  useEffect(() => setWorkspaceMapScope('follow'), [activeTripId])
   useEffect(() => setSelectedWishPlaceId(null), [activeDayId])
   useEffect(() => {
     if (!introducedActivityId && !recentlyScheduledPlaceId) return
@@ -323,7 +325,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
         <TimelineView workspace showAllDays={showAllDays} onShowAllDays={() => setShowAllDays(true)} onFocusDay={(dayId) => { setActiveDay(dayId); setShowAllDays(false) }} hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
       <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
-      <aside className="min-w-[360px] shrink-0 border-l border-border/80" style={{ width: 'var(--workspace-map-width)' }}><MapView key={showAllDays ? 'all' : activeDayId} initialDayId={showAllDays ? 'all' : activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} /></aside>
+      <aside className="min-w-[360px] shrink-0 border-l border-border/80" style={{ width: 'var(--workspace-map-width)' }}><MapView key={showAllDays ? 'all' : activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} workspaceMapScope={workspaceMapScope} followDayId={activeDayId} onWorkspaceMapScopeChange={setWorkspaceMapScope} /></aside>
     </div>
     {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     {createTripOpen && <ModalShell title="创建新旅行" description="先确定目的地和日期，之后在想去中慢慢补齐安排。" onClose={() => setCreateTripOpen(false)} size="md" footer={<><button onClick={() => setCreateTripOpen(false)} className="rounded-md px-3 py-2 text-[12px] text-text-muted hover:bg-surface">取消</button><button onClick={submitNewTrip} className="rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white hover:bg-action-hover">创建旅行</button></>}>

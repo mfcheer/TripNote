@@ -163,6 +163,9 @@ export default function MapView({
   compact = false,
   mapPickRequest = 0,
   wishOverview = false,
+  workspaceMapScope,
+  followDayId,
+  onWorkspaceMapScopeChange,
 }: {
   initialDayId?: string
   onOpenActivity?: (activityId: string) => void
@@ -170,6 +173,9 @@ export default function MapView({
   compact?: boolean
   mapPickRequest?: number
   wishOverview?: boolean
+  workspaceMapScope?: 'follow' | 'all'
+  followDayId?: string
+  onWorkspaceMapScopeChange?: (scope: 'follow' | 'all') => void
 }) {
   const { setActiveDay, amapJsKey, amapWebServiceKey, mapDisplayProvider, placeSearchProvider, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
@@ -223,8 +229,13 @@ export default function MapView({
   useEffect(() => setRouteFallback(false), [mapRouteMode, routeRequestKey])
   useEffect(() => setOpenCluster(null), [filter])
   useEffect(() => {
-    setFilter(wishOverview ? 'all' : initialDayId === 'all' || trip.days.some((day) => day.id === initialDayId) ? initialDayId : 'all')
-  }, [initialDayId, trip.days, wishOverview])
+    if (wishOverview || workspaceMapScope === 'all') {
+      setFilter('all')
+      return
+    }
+    const preferredDayId = workspaceMapScope === 'follow' ? followDayId : initialDayId
+    setFilter(preferredDayId && trip.days.some((day) => day.id === preferredDayId) ? preferredDayId : 'all')
+  }, [followDayId, initialDayId, trip.days, wishOverview, workspaceMapScope])
   useEffect(() => {
     if (mapPickRequest > 0) setIsPicking(true)
   }, [mapPickRequest])
@@ -268,6 +279,7 @@ export default function MapView({
     })
   }, [addWishPlace, pickedCategory, pickedLocation, pickedName, pickedPoint, removeWishPlace, stopPicking])
   const useAmap = mapDisplayProvider === 'amap' && !!amapJsKey && !amapUnavailable
+  const followedDay = trip.days.find((day) => day.id === followDayId)
   const focusMapActivity = useCallback((activityId: string) => {
     useTripStore.getState().focusActivity(activityId)
     onOpenActivity?.(activityId)
@@ -329,6 +341,23 @@ export default function MapView({
 
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
+      {onWorkspaceMapScopeChange && !wishOverview && (
+        <div className="absolute top-3 left-3 z-[550] flex items-center rounded-lg border border-white/80 bg-white/94 p-1 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
+          <button
+            onClick={() => onWorkspaceMapScopeChange('follow')}
+            className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${workspaceMapScope !== 'all' ? 'bg-action text-white shadow-[0_1px_3px_rgba(32,40,46,0.12)]' : 'text-text-muted hover:bg-surface hover:text-text'}`}
+          >
+            跟随日期
+          </button>
+          <button
+            onClick={() => onWorkspaceMapScopeChange('all')}
+            className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${workspaceMapScope === 'all' ? 'bg-action text-white shadow-[0_1px_3px_rgba(32,40,46,0.12)]' : 'text-text-muted hover:bg-surface hover:text-text'}`}
+          >
+            全程
+          </button>
+          <span className="hidden border-l border-border/80 px-2 text-[10.5px] text-text-faint xl:inline">{workspaceMapScope === 'all' ? '完整路线' : (followedDay?.place || followedDay?.label || '当前日期')}</span>
+        </div>
+      )}
       {/* 天数筛选 */}
       {!compact && <div className="absolute inset-x-3 top-3 z-[500] overflow-x-auto pb-1 md:inset-x-auto md:top-4 md:left-[64px]">
         <div className="mx-auto flex w-max items-center gap-1 rounded-lg border border-white/80 bg-white/94 p-1.5 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
