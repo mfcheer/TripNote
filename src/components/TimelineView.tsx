@@ -906,6 +906,7 @@ function DaySection({
   forceExpanded = false,
   onNativeWishDrop,
   onFocusDay,
+  confirmedDrop = false,
 }: {
   dayId: string
   onQuickAdd: () => void
@@ -918,6 +919,7 @@ function DaySection({
   forceExpanded?: boolean
   onNativeWishDrop?: (event: NativeDragEvent<HTMLElement>, dayId: string) => void
   onFocusDay?: (dayId: string) => void
+  confirmedDrop?: boolean
 }) {
   const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
@@ -928,10 +930,17 @@ function DaySection({
   const warnings = scheduleWarnings(items)
   const { setNodeRef, isOver } = useDroppable({ id: dayId, data: { type: 'day', dayId } })
   const [nativeWishOver, setNativeWishOver] = useState(false)
+  const [nativeDropConfirmed, setNativeDropConfirmed] = useState(false)
 
   function acceptsWish(event: NativeDragEvent<HTMLElement>) {
     return event.dataTransfer.types.includes(WISH_DRAG_TYPE)
   }
+
+  useEffect(() => {
+    if (!nativeDropConfirmed) return
+    const timer = window.setTimeout(() => setNativeDropConfirmed(false), 620)
+    return () => window.clearTimeout(timer)
+  }, [nativeDropConfirmed])
 
   // 展开逻辑：非当前天折叠显示摘要
   const isActiveDay = forceExpanded || dayId === activeDayId
@@ -960,11 +969,12 @@ function DaySection({
   }
 
   return (
-      <section id={`workspace-day-${dayId}`} ref={setNodeRef} onDragOver={(event) => { if (acceptsWish(event)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setNativeWishOver(true) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setNativeWishOver(false) }} onDrop={(event) => { if (!acceptsWish(event)) return; setNativeWishOver(false); onNativeWishDrop?.(event, dayId) }} className={`${compact ? 'mb-3 scroll-mt-[48px] pb-3' : 'mb-5 pb-5 sm:mb-7 sm:pb-7'} border-b border-border/70 transition-colors last:border-b-0 ${isOver || nativeWishOver ? 'bg-accent-soft/30 ring-1 ring-inset ring-dashed ring-accent/45' : ''}`}>
+      <section id={`workspace-day-${dayId}`} ref={setNodeRef} onDragOver={(event) => { if (acceptsWish(event)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setNativeWishOver(true) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setNativeWishOver(false) }} onDrop={(event) => { if (!acceptsWish(event)) return; setNativeWishOver(false); setNativeDropConfirmed(true); onNativeWishDrop?.(event, dayId) }} className={`${compact ? 'mb-3 scroll-mt-[48px] pb-3' : 'mb-5 pb-5 sm:mb-7 sm:pb-7'} border-b border-border/70 transition-colors last:border-b-0 ${isOver || nativeWishOver ? 'itinerary-day-drop-target bg-accent-soft/30 ring-1 ring-inset ring-dashed ring-accent/45' : ''} ${confirmedDrop || nativeDropConfirmed ? 'itinerary-day-drop-confirmed' : ''}`}>
         {/* 天标题 */}
         <header className={`${compact ? 'mb-2 gap-x-2' : 'mb-3 gap-x-3 gap-y-2'} flex flex-wrap items-center px-0.5`}>
           <h2 className={`${compact ? 'text-[17px]' : 'text-[19px]'} font-semibold tracking-[-0.02em]`}>{day.label}</h2>
           <DayHeaderInfo day={day} />
+          {(isOver || nativeWishOver) && <span className="itinerary-day-drop-label rounded-full bg-white/92 px-2 py-0.5 text-[10.5px] font-medium text-accent-hover shadow-[0_2px_7px_rgba(55,77,95,0.10)]">安排到{day.label}</span>}
           {forceExpanded && onFocusDay && <button onClick={() => onFocusDay(dayId)} className="rounded-md px-2 py-1 text-[11px] font-medium text-text-faint transition-colors hover:bg-white hover:text-accent" title={`只查看${day.label}`}>聚焦</button>}
           <details className="relative ml-auto">
             <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md px-2 py-1.5 text-[12px] font-medium text-text-muted transition-colors hover:bg-white hover:text-text [&::-webkit-details-marker]:hidden">
@@ -1281,6 +1291,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const [hoveredActivityId, setHoveredActivityId] = useState<string | null>(null)
   const [visibleActivityId, setVisibleActivityId] = useState<string | null>(null)
+  const [recentlyDroppedDayId, setRecentlyDroppedDayId] = useState<string | null>(null)
   // 整卡排序只保留给桌面鼠标操作；触屏优先保证纵向滚动，不再在滑动时误触发半透明拖拽重影。
   const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 6 } }))
   const draggingActivity = trip.activities.find((activity) => activity.id === draggingId)
@@ -1304,6 +1315,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
       if (activity && activity.dayId !== railDayId) {
         reorderActivity(activity.id, railDayId, activitiesByDay(trip, railDayId).length)
         setActiveDay(railDayId)
+        setRecentlyDroppedDayId(railDayId)
         const targetDay = trip.days.find((day) => day.id === railDayId)
         useToastStore.getState().show(`已将「${activity.title}」移到 ${targetDay?.label ?? '目标日期'}`)
       }
@@ -1318,7 +1330,14 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
       ? targetItems.findIndex((activity) => activity.id === over.id)
       : targetItems.length
     reorderActivity(String(active.id), targetDayId, insertIndex < 0 ? targetItems.length : insertIndex)
+    if (trip.activities.find((activity) => activity.id === active.id)?.dayId !== targetDayId) setRecentlyDroppedDayId(targetDayId)
   }
+
+  useEffect(() => {
+    if (!recentlyDroppedDayId) return
+    const timer = window.setTimeout(() => setRecentlyDroppedDayId(null), 620)
+    return () => window.clearTimeout(timer)
+  }, [recentlyDroppedDayId])
 
   function handleNativeWishDrop(event: NativeDragEvent<HTMLElement>, dayId: string) {
     event.preventDefault()
@@ -1460,7 +1479,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
               </div>
             )}
             {((workspace && !showAllDays) || mobilePresentation ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={workspace && showAllDays} onNativeWishDrop={workspace && showAllDays ? handleNativeWishDrop : undefined} onFocusDay={workspace && showAllDays ? onFocusDay : undefined} />
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={workspace && showAllDays} onNativeWishDrop={workspace && showAllDays ? handleNativeWishDrop : undefined} onFocusDay={workspace && showAllDays ? onFocusDay : undefined} confirmedDrop={recentlyDroppedDayId === d.id} />
             ))}
             {workspace && showAllDays && <button onClick={() => addDay(trip.days.at(-1)?.id)} className="mb-4 flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border bg-white/65 px-3 py-3 text-[12px] font-medium text-text-faint transition-colors hover:border-accent/45 hover:bg-white hover:text-accent"><PlusIcon size={14} /> 在行程末尾添加一天</button>}
           </div>
