@@ -132,19 +132,20 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
 }
 .activity-drop-in { animation: activity-drop-in .46s cubic-bezier(.2,.7,.2,1) both; }
 .wish-place-complete { animation: wish-place-complete .52s ease-out both; }
-@keyframes itinerary-day-target {
-  0%, 100% { box-shadow: inset 0 0 0 0 rgba(63, 102, 132, 0); }
-  50% { box-shadow: inset 0 0 0 2px rgba(63, 102, 132, .20), 0 6px 16px rgba(43, 67, 85, .07); }
+@keyframes itinerary-day-header-target {
+  0%, 100% { transform: translateY(0); box-shadow: 0 7px 18px rgba(47, 72, 91, .10); }
+  50% { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(47, 72, 91, .16); }
 }
-@keyframes itinerary-day-confirmed {
-  0% { background-color: rgba(119, 158, 132, .20); }
-  100% { background-color: transparent; }
+@keyframes itinerary-day-header-confirmed {
+  0% { transform: scale(.985); background-color: rgba(121, 159, 136, .23); }
+  55% { transform: scale(1.01); background-color: rgba(121, 159, 136, .13); }
+  100% { transform: scale(1); background-color: transparent; }
 }
-.itinerary-day-drop-target { animation: itinerary-day-target 1.05s ease-in-out infinite; }
-.itinerary-day-drop-confirmed { animation: itinerary-day-confirmed .62s ease-out both; }
+.itinerary-day-header-drop-target { animation: itinerary-day-header-target 1.05s ease-in-out infinite; }
+.itinerary-day-header-drop-confirmed { animation: itinerary-day-header-confirmed .62s cubic-bezier(.2,.7,.2,1) both; }
 .itinerary-day-drop-label { animation: activity-drop-in .22s ease-out both; }
 @media (prefers-reduced-motion: reduce) {
-  .activity-drop-in, .wish-place-complete, .itinerary-day-drop-target, .itinerary-day-drop-confirmed, .itinerary-day-drop-label { animation: none; }
+  .activity-drop-in, .wish-place-complete, .itinerary-day-header-drop-target, .itinerary-day-header-drop-confirmed, .itinerary-day-drop-label { animation: none; }
 }
 
 .ui-empty-state {
