@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
   closestCorners,
   useSensor,
   useSensors,
@@ -1242,7 +1242,8 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const [hoveredActivityId, setHoveredActivityId] = useState<string | null>(null)
   const [visibleActivityId, setVisibleActivityId] = useState<string | null>(null)
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }))
+  // 整卡排序只保留给桌面鼠标操作；触屏优先保证纵向滚动，不再在滑动时误触发半透明拖拽重影。
+  const sensors = useSensors(useSensor(MouseSensor, { activationConstraint: { distance: 6 } }))
   const draggingActivity = trip.activities.find((activity) => activity.id === draggingId)
   const activeDay = trip.days.find((day) => day.id === activeDayId)
 
