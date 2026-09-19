@@ -16,12 +16,13 @@ const base = (size: number): SVGProps<SVGSVGElement> => ({
 })
 
 // 北向品牌图标：仰望前方的北极熊与珊瑚色旅行路线。
-export const LogoIcon = ({ size = 22, alt = '', ...p }: BrandIconProps) => (
+export const LogoIcon = ({ size = 22, alt = '', className, ...p }: BrandIconProps) => (
   <img
     src={`${import.meta.env.BASE_URL}northward-icon-128.png`}
     width={size}
     height={size}
     alt={alt}
+    className={`block shrink-0 rounded-full ${className ?? ''}`}
     {...p}
   />
 )

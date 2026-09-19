@@ -304,7 +304,7 @@ export function MobileHeader({ onExport, exporting }: { onExport: () => void; ex
 
   return (
     <header className="trip-topbar mobile-safe-top relative z-[900] flex shrink-0 items-center gap-1.5 border-b border-border px-3 pb-2 backdrop-blur md:hidden">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center" aria-label="北向">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full" aria-label="北向">
         <LogoIcon size={36} />
       </div>
       <TripSwitcher compact />
@@ -391,7 +391,7 @@ export default function Sidebar() {
     <aside style={{ width: sidebarWidth }} className={`relative hidden h-full shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] transition-[width] ${isResizing ? 'duration-0' : 'duration-200'} md:flex`}>
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
-        <div className="flex h-10 w-10 items-center justify-center">
+        <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full">
           <LogoIcon size={40} />
         </div>
         <div>
