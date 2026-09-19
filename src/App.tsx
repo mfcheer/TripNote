@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 import Sidebar, { MobileHeader } from './components/Sidebar'
-import TimelineView from './components/TimelineView'
 import MapView from './components/MapView'
 import WishlistView from './components/WishlistView'
 import ArrangeView from './components/ArrangeView'
 import WorkspaceView from './components/WorkspaceView'
+import MobilePlanView from './components/MobilePlanView'
 import SettingsView from './components/SettingsView'
 import ConfirmDialog from './components/ConfirmDialog'
 import Toast from './components/Toast'
@@ -160,7 +160,7 @@ export default function App() {
             <div className="min-h-0 min-w-0 flex-1 overflow-hidden lg:hidden">
               {visiblePlanTab === 'timeline' && (
                 <div className="h-full overflow-y-auto">
-                  <TimelineView onOpenFullMap={() => setFullScreenMapDayId('all')} />
+                  <MobilePlanView onOpenFullMap={() => setFullScreenMapDayId('all')} />
                 </div>
               )}
               {visiblePlanTab === 'places' && <WishlistView />}
@@ -173,7 +173,7 @@ export default function App() {
             <SettingsView canInstall={!!installPrompt} onInstall={installApp} />
           </div>
         )}
-        {view === 'plan' && <nav className="mobile-safe-bottom flex shrink-0 border-t border-border/80 bg-white/96 px-1 pt-1 shadow-[0_-2px_10px_rgba(32,40,46,0.05)] backdrop-blur md:hidden" aria-label="主要导航">
+        {view === 'plan' && visiblePlanTab !== 'timeline' && <nav className="mobile-safe-bottom flex shrink-0 border-t border-border/80 bg-white/96 px-1 pt-1 shadow-[0_-2px_10px_rgba(32,40,46,0.05)] backdrop-blur md:hidden" aria-label="主要导航">
           {PLAN_TABS.filter(({ key }) => key !== 'arrange').map(({ key, label, Icon }) => {
             const active = view === 'plan' && visiblePlanTab === key
             return (

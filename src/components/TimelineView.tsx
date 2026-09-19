@@ -1233,7 +1233,7 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
   )
 }
 
-export default function TimelineView({ onOpenFullMap, workspace = false, hideQuickAdd = false, introducedActivityId = null }: { onOpenFullMap: () => void; workspace?: boolean; hideQuickAdd?: boolean; introducedActivityId?: string | null }) {
+export default function TimelineView({ onOpenFullMap, workspace = false, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; workspace?: boolean; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
   const trip = useActiveTrip()
   const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -1280,6 +1280,10 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
     window.addEventListener('keydown', closeOnEscape)
     return () => window.removeEventListener('keydown', closeOnEscape)
   }, [mobileQuickAddOpen])
+
+  useEffect(() => {
+    if (quickAddRequest > 0) setMobileQuickAddOpen(true)
+  }, [quickAddRequest])
 
   // 不打断表单输入：在非输入区域按 /，可随时开始记录一个安排。
   useEffect(() => {
@@ -1330,9 +1334,9 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
     >
       <div className="flex min-h-full min-w-0">
         <div className="min-w-0 flex-1">
-          <div className={`${workspace ? 'max-w-none px-5 py-5' : 'mr-auto max-w-[980px] px-3 py-4 sm:px-7 sm:py-7 lg:px-10'}`}>
-            {!workspace && <MobileDayStrip trip={trip} />}
-            {!workspace && <div className="mb-3 flex items-center justify-between sm:mb-4">
+          <div className={`${workspace ? 'max-w-none px-5 py-5' : mobilePresentation ? 'mr-auto max-w-[980px] px-4 pt-2 pb-4 sm:px-7 sm:py-7 lg:px-10' : 'mr-auto max-w-[980px] px-3 py-4 sm:px-7 sm:py-7 lg:px-10'}`}>
+            {!workspace && !mobilePresentation && <MobileDayStrip trip={trip} />}
+            {!workspace && !mobilePresentation && <div className="mb-3 flex items-center justify-between sm:mb-4">
               <span className="text-[12px] font-medium tracking-[0.08em] text-text-faint">行程概览</span>
               <button
                 onClick={onOpenFullMap}
@@ -1341,7 +1345,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
                 <MapIcon size={13} /> 查看全程地图
               </button>
             </div>}
-            {!workspace && <TripStatsBar trip={trip} onOpenBudget={() => setBudgetDrawerOpen(true)} />}
+            {!workspace && !mobilePresentation && <TripStatsBar trip={trip} onOpenBudget={() => setBudgetDrawerOpen(true)} />}
             {/* 空旅程引导：还没有任何行程时给出第一步指引 */}
             {trip.activities.length === 0 && (
               <div className="mb-6 rounded-xl border border-border/90 bg-surface px-5 py-5 shadow-[0_8px_28px_rgba(32,40,46,0.045)] sm:px-6 sm:py-6">
@@ -1368,11 +1372,11 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
                 </div>
               </div>
             )}
-            {(workspace ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} />
+            {(workspace || mobilePresentation ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} />
             ))}
           </div>
-          {!hideQuickAdd && <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
+          {!hideQuickAdd && !mobilePresentation && <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
             <div className={workspace ? '' : 'mr-auto max-w-[980px]'}>
               <div className="mb-1.5 flex items-center justify-between text-[11.5px] font-medium text-text-faint">
                 <span>
@@ -1384,7 +1388,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
               <AddActivityForm key={`${activeDayId}-${quickAddKey}`} dayId={activeDayId} onDone={() => setQuickAddKey((key) => key + 1)} compact={workspace} />
             </div>
           </div>}
-          {!hideQuickAdd && <div className="sticky bottom-0 z-20 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:hidden">
+          {!hideQuickAdd && !mobilePresentation && <div className="sticky bottom-0 z-20 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:hidden">
             <button
               onClick={() => setMobileQuickAddOpen(true)}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-action px-4 py-2.5 text-[13px] font-medium text-white shadow-[0_3px_10px_rgba(90,48,39,0.16)] active:bg-action-hover"

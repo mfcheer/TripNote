@@ -8,6 +8,45 @@
   padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
 }
 
+/* 手机端的编排页采用一条连续任务线：日期、空间、日程、下一步操作各占一层。 */
+.mobile-day-rail {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.mobile-day-rail::-webkit-scrollbar { display: none; }
+.mobile-day-chip {
+  display: flex;
+  min-width: 54px;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border-radius: 8px;
+  padding: 6px 7px;
+  color: var(--color-text-faint);
+  font-size: 10.5px;
+  line-height: 1.2;
+  transition: color .16s ease, background-color .16s ease;
+}
+.mobile-day-chip strong { color: inherit; font-size: 11.5px; font-weight: 600; }
+.mobile-day-chip.is-active { background: var(--color-action-soft); color: var(--color-action-hover); }
+.mobile-plan-dock { display: grid; grid-template-columns: minmax(0,1fr) minmax(118px,1.35fr) minmax(0,1fr); gap: 6px; }
+.mobile-plan-dock button { min-width: 0; min-height: 42px; }
+.mobile-plan-dock__secondary, .mobile-plan-dock__primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border-radius: 9px;
+  font-size: 10.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.mobile-plan-dock__secondary { color: var(--color-text-muted); }
+.mobile-plan-dock__secondary:active { background: var(--color-surface-2); color: var(--color-text); }
+.mobile-plan-dock__primary { background: var(--color-action); color: white; box-shadow: 0 3px 10px rgba(90,48,39,.14); }
+.mobile-plan-dock__primary:active { background: var(--color-action-hover); }
+
 /* 冷白旅行册：以纸张般的雾白承载内容，矿物蓝灰只用于层级和操作。 */
 @theme {
   --color-bg: #f5f7f8;
