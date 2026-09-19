@@ -905,6 +905,7 @@ function DaySection({
   introducedActivityId = null,
   forceExpanded = false,
   onNativeWishDrop,
+  onFocusDay,
 }: {
   dayId: string
   onQuickAdd: () => void
@@ -916,6 +917,7 @@ function DaySection({
   introducedActivityId?: string | null
   forceExpanded?: boolean
   onNativeWishDrop?: (event: NativeDragEvent<HTMLElement>, dayId: string) => void
+  onFocusDay?: (dayId: string) => void
 }) {
   const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
@@ -958,11 +960,12 @@ function DaySection({
   }
 
   return (
-      <section ref={setNodeRef} onDragOver={(event) => { if (acceptsWish(event)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setNativeWishOver(true) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setNativeWishOver(false) }} onDrop={(event) => { if (!acceptsWish(event)) return; setNativeWishOver(false); onNativeWishDrop?.(event, dayId) }} className={`${compact ? 'mb-3 pb-3' : 'mb-5 pb-5 sm:mb-7 sm:pb-7'} border-b border-border/70 transition-colors last:border-b-0 ${isOver || nativeWishOver ? 'bg-accent-soft/30 ring-1 ring-inset ring-dashed ring-accent/45' : ''}`}>
+      <section id={`workspace-day-${dayId}`} ref={setNodeRef} onDragOver={(event) => { if (acceptsWish(event)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setNativeWishOver(true) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setNativeWishOver(false) }} onDrop={(event) => { if (!acceptsWish(event)) return; setNativeWishOver(false); onNativeWishDrop?.(event, dayId) }} className={`${compact ? 'mb-3 scroll-mt-[48px] pb-3' : 'mb-5 pb-5 sm:mb-7 sm:pb-7'} border-b border-border/70 transition-colors last:border-b-0 ${isOver || nativeWishOver ? 'bg-accent-soft/30 ring-1 ring-inset ring-dashed ring-accent/45' : ''}`}>
         {/* 天标题 */}
         <header className={`${compact ? 'mb-2 gap-x-2' : 'mb-3 gap-x-3 gap-y-2'} flex flex-wrap items-center px-0.5`}>
           <h2 className={`${compact ? 'text-[17px]' : 'text-[19px]'} font-semibold tracking-[-0.02em]`}>{day.label}</h2>
           <DayHeaderInfo day={day} />
+          {forceExpanded && onFocusDay && <button onClick={() => onFocusDay(dayId)} className="rounded-md px-2 py-1 text-[11px] font-medium text-text-faint transition-colors hover:bg-white hover:text-accent" title={`只查看${day.label}`}>聚焦</button>}
           <details className="relative ml-auto">
             <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md px-2 py-1.5 text-[12px] font-medium text-text-muted transition-colors hover:bg-white hover:text-text [&::-webkit-details-marker]:hidden">
               管理当天 <span className="text-[10px] text-text-faint">⌄</span>
@@ -1244,9 +1247,34 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
   )
 }
 
-export default function TimelineView({ onOpenFullMap, workspace = false, showAllDays = false, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; workspace?: boolean; showAllDays?: boolean; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
+function WorkspaceDayNavigator({ showAllDays, onShowAllDays, onFocusDay }: { showAllDays: boolean; onShowAllDays: () => void; onFocusDay: (dayId: string) => void }) {
   const trip = useActiveTrip()
-  const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, scheduleWishPlace, setActiveDay, setPlanTab } = useTripStore()
+  const activeDayId = useTripStore((state) => state.activeDayId)
+
+  function jumpToDay(dayId: string) {
+    useTripStore.getState().setActiveDay(dayId)
+    document.getElementById(`workspace-day-${dayId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  return (
+    <nav className="sticky top-0 z-20 -mx-5 mb-4 border-b border-border/70 bg-white/92 px-5 py-2.5 backdrop-blur" aria-label="行程日期导航">
+      <div className="flex items-center gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <button onClick={onShowAllDays} className={`shrink-0 rounded-md px-2.5 py-1.5 text-[11.5px] font-semibold transition-colors ${showAllDays ? 'bg-action-soft text-accent-hover' : 'text-text-muted hover:bg-surface hover:text-text'}`}>全部</button>
+        <span className="h-4 w-px shrink-0 bg-border" />
+        {trip.days.map((day) => {
+          const active = activeDayId === day.id
+          return <button key={day.id} onClick={() => showAllDays ? jumpToDay(day.id) : onFocusDay(day.id)} className={`shrink-0 rounded-md px-2 py-1.5 text-[11px] transition-colors ${!showAllDays && active ? 'bg-action-soft text-accent-hover' : 'text-text-muted hover:bg-surface hover:text-text'}`} title={`${day.label}${day.place ? ` · ${day.place}` : ''}`}>
+            {day.label}<span className="ml-1 text-text-faint">{day.place || displayDate(day.date).split(' ')[0]}</span>
+          </button>
+        })}
+      </div>
+    </nav>
+  )
+}
+
+export default function TimelineView({ onOpenFullMap, workspace = false, showAllDays = false, onShowAllDays, onFocusDay, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; workspace?: boolean; showAllDays?: boolean; onShowAllDays?: () => void; onFocusDay?: (dayId: string) => void; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
+  const trip = useActiveTrip()
+  const { selectedActivityId, editingActivityId, activeDayId, addDay, reorderActivity, scheduleWishPlace, setActiveDay, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [quickAddKey, setQuickAddKey] = useState(0)
   const [mobileQuickAddOpen, setMobileQuickAddOpen] = useState(false)
@@ -1348,6 +1376,23 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
       ?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }, [selectedActivityId])
 
+  // 连续编排时，滚到哪一天就把那天设为当前天：快速添加、想去卡片的“＋”与地图联动都会保持一致。
+  useEffect(() => {
+    if (!workspace || !showAllDays || typeof IntersectionObserver === 'undefined') return
+    const root = document.querySelector<HTMLElement>('[data-workspace-scroll]')
+    const sections = [...document.querySelectorAll<HTMLElement>('[id^="workspace-day-"]')]
+    if (!root || !sections.length) return
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+      const dayId = visible?.target.id.replace('workspace-day-', '')
+      if (dayId) setActiveDay(dayId)
+    }, { root, threshold: [0.25, 0.5, 0.75] })
+    sections.forEach((section) => observer.observe(section))
+    return () => observer.disconnect()
+  }, [workspace, showAllDays, setActiveDay, trip.days.length])
+
   // 时间轴滚动时，用视口中最靠近中心的安排给地图一个轻量提示；
   // 鼠标悬停优先级更高，因此不会抢走正在查看的地点。
   useEffect(() => {
@@ -1377,6 +1422,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
         <div className="min-w-0 flex-1">
           <div className={`${workspace ? 'max-w-none px-5 py-5' : mobilePresentation ? 'mr-auto max-w-[980px] px-4 pt-2 pb-4 sm:px-7 sm:py-7 lg:px-10' : 'mr-auto max-w-[980px] px-3 py-4 sm:px-7 sm:py-7 lg:px-10'}`}>
             {!workspace && !mobilePresentation && <MobileDayStrip trip={trip} />}
+            {workspace && onShowAllDays && onFocusDay && <WorkspaceDayNavigator showAllDays={showAllDays} onShowAllDays={onShowAllDays} onFocusDay={onFocusDay} />}
             {!workspace && !mobilePresentation && <div className="mb-3 flex items-center justify-between sm:mb-4">
               <span className="text-[12px] font-medium tracking-[0.08em] text-text-faint">行程概览</span>
               <button
@@ -1414,8 +1460,9 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
               </div>
             )}
             {((workspace && !showAllDays) || mobilePresentation ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={workspace && showAllDays} onNativeWishDrop={workspace && showAllDays ? handleNativeWishDrop : undefined} />
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={workspace && showAllDays} onNativeWishDrop={workspace && showAllDays ? handleNativeWishDrop : undefined} onFocusDay={workspace && showAllDays ? onFocusDay : undefined} />
             ))}
+            {workspace && showAllDays && <button onClick={() => addDay(trip.days.at(-1)?.id)} className="mb-4 flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border bg-white/65 px-3 py-3 text-[12px] font-medium text-text-faint transition-colors hover:border-accent/45 hover:bg-white hover:text-accent"><PlusIcon size={14} /> 在行程末尾添加一天</button>}
           </div>
           {!hideQuickAdd && !mobilePresentation && <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
             <div className={workspace ? '' : 'mr-auto max-w-[980px]'}>
