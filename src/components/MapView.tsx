@@ -263,7 +263,7 @@ export default function MapView({
       geo: pickedPoint,
     })
     stopPicking()
-    useToastStore.getState().show(`已收藏「${title}」到想去清单`, {
+    useToastStore.getState().show(`已收藏「${title}」到想去`, {
       undo: () => removeWishPlace(id),
     })
   }, [addWishPlace, pickedCategory, pickedLocation, pickedName, pickedPoint, removeWishPlace, stopPicking])
@@ -366,7 +366,7 @@ export default function MapView({
 
       {isPicking && !pickedPoint && (
         <div className="absolute top-[96px] left-3 z-[550] rounded-lg border border-accent/30 bg-white/95 px-3 py-2 text-[12px] text-text-muted shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:top-[64px] md:left-4">
-          点击地图空白处，收藏一个想去地点
+          点击地图空白处，收藏一个地点到想去
         </div>
       )}
 

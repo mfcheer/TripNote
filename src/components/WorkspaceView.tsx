@@ -66,14 +66,14 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     const title = result.label.split(',')[0]
     const exists = trip.wishPlaces.some((place) => place.title === title && place.geo && Math.abs(place.geo.lat - result.lat) < 0.00001 && Math.abs(place.geo.lng - result.lng) < 0.00001)
     if (exists) {
-      useToastStore.getState().show('这个地点已在想去清单中')
+      useToastStore.getState().show('这个地点已在想去中')
       return
     }
     const id = addWishPlace({ title, category: 'sight', location: result.label, geo: { lat: result.lat, lng: result.lng } })
     onSelectWishPlace(id)
     setQuery('')
     setResults([])
-    useToastStore.getState().show(`已加入想去清单：${title}`)
+    useToastStore.getState().show(`已加入想去：${title}`)
   }
 
   function addPlainPlace() {
@@ -82,7 +82,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     const id = addWishPlace({ title, category: 'sight' })
     onSelectWishPlace(id)
     setQuery('')
-    useToastStore.getState().show(`已加入想去清单：${title}`)
+    useToastStore.getState().show(`已加入想去：${title}`)
   }
 
   function schedule(place: WishPlace) {
@@ -111,7 +111,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   function removePlace(place: WishPlace, scheduled: boolean) {
     askConfirm({
       title: `移除「${place.title}」？`,
-      message: scheduled ? '这只会将地点移出想去清单，已经安排进日程的事项会保留。' : '移除后不会影响其他行程。',
+      message: scheduled ? '这只会将地点移出想去，已经安排进日程的事项会保留。' : '移除后不会影响其他行程。',
       onConfirm: () => {
         const { trips, activeTripId } = useTripStore.getState()
         removeWishPlace(place.id)
@@ -139,20 +139,20 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
         <span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{place.location || '未补充位置'}</span>
       </button>
       <button onClick={() => schedule(place)} className="rounded px-1.5 py-1 text-[11px] text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white hover:text-accent" title="安排到当前日期">＋</button>
-      <button onClick={() => removePlace(place, scheduled)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-faint/70 transition-colors hover:bg-red-50 hover:text-red-500" title="从想去清单移除" aria-label={`移除 ${place.title}`}><TrashIcon size={12} /></button>
+      <button onClick={() => removePlace(place, scheduled)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-faint/70 transition-colors hover:bg-red-50 hover:text-red-500" title="从想去移除" aria-label={`从想去移除 ${place.title}`}><TrashIcon size={12} /></button>
     </div>
   }
 
   return <aside className="flex min-h-0 shrink-0 flex-col border-r border-border/80 bg-[#fbfcfc]" style={{ width: 'var(--workspace-library-width)' }}>
     <div className="border-b border-border/70 px-4 pt-4 pb-3">
       <div className="flex items-center justify-between">
-        <div className="text-[14px] font-semibold text-text">想去清单</div>
+        <div className="text-[14px] font-semibold text-text">想去</div>
         <span className="rounded-full bg-action-soft px-2 py-0.5 text-[11px] font-medium text-accent-hover">{places.unscheduled.length}</span>
       </div>
       <p className="mt-1 text-[11px] text-text-faint">搜索、选点后拖入日程。</p>
       <div className="mt-2.5 flex gap-2">
         <div className="relative min-w-0 flex-1">
-        <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && results.length === 0 && addPlainPlace()} placeholder="添加想去的地点" className="w-full rounded-md border border-border bg-white px-3 py-2 text-[12px] outline-none focus:border-accent" />
+        <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && results.length === 0 && addPlainPlace()} placeholder="搜索或添加地点" className="w-full rounded-md border border-border bg-white px-3 py-2 text-[12px] outline-none focus:border-accent" />
         {loading && <span className="absolute top-2.5 right-3 text-[10.5px] text-text-faint">搜索中</span>}
         {results.length > 0 && <div className="absolute inset-x-0 top-[calc(100%+5px)] z-[800] max-h-[220px] overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-[0_10px_28px_rgba(32,40,46,0.14)]">
           {results.map((result) => <button key={`${result.lat}-${result.lng}`} onClick={() => addResult(result)} className="block w-full px-3 py-2 text-left hover:bg-surface"><span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}
@@ -306,7 +306,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
     setCreateTripOpen(false)
     setNewTripName('')
     setNewTripDestination('')
-    useToastStore.getState().show('已创建新旅行，可以从想去清单开始规划')
+    useToastStore.getState().show('已创建新旅行，可以先在想去中收集地点')
   }
 
   return <div className="flex h-full min-w-0 flex-col bg-bg" style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
@@ -332,7 +332,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
     </header>
     <div className="flex min-h-0 flex-1">
       <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} selectedWishPlaceId={selectedWishPlaceId} onSelectWishPlace={setSelectedWishPlaceId} onScheduleSuccess={handleScheduleSuccess} />
-      <div role="separator" aria-label="调整想去清单宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group -ml-1 flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
+      <div role="separator" aria-label="调整想去宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group -ml-1 flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
       <main onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto bg-white/56 transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
         {isWishDropTarget && <div className="pointer-events-none sticky top-3 z-20 mx-3 flex items-center justify-center rounded-lg border border-dashed border-action/55 bg-white/88 px-3 py-2 text-[12px] font-medium text-action-hover shadow-[0_4px_14px_rgba(175,105,89,0.10)]">松开即可安排到 {trip.days.find((day) => day.id === activeDayId)?.label ?? '当前天'}</div>}
         <TimelineView workspace hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
@@ -342,7 +342,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
     </div>
     <DayRail />
     {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
-    {createTripOpen && <ModalShell title="创建新旅行" description="先确定目的地和日期，之后在想去清单慢慢补齐安排。" onClose={() => setCreateTripOpen(false)} size="md" footer={<><button onClick={() => setCreateTripOpen(false)} className="rounded-md px-3 py-2 text-[12px] text-text-muted hover:bg-surface">取消</button><button onClick={submitNewTrip} className="rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white hover:bg-action-hover">创建旅行</button></>}>
+    {createTripOpen && <ModalShell title="创建新旅行" description="先确定目的地和日期，之后在想去中慢慢补齐安排。" onClose={() => setCreateTripOpen(false)} size="md" footer={<><button onClick={() => setCreateTripOpen(false)} className="rounded-md px-3 py-2 text-[12px] text-text-muted hover:bg-surface">取消</button><button onClick={submitNewTrip} className="rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white hover:bg-action-hover">创建旅行</button></>}>
       <div className="grid gap-3"><label className="text-[12px] font-medium text-text-muted">旅行名称 <span className="font-normal text-text-faint">（可选）</span><input value={newTripName} onChange={(event) => setNewTripName(event.target.value)} placeholder="例如：日本关西之旅" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">主要目的地<input value={newTripDestination} onChange={(event) => setNewTripDestination(event.target.value)} placeholder="例如：大阪、京都、奈良" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><div className="grid grid-cols-2 gap-3"><label className="text-[12px] font-medium text-text-muted">出发日期<input type="date" value={newTripStart} onChange={(event) => { setNewTripStart(event.target.value); if (newTripEnd < event.target.value) setNewTripEnd(event.target.value) }} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">返程日期<input type="date" min={newTripStart} value={newTripEnd} onChange={(event) => setNewTripEnd(event.target.value)} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label></div></div>
     </ModalShell>}
     {settingsOpen && <ModalShell title="数据与设置" description="备份、导入、高德地图与路线配置都在这里。" onClose={() => setSettingsOpen(false)} size="lg" bodyClassName="px-0 py-0"><SettingsView embedded /></ModalShell>}

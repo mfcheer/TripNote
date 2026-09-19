@@ -84,7 +84,7 @@ export default function ArrangeView() {
           <div className="min-h-0 flex-1 overflow-y-auto px-2 py-2">
             {unscheduledPlaces.length === 0 ? (
               <div className="px-3 py-8 text-center text-[12px] leading-relaxed text-text-faint">
-                已经安排完所有想去地点。<br />可以回到「想去」继续收集。
+                已经安排完所有想去地点。<br />可以回到「想去」继续收藏。
               </div>
             ) : unscheduledPlaces.map((place) => {
               const meta = CATEGORY_META[place.category]
@@ -112,7 +112,7 @@ export default function ArrangeView() {
             })}
           </div>
           <div className="border-t border-border/70 px-4 py-3 text-[11px] leading-relaxed text-text-faint">
-            <span className="inline-flex items-center gap-1"><HeartIcon size={12} /> 已安排的地点仍保留在「想去」清单。</span>
+            <span className="inline-flex items-center gap-1"><HeartIcon size={12} /> 已安排的地点仍保留在「想去」。</span>
           </div>
         </aside>
 

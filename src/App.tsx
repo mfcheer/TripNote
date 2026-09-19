@@ -16,7 +16,7 @@ import { CalendarIcon, DownloadIcon, HeartIcon, MapIcon, PinIcon } from './compo
 import { flushScheduledBackup, scheduleLocalBackup, type BackupData } from './utils/localBackup'
 
 const PLAN_TABS: { key: PlanTab; label: string; Icon: typeof CalendarIcon }[] = [
-  { key: 'places', label: '待安排', Icon: HeartIcon },
+  { key: 'places', label: '想去', Icon: HeartIcon },
   { key: 'arrange', label: '编排', Icon: PinIcon },
   { key: 'timeline', label: '行程', Icon: CalendarIcon },
 ]
@@ -173,13 +173,13 @@ export default function App() {
             <SettingsView canInstall={!!installPrompt} onInstall={installApp} />
           </div>
         )}
-        {view === 'plan' && visiblePlanTab !== 'timeline' && <nav className="mobile-plan-dock mobile-safe-bottom shrink-0 border-t border-border/80 bg-white/96 px-3 pt-2 shadow-[0_-4px_18px_rgba(32,40,46,0.06)]" aria-label="待安排操作">
+        {view === 'plan' && visiblePlanTab !== 'timeline' && <nav className="mobile-plan-dock mobile-safe-bottom shrink-0 border-t border-border/80 bg-white/96 px-3 pt-2 shadow-[0_-4px_18px_rgba(32,40,46,0.06)]" aria-label="想去操作">
           <button
             onClick={() => setPlanTab('places')}
             className="mobile-plan-dock__secondary bg-surface-2/78 font-semibold text-text"
             aria-current="page"
           >
-            <HeartIcon size={17} /> 待安排
+            <HeartIcon size={17} /> 想去
           </button>
           <button
             onClick={() => setPlanTab('timeline')}

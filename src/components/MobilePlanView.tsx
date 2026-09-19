@@ -79,7 +79,7 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
 
       <nav className="mobile-plan-dock mobile-safe-bottom shrink-0 border-t border-border/80 bg-white/96 px-3 pt-2 shadow-[0_-4px_18px_rgba(32,40,46,0.06)]" aria-label="当天行程操作">
         <button onClick={() => setPlanTab('places')} className="mobile-plan-dock__secondary">
-          <HeartIcon size={17} /> 待安排 {unscheduledCount}
+          <HeartIcon size={17} /> 想去 {unscheduledCount}
         </button>
         <button onClick={() => setQuickAddRequest((request) => request + 1)} className="mobile-plan-dock__primary">
           <PlusIcon size={18} /> 添加安排

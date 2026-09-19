@@ -562,7 +562,7 @@ export default function WishlistView() {
   function removePlace(placeId: string, title: string, isScheduled: boolean) {
     if (isScheduled) {
       askConfirm({
-        title: `从想去清单移出「${title}」？`,
+        title: `从想去移出「${title}」？`,
         message: '只会移出这个收藏地点；已排好的行程和花费都会保留。',
         danger: false,
         onConfirm: () => removePlaceNow(placeId, title),
@@ -575,7 +575,7 @@ export default function WishlistView() {
   function removePlaceNow(placeId: string, title: string) {
     const { trips, activeTripId } = useTripStore.getState()
     removeWishPlace(placeId)
-    useToastStore.getState().show(`已从想去清单移出「${title}」`, {
+    useToastStore.getState().show(`已从想去移出「${title}」`, {
       undo: () => useTripStore.getState().restoreTrips(trips, activeTripId),
     })
   }
@@ -586,7 +586,7 @@ export default function WishlistView() {
     const costHint = activity && activity.costs.length > 0 ? `及其中 ${activity.costs.length} 笔花费` : ''
     askConfirm({
       title: `取消安排「${place.title}」？`,
-      message: `将删除已生成的安排${costHint}；地点会继续保留在想去清单中。`,
+      message: `将删除已生成的安排${costHint}；地点会继续保留在想去中。`,
       onConfirm: () => {
         const { trips, activeTripId } = useTripStore.getState()
         cancelWishSchedule(place.id, activity.id)
@@ -605,7 +605,7 @@ export default function WishlistView() {
       <section className="min-w-0 flex-1 overflow-y-auto">
         <div className="mr-auto max-w-[1000px] px-4 py-4 sm:px-7 sm:py-7 lg:px-10">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 sm:mb-5">
-            <h1 className="text-[20px] font-semibold tracking-[-0.02em]">待安排</h1>
+            <h1 className="text-[20px] font-semibold tracking-[-0.02em]">想去</h1>
             <p className="text-[12px] text-text-muted">
               待安排 {trip.wishPlaces.length - scheduledCount} · 已安排 {scheduledCount}
             </p>
@@ -681,8 +681,8 @@ export default function WishlistView() {
             <input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
-              placeholder="筛选想去清单"
-              aria-label="筛选想去清单"
+              placeholder="筛选想去地点"
+              aria-label="筛选想去地点"
               className="w-full rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent sm:w-[180px]"
             />
             <button onClick={() => setCategory('all')} className={`border-b-2 px-2.5 py-1 text-[12px] font-medium ${category === 'all' ? 'border-action text-text' : 'border-transparent text-text-muted hover:text-text'}`}>全部 {trip.wishPlaces.length}</button>

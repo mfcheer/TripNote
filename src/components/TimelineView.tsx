@@ -469,7 +469,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
       location: place.label,
       geo: { lat: place.lat, lng: place.lng },
     })
-    useToastStore.getState().show('已加入想去清单')
+    useToastStore.getState().show('已加入想去')
     setResults([])
     setResultIndex(-1)
     setSearchedQuery('')
@@ -1362,7 +1362,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
                   </button>
                   <button onClick={() => setPlanTab('places')} className="rounded-lg border border-border bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-[0_2px_8px_rgba(49,92,125,0.10)]">
                     <span className="text-[11px] font-semibold text-text-muted">02</span>
-                    <span className="mt-0.5 block text-[12.5px] font-medium">先收集想去的地点</span>
+                    <span className="mt-0.5 block text-[12.5px] font-medium">先收藏想去的地点</span>
                     <span className="mt-0.5 block text-[11px] text-text-faint">日期暂未确定也没关系</span>
                   </button>
                   <div className="rounded-lg border border-border/80 bg-white/70 px-3 py-2.5">
