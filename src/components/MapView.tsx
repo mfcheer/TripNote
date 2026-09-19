@@ -342,7 +342,7 @@ export default function MapView({
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
       {onWorkspaceMapScopeChange && !wishOverview && (
-        <div className="absolute top-3 left-3 z-[550] flex items-center rounded-lg border border-white/80 bg-white/94 p-1 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
+        <div className="absolute top-3 left-16 z-[550] flex items-center rounded-lg border border-white/80 bg-white/94 p-1 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
           <button
             onClick={() => onWorkspaceMapScopeChange('follow')}
             className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${workspaceMapScope !== 'all' ? 'bg-action text-white shadow-[0_1px_3px_rgba(32,40,46,0.12)]' : 'text-text-muted hover:bg-surface hover:text-text'}`}
