@@ -101,6 +101,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 }
 input::placeholder, textarea::placeholder { color: var(--color-text-faint); opacity: .9; }
 
+/* iOS 会在小于 16px 的表单文字获得焦点时自动放大页面；移动端统一输入字号，避免关闭弹窗后还要手动缩回。 */
+@media (max-width: 767px) {
+  input, textarea, select { font-size: 16px !important; }
+}
+
 /* 统一的状态语言：保持安静，但让“正在发生什么”和“下一步做什么”一眼可见。 */
 .ui-spinner {
   box-sizing: border-box;

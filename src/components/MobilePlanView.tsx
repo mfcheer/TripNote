@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { activitiesByDay, displayDate, useActiveTrip, useTripStore } from '../store'
 import { HeartIcon, MapIcon, PlusIcon, WalletIcon } from './Icons'
 import MapView from './MapView'
@@ -9,12 +9,20 @@ function dayDate(day: { date: string }) {
   return displayDate(day.date).split(' ')[0]
 }
 
+const MOBILE_MAP_HEIGHT_KEY = 'tripnote-mobile-map-height-v1'
+
+function readMobileMapHeight() {
+  const saved = Number(localStorage.getItem(MOBILE_MAP_HEIGHT_KEY))
+  return Number.isFinite(saved) ? Math.max(148, Math.min(360, saved)) : 194
+}
+
 // 手机端以“看路线 → 编排当天 → 补充地点”为单一连续任务，地图不再是需要跳转的独立页面。
 export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () => void }) {
   const trip = useActiveTrip()
   const { activeDayId, setActiveDay, selectActivity, setPlanTab } = useTripStore()
   const [quickAddRequest, setQuickAddRequest] = useState(0)
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
+  const [mapHeight, setMapHeight] = useState(readMobileMapHeight)
   const railRef = useRef<HTMLDivElement>(null)
   const activeDay = trip.days.find((day) => day.id === activeDayId) ?? trip.days[0]
   const items = useMemo(() => activeDay ? activitiesByDay(trip, activeDay.id) : [], [activeDay, trip.activities])
@@ -27,10 +35,31 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
     0,
   )
 
+  useEffect(() => {
+    localStorage.setItem(MOBILE_MAP_HEIGHT_KEY, String(Math.round(mapHeight)))
+  }, [mapHeight])
+
   function selectDay(id: string) {
     setActiveDay(id)
     selectActivity(null)
     requestAnimationFrame(() => railRef.current?.querySelector<HTMLButtonElement>(`[data-day-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }))
+  }
+
+  function startMapResize(event: ReactPointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    event.preventDefault()
+    const startY = event.clientY
+    const startHeight = mapHeight
+    const onMove = (moveEvent: PointerEvent) => {
+      const maxHeight = Math.max(148, Math.min(360, window.innerHeight - 280))
+      setMapHeight(Math.max(148, Math.min(maxHeight, startHeight + moveEvent.clientY - startY)))
+    }
+    const onEnd = () => {
+      window.removeEventListener('pointermove', onMove)
+      window.removeEventListener('pointerup', onEnd)
+    }
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onEnd, { once: true })
   }
 
   if (!activeDay) return null
@@ -56,7 +85,7 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
         </div>
       </div>
 
-      <section className="relative h-[194px] shrink-0 overflow-hidden border-b border-border bg-surface">
+      <section className="relative shrink-0 overflow-hidden border-b border-border bg-surface" style={{ height: mapHeight }}>
         <MapView key={activeDay.id} initialDayId={activeDay.id} compact />
         <div className="pointer-events-none absolute top-3 left-3 z-[600] rounded-md border border-white/80 bg-white/92 px-2.5 py-1.5 text-[11.5px] font-semibold text-text shadow-[0_3px_12px_rgba(32,40,46,0.11)] backdrop-blur">
           {activeDay.label}{activeDay.place ? ` · ${activeDay.place}` : ''} · {items.length} 项
@@ -72,6 +101,15 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
           <MapIcon size={13} /> 全程地图
         </button>
       </section>
+      <div
+        role="separator"
+        aria-label="调整地图高度"
+        aria-orientation="horizontal"
+        onPointerDown={startMapResize}
+        className="group -mt-1 flex h-3 shrink-0 cursor-row-resize touch-none items-center justify-center bg-bg"
+      >
+        <span className="h-1 w-10 rounded-full bg-border transition-colors group-active:bg-accent" />
+      </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <TimelineView onOpenFullMap={onOpenFullMap} mobilePresentation quickAddRequest={quickAddRequest} />
