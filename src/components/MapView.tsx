@@ -353,9 +353,9 @@ export default function MapView({
         </div>
       </div>}
 
-      {!compact && <button
+      {!compact && !pickedPoint && <button
         onClick={() => isPicking ? stopPicking() : setIsPicking(true)}
-        className={`absolute right-3 z-[550] flex items-center gap-1.5 rounded-md border px-3 py-2 text-[12px] font-medium shadow-[0_5px_18px_rgba(32,40,46,0.12)] transition-colors ${compact ? 'top-3' : 'top-[52px] md:top-4'} md:right-4 ${
+        className={`absolute bottom-4 left-3 z-[550] flex items-center gap-1.5 rounded-md border px-3 py-2 text-[12px] font-medium shadow-[0_5px_18px_rgba(32,40,46,0.12)] transition-colors md:top-4 md:right-4 md:bottom-auto md:left-auto ${
           isPicking ? 'border-action bg-action text-white' : 'border-white/80 bg-white/94 text-text-muted backdrop-blur-md hover:text-text'
         }`}
       >
