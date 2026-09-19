@@ -72,9 +72,6 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
         <button onClick={() => setQuickAddRequest((request) => request + 1)} className="mobile-plan-dock__primary">
           <PlusIcon size={18} /> 添加安排
         </button>
-        <button onClick={onOpenFullMap} className="mobile-plan-dock__secondary">
-          <MapIcon size={17} /> 全程地图
-        </button>
       </nav>
     </div>
   )
