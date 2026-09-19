@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent as NativeDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import {
   DndContext,
@@ -32,7 +32,6 @@ import { InlineStatus } from './FeedbackState'
 
 const PLANNER_PANEL_WIDTH_KEY = 'tripnote-planner-panel-width-v1'
 const BUDGET_DRAWER_WIDTH_KEY = 'tripnote-budget-drawer-width-v1'
-const ACTIVITY_DRAG_TYPE = 'application/x-tripnote-activity-id'
 const TRAVEL_MODE_LABELS = {
   walk: '步行',
   drive: '自驾',
@@ -785,7 +784,6 @@ function SortableActivity({
   warning,
   compact = false,
   introduced = false,
-  nativeDateDrop = false,
 }: {
   activity: Activity
   selected: boolean
@@ -795,7 +793,6 @@ function SortableActivity({
   warning?: string
   compact?: boolean
   introduced?: boolean
-  nativeDateDrop?: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: activity.id,
@@ -806,12 +803,6 @@ function SortableActivity({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={`min-w-0 ${isDragging ? 'opacity-40' : ''}`}
-      draggable={nativeDateDrop}
-      onDragStart={(event: NativeDragEvent<HTMLDivElement>) => {
-        if (!nativeDateDrop) return
-        event.dataTransfer.effectAllowed = 'move'
-        event.dataTransfer.setData(ACTIVITY_DRAG_TYPE, activity.id)
-      }}
       {...attributes}
       {...listeners}
     >
@@ -911,7 +902,6 @@ function DaySection({
   compact = false,
   hideQuickAdd = false,
   introducedActivityId = null,
-  nativeDateDrop = false,
 }: {
   dayId: string
   onQuickAdd: () => void
@@ -921,7 +911,6 @@ function DaySection({
   compact?: boolean
   hideQuickAdd?: boolean
   introducedActivityId?: string | null
-  nativeDateDrop?: boolean
 }) {
   const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
@@ -1066,7 +1055,6 @@ function DaySection({
                       warning={warnings.get(a.id)}
                       compact={compact}
                       introduced={introducedActivityId === a.id}
-                      nativeDateDrop={nativeDateDrop}
                     />
                     {/* 小屏幕没有右侧栏时，保留内嵌详情与编辑作为降级交互。 */}
                     {editingActivityId === a.id && (
@@ -1248,7 +1236,7 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
 
 export default function TimelineView({ onOpenFullMap, workspace = false, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; workspace?: boolean; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
   const trip = useActiveTrip()
-  const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, setPlanTab } = useTripStore()
+  const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, setActiveDay, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [quickAddKey, setQuickAddKey] = useState(0)
   const [mobileQuickAddOpen, setMobileQuickAddOpen] = useState(false)
@@ -1267,6 +1255,22 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
   function onDragEnd(event: DragEndEvent) {
     setDraggingId(null)
     const { active, over } = event
+    const translated = active.rect.current.translated
+    const dateCard = workspace && translated
+      ? document.elementFromPoint(translated.left + translated.width / 2, translated.top + translated.height / 2)
+        ?.closest<HTMLElement>('[data-workspace-day-id]')
+      : null
+    const railDayId = dateCard?.dataset.workspaceDayId
+    if (railDayId) {
+      const activity = trip.activities.find((item) => item.id === active.id)
+      if (activity && activity.dayId !== railDayId) {
+        reorderActivity(activity.id, railDayId, activitiesByDay(trip, railDayId).length)
+        setActiveDay(railDayId)
+        const targetDay = trip.days.find((day) => day.id === railDayId)
+        useToastStore.getState().show(`已将「${activity.title}」移到 ${targetDay?.label ?? '目标日期'}`)
+      }
+      return
+    }
     if (!over || active.id === over.id) return
     const overData = over.data.current as { type?: string; dayId?: string } | undefined
     const targetDayId = overData?.dayId
@@ -1387,7 +1391,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, hideQui
               </div>
             )}
             {(workspace || mobilePresentation ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} nativeDateDrop={workspace} />
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} />
             ))}
           </div>
           {!hideQuickAdd && !mobilePresentation && <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
