@@ -1,4 +1,4 @@
-const CACHE_NAME = 'northward-shell-v5'
+const CACHE_NAME = 'northward-shell-v6'
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './northward-icon-round.png', './northward-apple-touch-icon.png', './northward-pwa-icon-192.png', './northward-pwa-icon-512.png']
 
 self.addEventListener('install', (event) => {

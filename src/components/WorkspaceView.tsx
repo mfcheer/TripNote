@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent as NativeDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { searchPlaces, type GeoResult } from '../api/geocode'
 import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
+import { CATEGORY_ICONS, HeartIcon, LogoIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type WishPlace } from '../types'
 import MapView from './MapView'
 import TimelineView, { BudgetDrawer } from './TimelineView'
@@ -311,7 +311,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
 
   return <div className="flex h-full min-w-0 flex-col bg-bg" style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
     <header className="flex h-[58px] shrink-0 items-center gap-3 border-b border-border/80 bg-white/92 px-5">
-      <MapIcon size={19} className="shrink-0 text-accent" />
+      <LogoIcon size={28} className="shrink-0 shadow-[0_2px_7px_rgba(31,48,63,0.16)]" alt="北向" />
       <div className="relative min-w-0">
         <button onClick={() => setTripMenuOpen((open) => !open)} className="flex max-w-[300px] items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-surface">
           <span className="truncate text-[14px] font-semibold">{trip.name}</span><span className="text-[10px] text-text-faint">⌄</span>

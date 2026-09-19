@@ -15,7 +15,7 @@ const base = (size: number): SVGProps<SVGSVGElement> => ({
   strokeLinejoin: 'round',
 })
 
-// 北向品牌图标：仰望前方的北极熊与珊瑚色旅行路线。
+// 北向品牌图标：在冰原上向前行走的北极熊。
 export const LogoIcon = ({ size = 22, alt = '', className, ...p }: BrandIconProps) => (
   <img
     src={`${import.meta.env.BASE_URL}northward-icon-round.png`}
