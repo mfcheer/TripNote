@@ -41,8 +41,10 @@ async function searchWithAmap(query: string, key: string, signal?: AbortSignal):
   })
 }
 
-export async function searchPlaces(query: string, signal?: AbortSignal, amapWebServiceKey?: string): Promise<GeoResult[]> {
-  if (amapWebServiceKey) {
+export type PlaceSearchProvider = 'amap' | 'osm'
+
+export async function searchPlaces(query: string, signal?: AbortSignal, amapWebServiceKey?: string, provider: PlaceSearchProvider = 'amap'): Promise<GeoResult[]> {
+  if (provider === 'amap' && amapWebServiceKey) {
     try {
       return await searchWithAmap(query, amapWebServiceKey, signal)
     } catch (error) {
@@ -66,8 +68,8 @@ export async function searchPlaces(query: string, signal?: AbortSignal, amapWebS
 }
 
 // 逆地理编码：坐标 → 地名（地图选点用）
-export async function reverseGeocode(lat: number, lng: number, amapWebServiceKey?: string): Promise<string | null> {
-  if (amapWebServiceKey) {
+export async function reverseGeocode(lat: number, lng: number, amapWebServiceKey?: string, provider: PlaceSearchProvider = 'amap'): Promise<string | null> {
+  if (provider === 'amap' && amapWebServiceKey) {
     try {
       const point = wgs84ToGcj02({ lat, lng })
       const url = `https://restapi.amap.com/v3/geocode/regeo?key=${encodeURIComponent(amapWebServiceKey)}&location=${point.lng},${point.lat}&extensions=base`

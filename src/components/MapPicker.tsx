@@ -67,6 +67,8 @@ export default function MapPicker({
 }) {
   const amapWebServiceKey = useTripStore((state) => state.amapWebServiceKey)
   const amapJsKey = useTripStore((state) => state.amapJsKey)
+  const mapDisplayProvider = useTripStore((state) => state.mapDisplayProvider)
+  const placeSearchProvider = useTripStore((state) => state.placeSearchProvider)
   const [picking, setPicking] = useState(false)
   const [resolving, setResolving] = useState(false)
   const latestCall = useRef(0)
@@ -76,7 +78,7 @@ export default function MapPicker({
     setPicking(true)
     setResolving(true)
     const callId = ++latestCall.current
-    const name = await reverseGeocode(newPoint.lat, newPoint.lng, amapWebServiceKey)
+    const name = await reverseGeocode(newPoint.lat, newPoint.lng, amapWebServiceKey, placeSearchProvider)
     if (callId !== latestCall.current) return // 已有更新的选点，丢弃
     setResolving(false)
     setPicking(false)
@@ -91,7 +93,7 @@ export default function MapPicker({
   return (
     <div className="overflow-hidden rounded-md border border-border">
       <div className={heightClassName}>
-        {amapJsKey ? (
+        {mapDisplayProvider === 'amap' && amapJsKey ? (
           <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} className="h-full w-full" zoom={point ? 13 : initialZoom} onMapPick={handlePick} />
         ) : (
         <MapContainer

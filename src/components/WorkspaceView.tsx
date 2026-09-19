@@ -22,7 +22,7 @@ function dayCost(trip: ReturnType<typeof useActiveTrip>, dayId: string) {
 
 function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPlaceId, onSelectWishPlace, onScheduleSuccess }: { onStartMapPick: () => void; recentlyScheduledPlaceId: string | null; selectedWishPlaceId: string | null; onSelectWishPlace: (placeId: string | null) => void; onScheduleSuccess: (activityId: string, placeId: string) => void }) {
   const trip = useActiveTrip()
-  const { addWishPlace, removeWishPlace, scheduleWishPlace, amapWebServiceKey } = useTripStore()
+  const { addWishPlace, removeWishPlace, scheduleWishPlace, amapWebServiceKey, placeSearchProvider } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeoResult[]>([])
@@ -39,7 +39,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     const timer = window.setTimeout(async () => {
       setLoading(true)
       try {
-        setResults(await searchPlaces(term, ctrl.signal, amapWebServiceKey))
+        setResults(await searchPlaces(term, ctrl.signal, amapWebServiceKey, placeSearchProvider))
       } catch (error) {
         if ((error as Error).name !== 'AbortError') setResults([])
       } finally {
@@ -50,7 +50,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
       window.clearTimeout(timer)
       ctrl.abort()
     }
-  }, [amapWebServiceKey, query])
+  }, [amapWebServiceKey, placeSearchProvider, query])
 
   const places = useMemo(() => {
     const unscheduled: WishPlace[] = []

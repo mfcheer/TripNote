@@ -392,7 +392,7 @@ function SortableWishCard({
 
 export default function WishlistView() {
   const trip = useActiveTrip()
-  const { addWishPlace, removeWishPlace, reorderWishPlace, cancelWishSchedule, focusActivity, amapWebServiceKey, amapJsKey, mapRouteMode } = useTripStore()
+  const { addWishPlace, removeWishPlace, reorderWishPlace, cancelWishSchedule, focusActivity, amapWebServiceKey, amapJsKey, mapRouteMode, mapDisplayProvider, placeSearchProvider } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
   const [category, setCategory] = useState<ActivityCategory | 'all'>('all')
   const [keyword, setKeyword] = useState('')
@@ -441,7 +441,7 @@ export default function WishlistView() {
       abortRef.current = ctrl
       try {
         setSearchStatus('loading')
-        const nextResults = await searchPlaces(query, ctrl.signal, amapWebServiceKey)
+        const nextResults = await searchPlaces(query, ctrl.signal, amapWebServiceKey, placeSearchProvider)
         if (ctrl.signal.aborted) return
         setResults(nextResults)
         setSearchStatus(nextResults.length > 0 ? 'results' : 'empty')
@@ -456,7 +456,7 @@ export default function WishlistView() {
       clearTimeout(timer)
       abortRef.current?.abort()
     }
-  }, [searching, amapWebServiceKey])
+  }, [searching, amapWebServiceKey, placeSearchProvider])
 
   // 从地图点选地点后，让清单自动滚到对应卡片，避免地图与列表脱节。
   useEffect(() => {
@@ -777,7 +777,7 @@ export default function WishlistView() {
         <div className="mb-3 text-[11.5px] text-text-faint">默认展示行程连线；点击地点名称可定位收藏</div>
         {allMapPoints.length > 0 ? (
           <div className="h-[calc(100%-48px)] overflow-hidden rounded-md border border-border/80">
-            {amapJsKey ? (
+            {mapDisplayProvider === 'amap' && amapJsKey ? (
               <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={[...itineraryLines, ...crossDayLines]} className="h-full w-full" zoom={11} />
             ) : (
             <MapContainer center={allMapPoints[0]} zoom={11} className="h-full w-full" attributionControl={false}>

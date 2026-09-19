@@ -31,8 +31,12 @@ export default function SettingsView({
     resetAll,
     amapJsKey,
     amapWebServiceKey,
+    mapDisplayProvider,
+    placeSearchProvider,
     mapRouteMode,
     setAmapKeys,
+    setMapDisplayProvider,
+    setPlaceSearchProvider,
     setMapRouteMode,
   } = useTripStore()
   const askConfirm = useConfirmStore((s) => s.ask)
@@ -45,7 +49,7 @@ export default function SettingsView({
   const [isIos] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent))
   const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
 
-  const backupData: BackupData = { trips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey }
+  const backupData: BackupData = { trips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey, mapDisplayProvider, placeSearchProvider }
 
   async function refreshBackupStatus() {
     setBackupStatus(await getLocalBackupStatus())
@@ -128,7 +132,7 @@ export default function SettingsView({
         }
         const backup = data as {
           trip?: unknown
-          mapSettings?: { amapJsKey?: unknown; amapWebServiceKey?: unknown; mapRouteMode?: unknown }
+          mapSettings?: { amapJsKey?: unknown; amapWebServiceKey?: unknown; mapRouteMode?: unknown; mapDisplayProvider?: unknown; placeSearchProvider?: unknown }
         }
         const tripData = backup.trip ?? data
         if (!importTrip(tripData)) {
@@ -139,8 +143,12 @@ export default function SettingsView({
           const nextJsKey = typeof backup.mapSettings.amapJsKey === 'string' ? backup.mapSettings.amapJsKey : ''
           const nextWebServiceKey = typeof backup.mapSettings.amapWebServiceKey === 'string' ? backup.mapSettings.amapWebServiceKey : ''
           const nextRouteMode = backup.mapSettings.mapRouteMode === 'walking' ? 'walking' : 'direct'
+          const nextMapProvider = backup.mapSettings.mapDisplayProvider === 'osm' ? 'osm' : 'amap'
+          const nextSearchProvider = backup.mapSettings.placeSearchProvider === 'osm' ? 'osm' : 'amap'
           setAmapKeys({ jsKey: nextJsKey, webServiceKey: nextWebServiceKey })
           setMapRouteMode(nextRouteMode)
+          setMapDisplayProvider(nextMapProvider)
+          setPlaceSearchProvider(nextSearchProvider)
           setJsKey(nextJsKey)
           setWebServiceKey(nextWebServiceKey)
           useToastStore.getState().show('已导入旅程和地图配置')
@@ -158,8 +166,8 @@ export default function SettingsView({
     const hasWebServiceKey = !!webServiceKey.trim()
     useToastStore.getState().show(
       hasJsKey || hasWebServiceKey
-        ? `高德配置已保存${hasJsKey ? '，地图页将优先使用高德' : ''}${hasWebServiceKey ? '，地点搜索将优先使用高德' : ''}`
-        : '已清除高德配置，现已切回默认地图与搜索服务',
+        ? '高德 Key 已保存；地图展示和地点搜索将按下方来源选择执行'
+        : '已清除高德 Key；需要时会自动回退默认地图与搜索服务',
     )
   }
 
@@ -276,7 +284,7 @@ export default function SettingsView({
           </summary>
           <div className="mt-5 border-t border-border/80 pt-5">
             <p className="mb-4 max-w-[620px] text-[12.5px] leading-relaxed text-text-muted">
-              填写后，地图展示和地点搜索会优先使用高德；留空则继续使用 OSM、Nominatim。智能路线使用 OSRM：近距离步行、较远距离自动驾车，已有行程地点可直接切换地图。
+              可分别选择地图展示与地点搜索的服务来源。高德缺少对应 Key 或加载失败时，会自动回退至 OSM、Nominatim；智能路线仍由 OSRM 提供。
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-[12.5px] font-medium text-text-muted">
@@ -293,6 +301,24 @@ export default function SettingsView({
               <button onClick={saveMapConfig} className="shrink-0 rounded-md bg-action px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-action-hover">
                 保存配置
               </button>
+            </div>
+            <div className="mt-5 grid gap-4 border-t border-border/80 pt-4 sm:grid-cols-2">
+              <div>
+                <div className="text-[12.5px] font-semibold text-text">地图展示</div>
+                <div className="mt-2 flex rounded-md bg-surface-2/70 p-1">
+                  <button onClick={() => setMapDisplayProvider('amap')} className={`flex-1 rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${mapDisplayProvider === 'amap' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>高德地图</button>
+                  <button onClick={() => setMapDisplayProvider('osm')} className={`flex-1 rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${mapDisplayProvider === 'osm' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>OpenStreetMap</button>
+                </div>
+                <p className="mt-1.5 text-[11px] text-text-faint">高德需 JS API Key；缺失时自动使用 OSM。</p>
+              </div>
+              <div>
+                <div className="text-[12.5px] font-semibold text-text">地点搜索</div>
+                <div className="mt-2 flex rounded-md bg-surface-2/70 p-1">
+                  <button onClick={() => setPlaceSearchProvider('amap')} className={`flex-1 rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${placeSearchProvider === 'amap' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>高德搜索</button>
+                  <button onClick={() => setPlaceSearchProvider('osm')} className={`flex-1 rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${placeSearchProvider === 'osm' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>OpenStreetMap</button>
+                </div>
+                <p className="mt-1.5 text-[11px] text-text-faint">高德需 Web 服务 Key；缺失时自动使用 Nominatim。</p>
+              </div>
             </div>
             <div className="mt-5 border-t border-border/80 pt-4">
               <div className="text-[12.5px] font-semibold text-text">地图连线</div>

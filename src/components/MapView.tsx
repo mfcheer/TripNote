@@ -171,7 +171,7 @@ export default function MapView({
   mapPickRequest?: number
   wishOverview?: boolean
 }) {
-  const { setActiveDay, amapJsKey, amapWebServiceKey, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
+  const { setActiveDay, amapJsKey, amapWebServiceKey, mapDisplayProvider, placeSearchProvider, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
   const [filter, setFilter] = useState<'all' | string>(() => initialDayId === 'all' || trip.days.some((day) => day.id === initialDayId) ? initialDayId : 'all')
   const [amapUnavailable, setAmapUnavailable] = useState(false)
@@ -219,7 +219,7 @@ export default function MapView({
     })
   }, [filter, trip])
 
-  useEffect(() => setAmapUnavailable(false), [amapJsKey])
+  useEffect(() => setAmapUnavailable(false), [amapJsKey, mapDisplayProvider])
   useEffect(() => setRouteFallback(false), [mapRouteMode, routeRequestKey])
   useEffect(() => setOpenCluster(null), [filter])
   useEffect(() => {
@@ -236,7 +236,7 @@ export default function MapView({
     const requestId = ++pickRequestRef.current
     setResolvingPoint(true)
     try {
-      const location = await reverseGeocode(point.lat, point.lng, amapWebServiceKey)
+      const location = await reverseGeocode(point.lat, point.lng, amapWebServiceKey, placeSearchProvider)
       if (requestId !== pickRequestRef.current) return
       if (!location) return
       setPickedLocation(location)
@@ -244,7 +244,7 @@ export default function MapView({
     } finally {
       if (requestId === pickRequestRef.current) setResolvingPoint(false)
     }
-  }, [amapWebServiceKey])
+  }, [amapWebServiceKey, placeSearchProvider])
   const stopPicking = useCallback(() => {
     pickRequestRef.current += 1
     setIsPicking(false)
@@ -267,7 +267,7 @@ export default function MapView({
       undo: () => removeWishPlace(id),
     })
   }, [addWishPlace, pickedCategory, pickedLocation, pickedName, pickedPoint, removeWishPlace, stopPicking])
-  const useAmap = !!amapJsKey && !amapUnavailable
+  const useAmap = mapDisplayProvider === 'amap' && !!amapJsKey && !amapUnavailable
   const focusMapActivity = useCallback((activityId: string) => {
     useTripStore.getState().focusActivity(activityId)
     onOpenActivity?.(activityId)

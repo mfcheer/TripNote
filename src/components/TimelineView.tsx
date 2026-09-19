@@ -410,6 +410,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
   const addWishPlace = useTripStore((s) => s.addWishPlace)
   const selectActivity = useTripStore((s) => s.selectActivity)
   const amapWebServiceKey = useTripStore((s) => s.amapWebServiceKey)
+  const placeSearchProvider = useTripStore((s) => s.placeSearchProvider)
   const trip = useActiveTrip()
   const day = trip.days.find((item) => item.id === dayId)
   const [time, setTime] = useState(() => nextActivityTime(trip, dayId))
@@ -436,7 +437,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
       abortRef.current = ctrl
       setLoading(true)
       try {
-        setResults(await searchPlaces(query, ctrl.signal, amapWebServiceKey))
+        setResults(await searchPlaces(query, ctrl.signal, amapWebServiceKey, placeSearchProvider))
         setResultIndex(-1)
         setSearchedQuery(query)
       } catch (error) {
@@ -452,7 +453,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
       clearTimeout(timer)
       abortRef.current?.abort()
     }
-  }, [title, pickedPlace, amapWebServiceKey])
+  }, [title, pickedPlace, amapWebServiceKey, placeSearchProvider])
 
   function pickPlace(place: GeoResult) {
     setPickedPlace(place)

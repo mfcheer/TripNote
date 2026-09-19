@@ -61,6 +61,7 @@ export default function ActivityForm({
   stickyActions?: boolean
 }) {
   const amapWebServiceKey = useTripStore((state) => state.amapWebServiceKey)
+  const placeSearchProvider = useTripStore((state) => state.placeSearchProvider)
   const [form, setForm] = useState({
     time: initial?.time ?? '09:00',
     title: initial?.title ?? '',
@@ -97,7 +98,7 @@ export default function ActivityForm({
       abortRef.current = ctrl
       setGeoLoading(true)
       try {
-        const results = await searchPlaces(value.trim(), ctrl.signal, amapWebServiceKey)
+        const results = await searchPlaces(value.trim(), ctrl.signal, amapWebServiceKey, placeSearchProvider)
         setGeoResults(results)
       } catch (e) {
         if ((e as Error).name !== 'AbortError') setGeoResults([])

@@ -45,6 +45,7 @@ export default function DayMapPreview({
   const trip = useActiveTrip()
   const focusActivity = useTripStore((s) => s.focusActivity)
   const amapJsKey = useTripStore((s) => s.amapJsKey)
+  const mapDisplayProvider = useTripStore((s) => s.mapDisplayProvider)
   const items = activitiesByDay(trip, dayId).filter((activity) => activity.geo)
   const points = useMemo(
     () => items.map((activity) => [activity.geo!.lat, activity.geo!.lng] as [number, number]),
@@ -70,7 +71,7 @@ export default function DayMapPreview({
 
   return (
     <div className="h-[240px] overflow-hidden rounded-lg border border-border">
-      {amapJsKey ? (
+      {mapDisplayProvider === 'amap' && amapJsKey ? (
         <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={points.length > 1 ? [{ id: dayId, points: items.map((activity) => activity.geo!), color: '#c55e4e', weight: 3 }] : []} className="h-full w-full" zoom={13} />
       ) : (
       <MapContainer center={points[0]} zoom={13} className="h-full w-full" zoomControl={false} attributionControl={false}>
