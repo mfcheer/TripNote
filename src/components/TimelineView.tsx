@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type DragEvent as NativeDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
 import { createPortal } from 'react-dom'
 import {
   DndContext,
@@ -32,6 +32,7 @@ import { InlineStatus } from './FeedbackState'
 
 const PLANNER_PANEL_WIDTH_KEY = 'tripnote-planner-panel-width-v1'
 const BUDGET_DRAWER_WIDTH_KEY = 'tripnote-budget-drawer-width-v1'
+const WISH_DRAG_TYPE = 'application/x-tripnote-wish-id'
 const TRAVEL_MODE_LABELS = {
   walk: '步行',
   drive: '自驾',
@@ -903,6 +904,7 @@ function DaySection({
   hideQuickAdd = false,
   introducedActivityId = null,
   forceExpanded = false,
+  onNativeWishDrop,
 }: {
   dayId: string
   onQuickAdd: () => void
@@ -913,6 +915,7 @@ function DaySection({
   hideQuickAdd?: boolean
   introducedActivityId?: string | null
   forceExpanded?: boolean
+  onNativeWishDrop?: (event: NativeDragEvent<HTMLElement>, dayId: string) => void
 }) {
   const { activeDayId, selectedActivityId, selectActivity, editingActivityId, setEditingActivity, removeDay, addDay, copyDay, moveDay } =
     useTripStore()
@@ -922,6 +925,11 @@ function DaySection({
   const items = activitiesByDay(trip, dayId)
   const warnings = scheduleWarnings(items)
   const { setNodeRef, isOver } = useDroppable({ id: dayId, data: { type: 'day', dayId } })
+  const [nativeWishOver, setNativeWishOver] = useState(false)
+
+  function acceptsWish(event: NativeDragEvent<HTMLElement>) {
+    return event.dataTransfer.types.includes(WISH_DRAG_TYPE)
+  }
 
   // 展开逻辑：非当前天折叠显示摘要
   const isActiveDay = forceExpanded || dayId === activeDayId
@@ -950,7 +958,7 @@ function DaySection({
   }
 
   return (
-      <section ref={setNodeRef} className={`${compact ? 'mb-3 pb-3' : 'mb-5 pb-5 sm:mb-7 sm:pb-7'} border-b border-border/70 transition-colors last:border-b-0 ${isOver ? 'bg-accent-soft/30' : ''}`}>
+      <section ref={setNodeRef} onDragOver={(event) => { if (acceptsWish(event)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setNativeWishOver(true) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setNativeWishOver(false) }} onDrop={(event) => { if (!acceptsWish(event)) return; setNativeWishOver(false); onNativeWishDrop?.(event, dayId) }} className={`${compact ? 'mb-3 pb-3' : 'mb-5 pb-5 sm:mb-7 sm:pb-7'} border-b border-border/70 transition-colors last:border-b-0 ${isOver || nativeWishOver ? 'bg-accent-soft/30 ring-1 ring-inset ring-dashed ring-accent/45' : ''}`}>
         {/* 天标题 */}
         <header className={`${compact ? 'mb-2 gap-x-2' : 'mb-3 gap-x-3 gap-y-2'} flex flex-wrap items-center px-0.5`}>
           <h2 className={`${compact ? 'text-[17px]' : 'text-[19px]'} font-semibold tracking-[-0.02em]`}>{day.label}</h2>
@@ -1238,7 +1246,7 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
 
 export default function TimelineView({ onOpenFullMap, workspace = false, showAllDays = false, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; workspace?: boolean; showAllDays?: boolean; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
   const trip = useActiveTrip()
-  const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, setActiveDay, setPlanTab } = useTripStore()
+  const { selectedActivityId, editingActivityId, activeDayId, reorderActivity, scheduleWishPlace, setActiveDay, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [quickAddKey, setQuickAddKey] = useState(0)
   const [mobileQuickAddOpen, setMobileQuickAddOpen] = useState(false)
@@ -1282,6 +1290,19 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
       ? targetItems.findIndex((activity) => activity.id === over.id)
       : targetItems.length
     reorderActivity(String(active.id), targetDayId, insertIndex < 0 ? targetItems.length : insertIndex)
+  }
+
+  function handleNativeWishDrop(event: NativeDragEvent<HTMLElement>, dayId: string) {
+    event.preventDefault()
+    event.stopPropagation()
+    const placeId = event.dataTransfer.getData(WISH_DRAG_TYPE)
+    const place = trip.wishPlaces.find((item) => item.id === placeId)
+    const day = trip.days.find((item) => item.id === dayId)
+    if (!place || !day) return
+    const id = scheduleWishPlace(place.id, day.id, { time: nextActivityTime(trip, day.id), title: place.title, category: place.category, location: place.location, note: place.note, geo: place.geo })
+    if (!id) return
+    setActiveDay(day.id)
+    useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`)
   }
 
   function focusQuickAdd() {
@@ -1393,7 +1414,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
               </div>
             )}
             {((workspace && !showAllDays) || mobilePresentation ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={workspace && showAllDays} />
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={workspace && showAllDays} onNativeWishDrop={workspace && showAllDays ? handleNativeWishDrop : undefined} />
             ))}
           </div>
           {!hideQuickAdd && !mobilePresentation && <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
