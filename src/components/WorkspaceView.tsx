@@ -206,7 +206,8 @@ function DayRail() {
 
 export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { onExport: () => void; exporting: boolean; onOpenFullMap: () => void }) {
   const trip = useActiveTrip()
-  const { trips, activeTripId, switchTrip, createTrip, scheduleWishPlace, activeDayId } = useTripStore()
+  const { trips, activeTripId, switchTrip, createTrip, deleteTrip, scheduleWishPlace, activeDayId } = useTripStore()
+  const askConfirm = useConfirmStore((state) => state.ask)
   const totalCost = trip.activities.reduce((sum, activity) => sum + activity.costs.reduce((subtotal, cost) => subtotal + cost.amount, 0), 0)
   const [tripMenuOpen, setTripMenuOpen] = useState(false)
   const [createTripOpen, setCreateTripOpen] = useState(false)
@@ -309,6 +310,21 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
     useToastStore.getState().show('已创建新旅行，可以先在想去中收集地点')
   }
 
+  function confirmDeleteTrip(item: typeof trip) {
+    askConfirm({
+      title: `删除旅行「${item.name}」？`,
+      message: '其全部行程、地点和花费将一并删除。',
+      onConfirm: () => {
+        const { trips: previousTrips, activeTripId: previousActiveTripId } = useTripStore.getState()
+        deleteTrip(item.id)
+        setTripMenuOpen(false)
+        useToastStore.getState().show(`已删除旅行「${item.name}」`, {
+          undo: () => useTripStore.getState().restoreTrips(previousTrips, previousActiveTripId),
+        })
+      },
+    })
+  }
+
   return <div className="flex h-full min-w-0 flex-col bg-bg" style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
     <header className="flex h-[58px] shrink-0 items-center gap-3 border-b border-border/80 bg-white/92 px-5">
       <LogoIcon size={28} className="shrink-0 shadow-[0_2px_7px_rgba(31,48,63,0.16)]" alt="北向" />
@@ -318,7 +334,10 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
         </button>
         {tripMenuOpen && <div className="absolute top-[calc(100%+7px)] left-0 z-[900] w-[280px] overflow-hidden rounded-lg border border-border bg-white py-1.5 shadow-[0_14px_34px_rgba(32,40,46,0.16)]">
           <div className="px-3 pb-1.5 text-[10.5px] font-semibold tracking-[0.12em] text-text-faint">我的旅行</div>
-          {trips.map((item) => <button key={item.id} onClick={() => { switchTrip(item.id); setTripMenuOpen(false) }} className={`flex w-full items-center justify-between px-3 py-2 text-left ${item.id === activeTripId ? 'bg-action-soft/50 text-accent-hover' : 'hover:bg-surface'}`}><span className="truncate text-[12.5px] font-medium">{item.name}</span><span className="text-[10.5px] text-text-faint">{item.days.length} 天</span></button>)}
+          {trips.map((item) => <div key={item.id} className={`group flex items-center gap-1 px-3 py-1.5 ${item.id === activeTripId ? 'bg-action-soft/50 text-accent-hover' : 'hover:bg-surface'}`}>
+            <button onClick={() => { switchTrip(item.id); setTripMenuOpen(false) }} className="flex min-w-0 flex-1 items-center justify-between gap-2 py-0.5 text-left"><span className="truncate text-[12.5px] font-medium">{item.name}</span><span className="shrink-0 text-[10.5px] text-text-faint">{item.days.length} 天</span></button>
+            {trips.length > 1 && <button onClick={() => confirmDeleteTrip(item)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 focus:opacity-100" title={`删除「${item.name}」`} aria-label={`删除旅行「${item.name}」`}><TrashIcon size={12} /></button>}
+          </div>)}
           <div className="mt-1 border-t border-border/70 pt-1"><button onClick={() => { setTripMenuOpen(false); setCreateTripOpen(true) }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-text-muted hover:bg-surface hover:text-text"><PlusIcon size={13} /> 创建新旅行</button></div>
         </div>}
       </div>

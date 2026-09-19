@@ -270,7 +270,7 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
                             },
                           })
                         }
-                        className="shrink-0 rounded p-1 text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:text-red-500"
+                        className={`shrink-0 rounded p-1 text-text-faint transition-opacity hover:text-red-500 ${compact ? 'h-8 w-8 opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                         title="删除旅程"
                       >
                         <TrashIcon size={12} />
