@@ -11,6 +11,7 @@ import SettingsView from './SettingsView'
 import { useConfirmStore } from './confirmStore'
 
 const WISH_DRAG_TYPE = 'application/x-tripnote-wish-id'
+const ACTIVITY_DRAG_TYPE = 'application/x-tripnote-activity-id'
 
 function plannedIds(place: WishPlace) {
   return [...(place.scheduledActivityIds ?? []), ...(place.scheduledActivityId ? [place.scheduledActivityId] : [])]
@@ -175,8 +176,9 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
 
 function DayRail() {
   const trip = useActiveTrip()
-  const { activeDayId, setActiveDay, addDay, copyDay, moveDay } = useTripStore()
+  const { activeDayId, setActiveDay, addDay, copyDay, moveDay, scheduleWishPlace, reorderActivity } = useTripStore()
   const [draggingDayId, setDraggingDayId] = useState<string | null>(null)
+  const [dropTargetId, setDropTargetId] = useState<string | null>(null)
 
   function moveDayTo(dayId: string, targetDayId: string) {
     const fromIndex = trip.days.findIndex((day) => day.id === dayId)
@@ -186,14 +188,50 @@ function DayRail() {
     for (let index = 0; index < Math.abs(toIndex - fromIndex); index++) moveDay(dayId, direction)
   }
 
+  function dragKind(event: NativeDragEvent<HTMLElement>) {
+    if (event.dataTransfer.types.includes(WISH_DRAG_TYPE)) return 'wish'
+    if (event.dataTransfer.types.includes(ACTIVITY_DRAG_TYPE)) return 'activity'
+    if (event.dataTransfer.types.includes('application/x-tripnote-day-id')) return 'day'
+    return null
+  }
+
+  function dropOnDay(event: NativeDragEvent<HTMLElement>, dayId: string) {
+    event.preventDefault()
+    const day = trip.days.find((item) => item.id === dayId)
+    const wishId = event.dataTransfer.getData(WISH_DRAG_TYPE)
+    const activityId = event.dataTransfer.getData(ACTIVITY_DRAG_TYPE)
+    const sourceDayId = event.dataTransfer.getData('application/x-tripnote-day-id')
+    if (wishId && day) {
+      const place = trip.wishPlaces.find((item) => item.id === wishId)
+      if (place) {
+        const id = scheduleWishPlace(place.id, day.id, { time: nextActivityTime(trip, day.id), title: place.title, category: place.category, location: place.location, note: place.note, geo: place.geo })
+        if (id) {
+          setActiveDay(day.id)
+          useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`)
+        }
+      }
+    } else if (activityId && day) {
+      const activity = trip.activities.find((item) => item.id === activityId)
+      if (activity && activity.dayId !== day.id) {
+        reorderActivity(activity.id, day.id, activitiesByDay(trip, day.id).length)
+        setActiveDay(day.id)
+        useToastStore.getState().show(`已将「${activity.title}」移到 ${day.label}`)
+      }
+    } else if (sourceDayId) {
+      moveDayTo(sourceDayId, dayId)
+    }
+    setDraggingDayId(null)
+    setDropTargetId(null)
+  }
+
   return <footer className="shrink-0 border-t border-border/60 bg-[#fbfcfc]/92 px-4 py-2 backdrop-blur-sm">
     <div className="flex items-center gap-1.5 overflow-x-auto py-0.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {trip.days.map((day) => {
         const active = activeDayId === day.id
         const items = activitiesByDay(trip, day.id)
         const cost = dayCost(trip, day.id)
-        const isDragTarget = draggingDayId !== null && draggingDayId !== day.id
-        return <button key={day.id} draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-tripnote-day-id', day.id); setDraggingDayId(day.id) }} onDragEnd={() => setDraggingDayId(null)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const sourceId = event.dataTransfer.getData('application/x-tripnote-day-id'); if (sourceId) moveDayTo(sourceId, day.id); setDraggingDayId(null) }} onClick={() => setActiveDay(day.id)} className={`w-[138px] shrink-0 rounded-md px-2.5 py-1.5 text-left transition-[background-color,transform] ${active ? 'bg-action-soft/72 text-text shadow-[0_1px_3px_rgba(120,73,60,0.06)]' : 'text-text-muted hover:bg-white'} ${isDragTarget ? 'bg-accent-soft/70 ring-1 ring-dashed ring-accent/45' : ''} ${draggingDayId === day.id ? 'scale-[0.98] opacity-55' : 'cursor-grab active:cursor-grabbing'}`}>
+        const isDragTarget = dropTargetId === day.id && draggingDayId !== day.id
+        return <button key={day.id} draggable onDragStart={(event) => { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('application/x-tripnote-day-id', day.id); setDraggingDayId(day.id) }} onDragEnd={() => { setDraggingDayId(null); setDropTargetId(null) }} onDragOver={(event) => { const kind = dragKind(event); if (kind) { event.preventDefault(); event.dataTransfer.dropEffect = kind === 'wish' ? 'copy' : 'move'; setDropTargetId(day.id) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropTargetId(null) }} onDrop={(event) => dropOnDay(event, day.id)} onClick={() => setActiveDay(day.id)} className={`w-[138px] shrink-0 rounded-md px-2.5 py-1.5 text-left transition-[background-color,transform] ${active ? 'bg-action-soft/72 text-text shadow-[0_1px_3px_rgba(120,73,60,0.06)]' : 'text-text-muted hover:bg-white'} ${isDragTarget ? 'bg-accent-soft/70 ring-1 ring-dashed ring-accent/45' : ''} ${draggingDayId === day.id ? 'scale-[0.98] opacity-55' : 'cursor-grab active:cursor-grabbing'}`}>
           <span className="flex items-center gap-1"><span className="truncate text-[11px] font-semibold">{day.label}{day.place ? ` · ${day.place}` : ''}</span><span className="ml-auto shrink-0 text-[9.5px] text-text-faint">{items.length}项</span></span>
           <span className="mt-0.5 block truncate text-[10px] text-text-faint">{displayDate(day.date)}{cost > 0 ? ` · ¥${cost.toLocaleString()}` : ''}</span>
         </button>
