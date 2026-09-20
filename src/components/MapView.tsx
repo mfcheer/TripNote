@@ -211,7 +211,7 @@ export default function MapView({
     return activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => ({ activity, day, color }))
   })), [visibleDays, trip])
 
-  // 总览中的跨日虚线把每天的路线串成完整旅程；虚线保留“过夜后继续”的语义。
+  // 总览才展示跨日衔接。短距离不额外绘制，避免把相邻住宿/景点误读为一段路线。
   const crossDaySegments = useMemo(() => {
     if (filter !== 'all') return []
     return trip.days.flatMap((day, index) => {
@@ -221,7 +221,9 @@ export default function MapView({
       const from = previousItems.at(-1)
       const to = currentItems.at(0)
       if (!from?.geo || !to?.geo) return []
-      return [{ from, to, dayIndex: index }]
+      const distanceMeters = straightLineDistanceMeters(from.geo, to.geo)
+      if (distanceMeters < 1000) return []
+      return [{ from, to, dayIndex: index, distanceMeters }]
     })
   }, [filter, trip])
 
@@ -298,12 +300,12 @@ export default function MapView({
         }
       })
     }),
-    ...crossDaySegments.map(({ from, to, dayIndex }) => ({
+    ...crossDaySegments.map(({ from, to }) => ({
       id: `cross-${from.id}-${to.id}`,
       points: [from.geo!, to.geo!],
-      color: routeColor(dayIndex, trip.days.length),
+      color: '#8b9ca6',
       dashed: true,
-      weight: 3,
+      weight: 2.5,
     })),
   ], [visibleDays, trip, crossDaySegments, mapRouteMode])
   const amapMarkers = useMemo<AmapMarker[]>(() => [...(!wishOverview ? markerGroups : []).map((group) => {
@@ -410,11 +412,11 @@ export default function MapView({
         <FitBounds points={allPoints} />
         <MapPickHandler enabled={isPicking} onPick={handleMapPick} />
 
-        {crossDaySegments.map(({ from, to, dayIndex }) => {
+        {crossDaySegments.map(({ from, to }) => {
           const positions = [[from.geo!.lat, from.geo!.lng], [to.geo!.lat, to.geo!.lng]] as [number, number][]
           return <Fragment key={`${from.id}-${to.id}`}>
-            <Polyline positions={positions} pathOptions={{ color: '#fffdf9', weight: 7, opacity: 0.86, dashArray: '7 8' }} />
-            <Polyline positions={positions} pathOptions={{ color: routeColor(dayIndex, trip.days.length), weight: 3, opacity: 0.96, dashArray: '7 8' }} />
+            <Polyline positions={positions} pathOptions={{ color: '#fffdf9', weight: 6, opacity: 0.72, dashArray: '7 8' }} />
+            <Polyline positions={positions} pathOptions={{ color: '#8b9ca6', weight: 2.5, opacity: 0.82, dashArray: '7 8' }} />
           </Fragment>
         })}
 
@@ -531,8 +533,8 @@ export default function MapView({
         ))}
         {crossDaySegments.length > 0 && (
           <div className="mt-2 border-t border-border pt-2 text-[11px] text-text-faint">
-            <span className="mr-1 inline-block w-5 align-middle border-t-2 border-dashed" style={{ borderColor: routeColor(1, Math.max(trip.days.length, 2)) }} />
-            虚线为跨日衔接；{mapRouteMode === 'walking' ? '智能路线（近步行、远驾车）' : '直线连接'}由浅至深代表行程推进
+            <span className="mr-1 inline-block w-5 align-middle border-t-2 border-dashed" style={{ borderColor: '#8b9ca6' }} />
+            灰蓝虚线为跨日衔接；{mapRouteMode === 'walking' ? '智能路线（近步行、远驾车）' : '直线连接'}由浅至深代表行程推进
           </div>
         )}
         {routeFallback && mapRouteMode === 'walking' && <div className="mt-1.5 text-[11px] text-amber-700">路线请求失败，已显示直线连线。</div>}
