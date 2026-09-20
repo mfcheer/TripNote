@@ -49,6 +49,12 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     }
   }, [amapWebServiceKey, placeSearchProvider, query])
 
+  function clearPlaceSearch() {
+    setQuery('')
+    setResults([])
+    setLoading(false)
+  }
+
   const places = useMemo(() => {
     const unscheduled: WishPlace[] = []
     const scheduled: WishPlace[] = []
@@ -68,8 +74,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     }
     const id = addWishPlace({ title, category: 'sight', location: result.label, geo: { lat: result.lat, lng: result.lng } })
     onSelectWishPlace(id)
-    setQuery('')
-    setResults([])
+    clearPlaceSearch()
     useToastStore.getState().show(`已加入想去：${title}`)
   }
 
@@ -78,7 +83,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     if (!title) return
     const id = addWishPlace({ title, category: 'sight' })
     onSelectWishPlace(id)
-    setQuery('')
+    clearPlaceSearch()
     useToastStore.getState().show(`已加入想去：${title}`)
   }
 

@@ -432,6 +432,7 @@ export default function WishlistView() {
   useEffect(() => {
     const query = searching.trim()
     if (query.length < 2) {
+      setResults([])
       setSearchStatus('idle')
       return
     }
@@ -457,6 +458,13 @@ export default function WishlistView() {
       abortRef.current?.abort()
     }
   }, [searching, amapWebServiceKey, placeSearchProvider])
+
+  function clearPlaceSearch() {
+    abortRef.current?.abort()
+    setSearching('')
+    setResults([])
+    setSearchStatus('idle')
+  }
 
   // 从地图点选地点后，让清单自动滚到对应卡片，避免地图与列表脱节。
   useEffect(() => {
@@ -542,9 +550,7 @@ export default function WishlistView() {
       geo: { lat: result.lat, lng: result.lng },
     })
     setActiveId(id)
-    setSearching('')
-    setResults([])
-    setSearchStatus('idle')
+    clearPlaceSearch()
     useToastStore.getState().show(`已收藏「${result.label.split(',')[0]}」`)
   }
 
@@ -553,9 +559,7 @@ export default function WishlistView() {
     if (!title) return
     const id = addWishPlace({ title, category: manualCategory })
     setActiveId(id)
-    setSearching('')
-    setResults([])
-    setSearchStatus('idle')
+    clearPlaceSearch()
     useToastStore.getState().show(`已收藏「${title}」`)
   }
 
@@ -817,8 +821,7 @@ export default function WishlistView() {
           initialCategory={manualCategory}
           onSaved={(id) => {
             setActiveId(id)
-            setSearching('')
-            setResults([])
+            clearPlaceSearch()
             setShowCustomMap(false)
           }}
           onClose={() => setShowCustomMap(false)}
