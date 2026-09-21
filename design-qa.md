@@ -1,39 +1,23 @@
-# 北向品牌实现 Design QA
+# Design QA
 
-## Evidence
+## Scope
 
-- Source visual truth: `/Users/mfcheer/.codex/generated_images/01a062b1-92c2-7201-89de-2919c8c63072/exec-8e1c9499-c5b6-4a96-9146-875fb3fd52e2.png`
-- Implementation desktop: `/Users/mfcheer/code/trip/trip-app/output/brand-northward-20260913/04-desktop-final.png`
-- Implementation mobile: `/Users/mfcheer/code/trip/trip-app/output/brand-northward-20260913/03-mobile-final.png`
-- Exported itinerary: `/Users/mfcheer/Downloads/日本关西之旅（示例）-行程.png`
-- Full-view comparison: `/Users/mfcheer/code/trip/trip-app/output/brand-northward-20260913/05-design-qa-comparison.png`
-- Focused brand comparison: `/Users/mfcheer/code/trip/trip-app/output/brand-northward-20260913/07-brand-focus-comparison.png`
-- Source pixels: 1254 × 1254.
-- Desktop capture: 1248 × 720 pixels; browser viewport reported 1280 × 720 CSS px at DPR 2; browser screenshot output was normalized by the in-app surface.
-- Mobile capture: 390 × 832 pixels from a 390 × 844 viewport override.
-- State: example itinerary, day 1 selected, light appearance.
+- Source direction: the approved map-led, low-saturation travel editor concept from this task.
+- Rendered implementation: desktop workspace at `1440 × 1024` CSS pixels, using the built-in Northeast Loop sample trip.
+- Evidence: `/tmp/tripnote-design-qa-comparison-final.png` compares the approved visual direction with the rendered workspace.
 
-## Findings
+## Checks completed
 
-- No actionable P0, P1, or P2 mismatch remains.
-- Fonts and typography: the implementation preserves the reference hierarchy—compact bold Chinese name with a smaller, widely tracked English lockup. Native Chinese system fonts are intentionally retained for consistency and loading reliability.
-- Spacing and layout rhythm: the desktop lockup fits the existing 240 px sidebar without changing itinerary density; the mobile header uses the mark alone so the trip switcher remains unclipped.
-- Colors and visual tokens: graphite, paper white, mineral gray, and the restrained coral route accent align with the selected direction and the existing product palette.
-- Image quality and asset fidelity: the approved polar-bear silhouette was regenerated as an isolated production master and exported at PWA, Apple, Tauri, Android, and iOS sizes. The 32–46 px UI uses the dedicated 128 px source and remains recognizable.
-- Copy and content: visible product naming is consistently changed to `北向`; `NORTHWARD` is secondary in the desktop lockup. Installation copy, backup filenames, page metadata, desktop bundle metadata, and itinerary exports use the new brand.
-- Primary interactions tested: itinerary navigation, settings navigation, export itinerary card, desktop rendering, and mobile rendering.
-- Browser console: no errors or warnings were present during the final interaction pass.
+- The desktop canvas is now organised as three continuous regions: a compact place library, a scrollable itinerary, and a wider map workspace.
+- The previous deep navy primary action and decorative gradients were removed. Slate blue-green is now reserved for navigation and controls; warm coral remains available for route and warning semantics.
+- The map starts at `520px` on a fresh desktop session and may be resized up to `680px`. A missing-storage value is handled explicitly, preventing the old narrow `360px` fallback.
+- The top bar, library, and itinerary use quiet surfaces and hairline separators rather than stacked shadows or ornamental texture.
+- In Chromium, the map scope switch was exercised from “跟随日期” to “全程”; all ten day labels and route segments became available. No application error was observed.
+- `npm run build` and `git diff --check` both pass. The only build notice is the existing Vite chunk-size recommendation.
 
-## Comparison History
+## Remaining intentional differences
 
-1. Initial implementation: `/Users/mfcheer/code/trip/trip-app/output/brand-northward-20260913/01-desktop.png`.
-   - P2: the bear mark had too little optical scale inside the existing 36–40 px containers.
-   - Fix: increased the rendered master to 42 px on mobile and 46 px on desktop while preserving the existing clipped container sizes.
-2. Post-fix evidence: `/Users/mfcheer/code/trip/trip-app/output/brand-northward-20260913/04-desktop-final.png` and `/Users/mfcheer/code/trip/trip-app/output/brand-northward-20260913/03-mobile-final.png`.
-   - Result: the silhouette and coral route remain legible without increasing header height or crowding adjacent controls.
-
-## Follow-up Polish
-
-- P3: if the brand later needs large-format print production, commission a manually redrawn vector master from the approved raster source. Current assets are sufficient for web, PWA, desktop, and mobile app icons.
+- The live map remains the configured map provider rather than the illustrative terrain map in the concept. This preserves user-selected map service, routing, and searchable place data.
+- The implementation keeps dense real itinerary controls and editable data visible; the reference was used as a visual direction, not as a reduced-function mockup.
 
 final result: passed

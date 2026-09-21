@@ -145,7 +145,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     </div>
   }
 
-  return <aside className="flex min-h-0 shrink-0 flex-col border-r border-border/80 bg-[#fbfcfc]" style={{ width: 'var(--workspace-library-width)' }}>
+  return <aside className="workspace-library flex min-h-0 shrink-0 flex-col border-r border-border/80" style={{ width: 'var(--workspace-library-width)' }}>
     <div className="border-b border-border/70 px-4 pt-4 pb-3">
       <div className="flex items-center justify-between">
         <div className="text-[14px] font-semibold text-text">想去</div>
@@ -197,16 +197,18 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
   const [newTripStart, setNewTripStart] = useState(today)
   const [newTripEnd, setNewTripEnd] = useState(today)
   const [libraryWidth, setLibraryWidth] = useState(() => {
-    const saved = Number(localStorage.getItem('tripnote-workspace-library-width-v1'))
+    const rawSaved = localStorage.getItem('tripnote-workspace-library-width-v1')
+    const saved = rawSaved == null ? Number.NaN : Number(rawSaved)
     return Number.isFinite(saved) ? Math.max(220, Math.min(380, saved)) : 286
   })
   const [mapWidth, setMapWidth] = useState(() => {
-    const saved = Number(localStorage.getItem('tripnote-workspace-map-width-v1'))
-    return Number.isFinite(saved) ? Math.max(360, Math.min(620, saved)) : 440
+    const rawSaved = localStorage.getItem('tripnote-workspace-map-width-v2')
+    const saved = rawSaved == null ? Number.NaN : Number(rawSaved)
+    return Number.isFinite(saved) ? Math.max(360, Math.min(680, saved)) : 520
   })
 
   useEffect(() => localStorage.setItem('tripnote-workspace-library-width-v1', String(Math.round(libraryWidth))), [libraryWidth])
-  useEffect(() => localStorage.setItem('tripnote-workspace-map-width-v1', String(Math.round(mapWidth))), [mapWidth])
+  useEffect(() => localStorage.setItem('tripnote-workspace-map-width-v2', String(Math.round(mapWidth))), [mapWidth])
   useEffect(() => setWorkspaceMapScope('follow'), [activeTripId])
   useEffect(() => setSelectedWishPlaceId(null), [activeDayId])
   useEffect(() => {
@@ -229,7 +231,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
         const max = Math.max(220, Math.min(380, window.innerWidth - mapWidth - 380))
         setLibraryWidth(Math.max(220, Math.min(max, startWidth + delta)))
       } else {
-        const max = Math.max(360, Math.min(620, window.innerWidth - libraryWidth - 380))
+        const max = Math.max(360, Math.min(680, window.innerWidth - libraryWidth - 380))
         setMapWidth(Math.max(360, Math.min(max, startWidth - delta)))
       }
     }
@@ -300,7 +302,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
   }
 
   return <div className="flex h-full min-w-0 flex-col bg-bg" style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
-    <header className="flex h-[58px] shrink-0 items-center gap-3 border-b border-border/80 bg-white/92 px-5">
+    <header className="workspace-header flex h-[58px] shrink-0 items-center gap-3 border-b border-border/80 px-5">
       <LogoIcon size={28} className="shrink-0 shadow-[0_2px_7px_rgba(31,48,63,0.16)]" alt="北向" />
       <div className="relative min-w-0">
         <button onClick={() => setTripMenuOpen((open) => !open)} className="flex max-w-[300px] items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-surface">

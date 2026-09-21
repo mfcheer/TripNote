@@ -44,24 +44,24 @@
 }
 .mobile-plan-dock__secondary { color: var(--color-text-muted); }
 .mobile-plan-dock__secondary:active { background: var(--color-surface-2); color: var(--color-text); }
-.mobile-plan-dock__primary { background: var(--color-action); color: white; box-shadow: 0 3px 10px rgba(90,48,39,.14); }
+.mobile-plan-dock__primary { background: var(--color-action); color: white; box-shadow: 0 2px 8px rgba(55,78,87,.12); }
 .mobile-plan-dock__primary:active { background: var(--color-action-hover); }
 
-/* 冷白旅行册：以纸张般的雾白承载内容，矿物蓝灰只用于层级和操作。 */
+/* 冷静旅行编辑器：雾白纸面、石板蓝绿操作色，暖色只留给地图路线和少量语义信息。 */
 @theme {
-  --color-bg: #f5f7f8;
-  --color-surface: #fcfdfe;
-  --color-surface-2: #edf1f3;
-  --color-border: #e0e6e9;
-  --color-text: #27323a;
-  --color-text-muted: #72808a;
-  --color-text-faint: #929ea6;
-  --color-accent: #597988;
-  --color-accent-soft: #eaf1f4;
-  --color-accent-hover: #405f6d;
-  --color-action: #af6959;
-  --color-action-soft: #f7ece9;
-  --color-action-hover: #955545;
+  --color-bg: #f5f7f7;
+  --color-surface: #ffffff;
+  --color-surface-2: #edf2f3;
+  --color-border: #dfe7e8;
+  --color-text: #26353c;
+  --color-text-muted: #718089;
+  --color-text-faint: #95a1a7;
+  --color-accent: #7896a0;
+  --color-accent-soft: #e8f0f1;
+  --color-accent-hover: #526f7a;
+  --color-action: #637f89;
+  --color-action-soft: #e9f1f2;
+  --color-action-hover: #4d6974;
 
   --color-cat-traffic: #668698;
   --color-cat-traffic-soft: #eaf1f4;
@@ -85,9 +85,7 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   color: var(--color-text);
-  background:
-    radial-gradient(circle at 82% 0%, rgba(255,255,255,.86), transparent 38rem),
-    var(--color-bg);
+  background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -176,25 +174,16 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
 .ui-empty-state__description { max-width: 360px; margin-top: 5px; color: var(--color-text-faint); font-size: 11.5px; line-height: 1.6; }
 .ui-empty-state__action { margin-top: 14px; }
 
-/* 顶部栏保持同一张冷白纸面的轻微光感，不用深蓝或具象纹路抢内容。 */
+/* 顶部栏保持干净纸面，不靠纹路或多层渐变制造装饰感。 */
 .trip-topbar {
   position: relative;
   isolation: isolate;
   overflow: visible;
-  background:
-    radial-gradient(100% 180% at 104% -88%, rgba(116,154,170,.10) 0%, rgba(116,154,170,0) 59%),
-    linear-gradient(108deg, rgba(255,255,255,.99) 0%, rgba(250,252,253,.98) 58%, rgba(243,247,248,.98) 100%);
-  box-shadow: 0 1px 0 rgba(39,50,58,.035), 0 4px 18px rgba(39,50,58,.024);
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 1px 0 rgba(38,53,60,.055);
 }
 .trip-topbar::before {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse 48% 120% at 78% 118%, rgba(89,121,136,.055) 0%, rgba(89,121,136,0) 68%),
-    linear-gradient(112deg, transparent 48%, rgba(255,255,255,.74) 66%, transparent 84%);
+  display: none;
 }
 .trip-topbar > * {
   position: relative;
@@ -203,16 +192,16 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
 
 @media (max-width: 767px) {
   .trip-topbar {
-    background:
-      radial-gradient(100% 180% at 112% -75%, rgba(116,154,170,.085) 0%, rgba(116,154,170,0) 58%),
-      linear-gradient(108deg, rgba(255,255,255,.99) 0%, rgba(247,250,251,.98) 100%);
-  }
-  .trip-topbar::before {
-    background:
-      radial-gradient(ellipse 58% 120% at 88% 120%, rgba(89,121,136,.048) 0%, rgba(89,121,136,0) 70%),
-      linear-gradient(112deg, transparent 52%, rgba(255,255,255,.66) 72%, transparent 90%);
+    background: rgba(255,255,255,.96);
   }
 }
+
+/* 桌面编排页采用一张连续画布：边框只负责分区，阴影仅给地图浮层、弹窗与拖放反馈。 */
+.workspace-header {
+  background: rgba(255,255,255,.94);
+  box-shadow: inset 0 -1px 0 rgba(38,53,60,.055);
+}
+.workspace-library { background: #f8faf9; }
 
 /* 细滚动条 */
 *::-webkit-scrollbar { width: 8px; height: 8px; }
