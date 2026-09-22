@@ -15,8 +15,8 @@ const LINE = '#e2e4e8'
 const START = '#ef9b8a'
 const END = '#df6555'
 const ROUTE_OVERVIEW_Y = 308
-const ROUTE_OVERVIEW_HEIGHT = 136
-const ITINERARY_START_Y = 476
+const ROUTE_OVERVIEW_HEIGHT = 224
+const ITINERARY_START_Y = 564
 
 const CATEGORY = {
   traffic: { color: '#668698', soft: '#eaf1f4' },
@@ -108,7 +108,7 @@ function drawTransit(ctx: CanvasRenderingContext2D, from: Activity, to: Activity
   return 38
 }
 
-type RouteOverviewPoint = { lat: number; lng: number; dayIndex: number }
+type RouteOverviewPoint = { lat: number; lng: number; dayIndex: number; title: string; place: string }
 
 function worldPoint(point: { lat: number; lng: number }, zoom: number) {
   const scale = 256 * 2 ** zoom
@@ -128,6 +128,51 @@ function overviewZoom(points: RouteOverviewPoint[], width: number, height: numbe
     if (spanX <= width - 40 && spanY <= height - 28) return zoom
   }
   return 1
+}
+
+function routeSpanMeters(points: RouteOverviewPoint[]) {
+  if (points.length < 2) return 0
+  return points.reduce((largest, point, index) =>
+    Math.max(largest, ...points.slice(index + 1).map((other) => straightLineDistanceMeters(point, other))),
+  0)
+}
+
+function overviewLabels(points: RouteOverviewPoint[], localRoute: boolean) {
+  if (localRoute) {
+    const first = points[0]
+    const last = points.at(-1)!
+    return [
+      { point: first, label: `起点 · ${first.title}` },
+      ...(last !== first ? [{ point: last, label: `终点 · ${last.title}` }] : []),
+    ]
+  }
+  const byPlace = points.filter((point, index) => !point.place || !points.slice(0, index).some((previous) => previous.place === point.place))
+  const source = byPlace.length >= 2 ? byPlace : points
+  const limit = Math.min(5, source.length)
+  return Array.from({ length: limit }, (_, index) => {
+    const point = source[Math.round((index * (source.length - 1)) / Math.max(1, limit - 1))]
+    return { point, label: point.place || `第${point.dayIndex + 1}天` }
+  })
+}
+
+function drawOverviewLabel(
+  ctx: CanvasRenderingContext2D,
+  label: string,
+  x: number,
+  y: number,
+  mapX: number,
+  mapY: number,
+  mapW: number,
+  mapH: number,
+) {
+  ctx.font = '600 13px "PingFang SC", sans-serif'
+  const width = Math.min(mapW - 18, ctx.measureText(label).width + 18)
+  const left = Math.max(mapX + 5, Math.min(mapX + mapW - width - 5, x - width / 2))
+  const top = Math.max(mapY + 5, Math.min(mapY + mapH - 26, y - 29))
+  ctx.fillStyle = 'rgba(255,255,255,.94)'
+  rounded(ctx, left, top, width, 22, 8)
+  ctx.fillStyle = '#4e5965'
+  ctx.fillText(clip(ctx, label, width - 14), left + 8, top + 15)
 }
 
 function loadMapTile(zoom: number, x: number, y: number) {
@@ -155,22 +200,23 @@ async function drawRouteOverview(ctx: CanvasRenderingContext2D, trip: Trip) {
   const points = trip.days.flatMap((day, dayIndex) =>
     activitiesByDay(trip, day.id)
       .filter((activity) => activity.geo)
-      .map((activity) => ({ ...activity.geo!, dayIndex })),
+      .map((activity) => ({ ...activity.geo!, dayIndex, title: activity.title, place: day.place })),
   )
+  const localRoute = routeSpanMeters(points) <= 45_000
 
   ctx.fillStyle = '#fff'
   rounded(ctx, x, y, w, h, 18)
   ctx.fillStyle = '#59616c'
   ctx.font = '600 18px "PingFang SC", sans-serif'
-  ctx.fillText('全程路线概览', x + 22, y + 32)
+  ctx.fillText(localRoute ? '城区路线图' : '城市路线概览', x + 22, y + 32)
   ctx.fillStyle = '#9299a3'
   ctx.font = '400 15px "PingFang SC", sans-serif'
-  ctx.fillText(points.length ? `已定位 ${points.length} 个地点 · 按日期由浅至深` : '为行程地点补充坐标后，这里会显示全程路线', x + 22, y + 57)
+  ctx.fillText(points.length ? `${localRoute ? '同城活动 · 放大查看地点顺序' : '跨城行程 · 查看主要停留城市'} · 已定位 ${points.length} 个地点` : '为行程地点补充坐标后，这里会显示全程路线', x + 22, y + 57)
 
-  const mapX = x + 350
-  const mapY = y + 16
-  const mapW = w - 370
-  const mapH = h - 32
+  const mapX = x + 22
+  const mapY = y + 70
+  const mapW = w - 44
+  const mapH = h - 88
   ctx.fillStyle = '#f3f6f7'
   rounded(ctx, mapX, mapY, mapW, mapH, 13)
   if (points.length === 0) return
@@ -227,6 +273,10 @@ async function drawRouteOverview(ctx: CanvasRenderingContext2D, trip: Trip) {
     ctx.strokeStyle = '#fff'
     ctx.lineWidth = 2
     ctx.stroke()
+  })
+  overviewLabels(points, localRoute).forEach(({ point, label }) => {
+    const mapPoint = toCanvasPoint(point)
+    drawOverviewLabel(ctx, label, mapPoint.x, mapPoint.y, mapX, mapY, mapW, mapH)
   })
   ctx.fillStyle = 'rgba(255,255,255,.78)'
   rounded(ctx, mapX + 4, mapY + mapH - 19, 92, 15, 7)

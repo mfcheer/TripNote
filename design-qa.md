@@ -34,6 +34,7 @@
 - Map language follow-up: `output/playwright/maptiler-settings.png` verifies the new MapTiler-aware settings entry in the live application with no console errors. The MapTiler SDK and its CSS are deferred into their own chunks, so the default OSM first-load bundle remains unaffected. A missing MapTiler Key retains the existing OSM layer rather than blocking maps, routes, markers, or map picking.
 - Timeline density follow-up: `output/playwright/timeline-no-period-desktop.png` and `output/playwright/timeline-no-period-mobile.png` verify that broad time-of-day labels are removed while each concrete activity time, route hint, and drag/drop structure remains readable.
 - Export-card follow-up: a real browser export completed successfully as `.playwright-cli/东北大环线（示例）-行程.png`. The image adds an OpenStreetMap-backed full-route overview with a required attribution, date-gradient route points, and separate transit strips between adjacent itinerary items, while retaining the existing single continuous card format.
+- Adaptive map follow-up: the export map automatically expands into a wide city-route overview for cross-city trips, labels only key stops, and switches to a higher-zoom local route map with start/end place labels when all itinerary points sit within 45 km. The real browser export completed successfully after loading base-map tiles.
 
 ## Comparison history
 
