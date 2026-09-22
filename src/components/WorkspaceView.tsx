@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent as NativeDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
-import { searchPlaces, type GeoResult } from '../api/geocode'
+import { searchPlaces, tripSearchContext, type GeoResult, type PlaceSearchScope } from '../api/geocode'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS, HeartIcon, LogoIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type WishPlace } from '../types'
@@ -24,35 +24,41 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeoResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [searchFinished, setSearchFinished] = useState(false)
   const activeDayId = useTripStore((state) => state.activeDayId)
+  const [searchScope, setSearchScope] = useState<PlaceSearchScope>('day')
 
   useEffect(() => {
     const term = query.trim()
     if (term.length < 2) {
       setResults([])
+      setSearchFinished(false)
       return
     }
     const ctrl = new AbortController()
     const timer = window.setTimeout(async () => {
       setLoading(true)
+      setSearchFinished(false)
       try {
-        setResults(await searchPlaces(term, ctrl.signal, amapWebServiceKey, placeSearchProvider))
+        setResults(await searchPlaces(term, ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip, activeDayId, searchScope)))
       } catch (error) {
         if ((error as Error).name !== 'AbortError') setResults([])
       } finally {
         setLoading(false)
+        if (!ctrl.signal.aborted) setSearchFinished(true)
       }
     }, 360)
     return () => {
       window.clearTimeout(timer)
       ctrl.abort()
     }
-  }, [amapWebServiceKey, placeSearchProvider, query])
+  }, [amapWebServiceKey, placeSearchProvider, query, trip, activeDayId, searchScope])
 
   function clearPlaceSearch() {
     setQuery('')
     setResults([])
     setLoading(false)
+    setSearchFinished(false)
   }
 
   const places = useMemo(() => {
@@ -159,9 +165,15 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
         {results.length > 0 && <div className="absolute inset-x-0 top-[calc(100%+5px)] z-[800] max-h-[220px] overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-[0_10px_28px_rgba(32,40,46,0.14)]">
           {results.map((result) => <button key={`${result.lat}-${result.lng}`} onClick={() => addResult(result)} className="block w-full px-3 py-2 text-left hover:bg-surface"><span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}
         </div>}
+        {searchFinished && results.length === 0 && <p className="mt-1.5 text-[10.5px] leading-relaxed text-text-faint">当前范围没有结果，可扩大搜索范围或直接添加自定义地点。</p>}
         </div>
         <button onClick={onStartMapPick} className="shrink-0 rounded-md border border-border bg-white px-2.5 text-[11px] font-medium text-text-muted hover:border-accent/40 hover:text-accent" title="在右侧地图选择地点"><MapIcon size={14} /></button>
       </div>
+      <select value={searchScope} onChange={(event) => { setResults([]); setSearchFinished(false); setSearchScope(event.target.value as PlaceSearchScope) }} aria-label="地点搜索范围" className="mt-2 w-full rounded-md border border-border bg-white px-2 py-1.5 text-[10.5px] font-medium text-text-muted outline-none focus:border-accent">
+        <option value="day">当前日期附近</option>
+        <option value="trip">本次旅行范围</option>
+        <option value="all">全国 / 全球</option>
+      </select>
     </div>
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="flex items-center justify-between px-4 pt-3 pb-1.5"><span className="text-[10.5px] font-semibold tracking-[0.12em] text-text-faint">待安排</span><span className="text-[10.5px] text-text-faint">{places.unscheduled.length} 个</span></div>

@@ -25,7 +25,7 @@ import InlineActivityDetail from './ActivityDetail'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import { CATEGORY_META, type Activity, type ActivityCategory, type Trip } from '../types'
-import { searchPlaces, type GeoResult } from '../api/geocode'
+import { searchPlaces, tripSearchContext, type GeoResult } from '../api/geocode'
 import { fetchRouteInfo, fetchWalkingRouteInfo, routeProfileForSegment, straightLineDistanceMeters, WALKING_DISTANCE_THRESHOLD_METERS } from '../api/route'
 import DayMapPreview from './DayMapPreview'
 import ModalShell, { OverlayHeader, SheetHandle } from './OverlayShell'
@@ -439,7 +439,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
       abortRef.current = ctrl
       setLoading(true)
       try {
-        setResults(await searchPlaces(query, ctrl.signal, amapWebServiceKey, placeSearchProvider))
+        setResults(await searchPlaces(query, ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip, dayId, 'day')))
         setResultIndex(-1)
         setSearchedQuery(query)
       } catch (error) {

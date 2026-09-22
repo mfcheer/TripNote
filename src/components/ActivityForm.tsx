@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { searchPlaces, type GeoResult } from '../api/geocode'
+import { searchPlaces, tripSearchContext, type GeoResult } from '../api/geocode'
 import { CATEGORY_ICONS, MapIcon } from './Icons'
 import MapPicker from './MapPicker'
 import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint } from '../types'
-import { useTripStore } from '../store'
+import { useActiveTrip, useTripStore } from '../store'
 import { InlineStatus } from './FeedbackState'
 
 export interface ActivityFormValues {
@@ -62,6 +62,8 @@ export default function ActivityForm({
 }) {
   const amapWebServiceKey = useTripStore((state) => state.amapWebServiceKey)
   const placeSearchProvider = useTripStore((state) => state.placeSearchProvider)
+  const activeDayId = useTripStore((state) => state.activeDayId)
+  const trip = useActiveTrip()
   const [form, setForm] = useState({
     time: initial?.time ?? '09:00',
     title: initial?.title ?? '',
@@ -98,7 +100,7 @@ export default function ActivityForm({
       abortRef.current = ctrl
       setGeoLoading(true)
       try {
-        const results = await searchPlaces(value.trim(), ctrl.signal, amapWebServiceKey, placeSearchProvider)
+        const results = await searchPlaces(value.trim(), ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip, activeDayId, 'day'))
         setGeoResults(results)
       } catch (e) {
         if ((e as Error).name !== 'AbortError') setGeoResults([])
