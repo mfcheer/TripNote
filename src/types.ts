@@ -62,6 +62,8 @@ export type ExpenseCategory = ActivityCategory
 export interface Trip {
   id: string
   name: string // "日本关西之旅"
+  // 创建时设定的主要区域，仅用于智能地点搜索，不影响每天的具体地点。
+  searchRegion?: string
   daysCount: number
   days: TripDay[]
   activities: Activity[]

@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent as Nativ
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { searchPlaces, tripSearchContext, type GeoResult, type PlaceSearchScope } from '../api/geocode'
+import { searchPlaces, tripSearchContext, type GeoResult } from '../api/geocode'
 import { fetchRouteInfo, routeProfileForSegment } from '../api/route'
 import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CalendarIcon, CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, TrashIcon } from './Icons'
@@ -392,7 +392,7 @@ function SortableWishCard({
 
 export default function WishlistView() {
   const trip = useActiveTrip()
-  const { addWishPlace, removeWishPlace, reorderWishPlace, cancelWishSchedule, focusActivity, amapWebServiceKey, amapJsKey, mapRouteMode, mapDisplayProvider, placeSearchProvider, activeDayId } = useTripStore()
+  const { addWishPlace, removeWishPlace, reorderWishPlace, cancelWishSchedule, focusActivity, amapWebServiceKey, amapJsKey, mapRouteMode, mapDisplayProvider, placeSearchProvider } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
   const [category, setCategory] = useState<ActivityCategory | 'all'>('all')
   const [keyword, setKeyword] = useState('')
@@ -403,7 +403,6 @@ export default function WishlistView() {
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'empty' | 'results'>('idle')
   const [mapPanelWidth, setMapPanelWidth] = useState(readMapPanelWidth)
   const [manualCategory, setManualCategory] = useState<ActivityCategory>('sight')
-  const [searchScope, setSearchScope] = useState<PlaceSearchScope>('day')
   const [schedulingPlaceId, setSchedulingPlaceId] = useState<string | null>(null)
   const [showCustomMap, setShowCustomMap] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
@@ -443,7 +442,7 @@ export default function WishlistView() {
       abortRef.current = ctrl
       try {
         setSearchStatus('loading')
-        const nextResults = await searchPlaces(query, ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip, activeDayId, searchScope))
+        const nextResults = await searchPlaces(query, ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip))
         if (ctrl.signal.aborted) return
         setResults(nextResults)
         setSearchStatus(nextResults.length > 0 ? 'results' : 'empty')
@@ -458,7 +457,7 @@ export default function WishlistView() {
       clearTimeout(timer)
       abortRef.current?.abort()
     }
-  }, [searching, amapWebServiceKey, placeSearchProvider, trip, activeDayId, searchScope])
+  }, [searching, amapWebServiceKey, placeSearchProvider, trip])
 
   function clearPlaceSearch() {
     abortRef.current?.abort()
@@ -650,13 +649,7 @@ export default function WishlistView() {
                 {searchStatus === 'empty' && searching.trim().length >= 2 && (
                   <div className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-border bg-white p-3 shadow-lg">
                     <InlineStatus tone="warning" className="border-0 bg-transparent p-0 font-medium">没有找到「{searching.trim()}」</InlineStatus>
-                    <p className="mt-1 text-[11.5px] leading-relaxed text-text-faint">{searchScope === 'day' ? '当前日期附近没有匹配地点，可先扩大到本次旅行范围。' : searchScope === 'trip' ? '本次旅行范围没有匹配地点，可扩大到全国 / 全球。' : '可能是小众地点、临时地标或地图未收录的位置。你可以直接在地图上点选并自定义名称。'}</p>
-                    {searchScope !== 'all' && <button
-                      onClick={() => setSearchScope(searchScope === 'day' ? 'trip' : 'all')}
-                      className="mt-2 mr-2 rounded-md border border-border bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-text-muted transition-colors hover:border-accent hover:text-accent"
-                    >
-                      扩大搜索范围
-                    </button>}
+                    <p className="mt-1 text-[11.5px] leading-relaxed text-text-faint">已自动扩大搜索范围。可能是小众地点、临时地标或地图未收录的位置，你也可以直接在地图上点选并自定义名称。</p>
                     <button
                       onClick={() => setShowCustomMap(true)}
                       className="mt-2 flex items-center gap-1.5 rounded-md bg-accent-soft px-2.5 py-1.5 text-[11.5px] font-medium text-accent-hover transition-colors hover:bg-accent hover:text-white"
@@ -672,16 +665,6 @@ export default function WishlistView() {
               >
                 <MapIcon size={14} /> 地图选点
               </button>
-              <select
-                value={searchScope}
-                onChange={(event) => { setResults([]); setSearchStatus('idle'); setSearchScope(event.target.value as PlaceSearchScope) }}
-                aria-label="地点搜索范围"
-                className="rounded-md border border-border bg-white px-2.5 py-2 text-[12.5px] text-text-muted outline-none focus:border-accent"
-              >
-                <option value="day">当前日期附近</option>
-                <option value="trip">本次旅行范围</option>
-                <option value="all">全国 / 全球</option>
-              </select>
               <select
                 value={manualCategory}
                 onChange={(event) => setManualCategory(event.target.value as ActivityCategory)}

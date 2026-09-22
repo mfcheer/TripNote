@@ -62,7 +62,6 @@ export default function ActivityForm({
 }) {
   const amapWebServiceKey = useTripStore((state) => state.amapWebServiceKey)
   const placeSearchProvider = useTripStore((state) => state.placeSearchProvider)
-  const activeDayId = useTripStore((state) => state.activeDayId)
   const trip = useActiveTrip()
   const [form, setForm] = useState({
     time: initial?.time ?? '09:00',
@@ -100,7 +99,7 @@ export default function ActivityForm({
       abortRef.current = ctrl
       setGeoLoading(true)
       try {
-        const results = await searchPlaces(value.trim(), ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip, activeDayId, 'day'))
+        const results = await searchPlaces(value.trim(), ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip))
         setGeoResults(results)
       } catch (e) {
         if ((e as Error).name !== 'AbortError') setGeoResults([])

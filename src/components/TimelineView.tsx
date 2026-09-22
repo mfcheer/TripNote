@@ -439,7 +439,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
       abortRef.current = ctrl
       setLoading(true)
       try {
-        setResults(await searchPlaces(query, ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip, dayId, 'day')))
+        setResults(await searchPlaces(query, ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip)))
         setResultIndex(-1)
         setSearchedQuery(query)
       } catch (error) {

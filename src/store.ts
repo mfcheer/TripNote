@@ -8,6 +8,7 @@ import type { BackupData } from './utils/localBackup'
 export interface TripCreateInput {
   name?: string
   destination?: string
+  searchRegion?: string
   startDate?: string
   endDate?: string
   totalBudget?: number
@@ -46,6 +47,7 @@ interface TripState {
   createTrip: (input: string | TripCreateInput) => string
   deleteTrip: (tripId: string) => void
   renameTrip: (tripId: string, name: string) => void
+  setTripSearchRegion: (tripId: string, searchRegion: string) => void
   importTrip: (data: unknown) => boolean
   restoreBackup: (data: BackupData) => boolean
   resetAll: () => void
@@ -98,6 +100,7 @@ function isDate(value?: string): value is string {
 function blankTrip(input: string | TripCreateInput): Trip {
   const options: TripCreateInput = typeof input === 'string' ? { name: input } : input
   const destination = options.destination?.trim() ?? ''
+  const searchRegion = options.searchRegion?.trim() || destination
   const startDate = isDate(options.startDate) ? options.startDate : undefined
   const endDate = isDate(options.endDate) && (!startDate || options.endDate >= startDate)
     ? options.endDate
@@ -110,6 +113,7 @@ function blankTrip(input: string | TripCreateInput): Trip {
   return {
     id: makeId('trip'),
     name,
+    searchRegion,
     daysCount,
     days: Array.from({ length: daysCount }, (_, index) => ({
       id: makeId('day'),
@@ -388,6 +392,10 @@ export const useTripStore = create<TripState>()(
       renameTrip: (tripId, name) =>
         set((s) => ({
           trips: s.trips.map((t) => (t.id === tripId ? { ...t, name: name.trim() || t.name } : t)),
+        })),
+      setTripSearchRegion: (tripId, searchRegion) =>
+        set((s) => ({
+          trips: s.trips.map((t) => (t.id === tripId ? { ...t, searchRegion: searchRegion.trim() } : t)),
         })),
 
       importTrip: (data) => {
