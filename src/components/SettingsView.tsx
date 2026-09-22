@@ -172,7 +172,7 @@ export default function SettingsView({
   }
 
   return (
-    <div className={embedded ? 'mx-auto max-w-[760px] px-0 py-0' : 'mx-auto max-w-[760px] px-4 py-6 sm:px-8 sm:py-10'}>
+    <div className={`settings-view ${embedded ? 'mx-auto max-w-[760px] px-0 py-0' : 'mx-auto max-w-[760px] px-4 py-6 sm:px-8 sm:py-10'}`}>
       {!embedded && <div className="mb-7">
         <h1 className="text-[22px] font-semibold tracking-[-0.025em]">设置</h1>
         <p className="mt-1 text-[13px] text-text-muted">管理安装方式、本地数据与地图服务。</p>

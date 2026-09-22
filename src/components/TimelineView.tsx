@@ -287,7 +287,7 @@ export function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => voi
 
   return createPortal(
     <div className="fixed inset-0 z-[1000] bg-black/30 backdrop-blur-[1.5px]" role="dialog" aria-modal="true" aria-label="预算详情" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="mobile-safe-bottom absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-[22px] bg-white shadow-[0_18px_60px_rgba(25,34,42,0.2)] sm:inset-y-0 sm:left-auto sm:max-h-none sm:rounded-none sm:border-l sm:border-border sm:w-[var(--budget-drawer-width)]" style={{ '--budget-drawer-width': `${drawerWidth}px` } as CSSProperties}>
+      <aside className="apple-budget-drawer mobile-safe-bottom absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-[22px] sm:inset-y-0 sm:left-auto sm:max-h-none sm:rounded-none sm:border-l sm:border-border sm:w-[var(--budget-drawer-width)]" style={{ '--budget-drawer-width': `${drawerWidth}px` } as CSSProperties}>
         <div role="separator" aria-label="调整预算详情宽度" aria-orientation="vertical" onPointerDown={startDrawerResize} className="group absolute inset-y-0 -left-2 hidden w-3 cursor-col-resize touch-none items-center justify-center sm:flex">
           <span className="h-11 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
         </div>
@@ -1448,7 +1448,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
       onDragCancel={() => { setDraggingId(null); setDragOverDayId(null) }}
       onDragEnd={onDragEnd}
     >
-      <div className="flex min-h-full min-w-0">
+      <div className="timeline-root flex min-h-full min-w-0">
         <div className="min-w-0 flex-1">
           <div className={`${workspace ? 'max-w-none px-5 py-5' : mobilePresentation ? 'mr-auto max-w-[980px] px-4 pt-2 pb-4 sm:px-7 sm:py-7 lg:px-10' : 'mr-auto max-w-[980px] px-3 py-4 sm:px-7 sm:py-7 lg:px-10'}`}>
             {!workspace && !mobilePresentation && <MobileDayStrip trip={trip} />}

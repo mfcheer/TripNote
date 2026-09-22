@@ -388,7 +388,7 @@ export default function Sidebar() {
   }
 
   return (
-    <aside style={{ width: sidebarWidth }} className={`relative hidden h-full shrink-0 flex-col border-r border-border/80 bg-[#f8f9f9] transition-[width] ${isResizing ? 'duration-0' : 'duration-200'} md:flex`}>
+    <aside style={{ width: sidebarWidth }} className={`app-sidebar relative hidden h-full shrink-0 flex-col border-r border-border/80 transition-[width] ${isResizing ? 'duration-0' : 'duration-200'} md:flex`}>
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-5 pt-5 pb-4">
         <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full">

@@ -605,7 +605,7 @@ export default function WishlistView() {
   const schedulingPlace = trip.wishPlaces.find((place) => place.id === schedulingPlaceId)
 
   return (
-    <div className="flex h-full min-w-0">
+    <div className="wishlist-view flex h-full min-w-0">
       <section className="min-w-0 flex-1 overflow-y-auto">
         <div className="mr-auto max-w-[1000px] px-4 py-4 sm:px-7 sm:py-7 lg:px-10">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 sm:mb-5">
@@ -615,7 +615,7 @@ export default function WishlistView() {
             </p>
           </div>
 
-          <div className="relative mb-3 rounded-xl border border-border/70 bg-white/90 p-2.5 shadow-[0_5px_18px_rgba(32,40,46,0.045)] sm:mb-4 sm:p-3">
+          <div className="wishlist-search-panel relative mb-3 rounded-xl border border-border/70 p-2.5 sm:mb-4 sm:p-3">
             <div className="mb-2 text-[11.5px] font-medium text-text-muted">搜索并收藏新地点</div>
             <div className="flex flex-wrap gap-2">
               <div className="relative min-w-full flex-1 sm:min-w-[250px]">
@@ -713,7 +713,7 @@ export default function WishlistView() {
               ) : undefined}
             />
           ) : (
-            <div className="flex flex-col overflow-hidden rounded-xl border border-border/75 bg-white/50 px-2 shadow-[0_5px_20px_rgba(32,40,46,0.035)] sm:px-3">
+            <div className="wishlist-list-surface flex flex-col overflow-hidden rounded-xl border border-border/75 px-2 sm:px-3">
                   {filtered.map((place, index) => {
                     const scheduledItems = scheduledItemsFor(place)
                     const startsScheduledSection = scheduledItems.length > 0 && !filtered.slice(0, index).some(isPlaceScheduled)

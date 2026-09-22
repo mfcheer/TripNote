@@ -85,7 +85,7 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
   if (!activeDay) return null
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-bg">
+    <div className="mobile-plan-root flex h-full min-h-0 flex-col bg-bg">
       <div ref={railRef} className="mobile-day-rail shrink-0 border-b border-border/75 bg-white/86 px-3 py-2">
         <div className="flex w-max min-w-full items-stretch gap-1.5">
           {trip.days.map((day) => {

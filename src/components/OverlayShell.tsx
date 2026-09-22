@@ -2,17 +2,17 @@ import { useEffect, useId, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 export const overlayPrimaryButtonClass =
-  'inline-flex min-h-10 items-center justify-center rounded-md bg-action px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40'
+  'inline-flex min-h-10 items-center justify-center rounded-[10px] bg-action px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(40,120,212,0.20)] transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40'
 
 export const overlaySecondaryButtonClass =
-  'inline-flex min-h-10 items-center justify-center rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text'
+  'inline-flex min-h-10 items-center justify-center rounded-[10px] border border-border bg-white/85 px-4 py-2 text-[13px] font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text'
 
 export function OverlayCloseButton({ onClick, label = '关闭' }: { onClick: () => void; label?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="-mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[22px] leading-none text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+      className="-mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] text-[22px] leading-none text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
       aria-label={label}
     >
       ×
@@ -102,7 +102,7 @@ export default function ModalShell({
 
   return createPortal(
     <div
-      className={`fixed inset-0 z-[1000] flex bg-black/30 backdrop-blur-[1.5px] ${overlayClass}`}
+      className={`apple-modal-backdrop fixed inset-0 z-[1000] flex ${overlayClass}`}
       role="dialog"
       aria-modal="true"
       aria-label={ariaLabel}
@@ -111,7 +111,7 @@ export default function ModalShell({
         if (event.target === event.currentTarget && closeOnBackdrop) onClose()
       }}
     >
-      <section className={`${mobile === 'fullscreen' ? 'mobile-safe-top ' : ''}mobile-safe-bottom flex w-full flex-col overflow-hidden border-border bg-white shadow-[0_18px_60px_rgba(25,34,42,0.2)] sm:border ${sizeClass[size]} ${surfaceClass}`}>
+      <section className={`apple-modal-surface ${mobile === 'fullscreen' ? 'mobile-safe-top ' : ''}mobile-safe-bottom flex w-full flex-col overflow-hidden border-border sm:border ${sizeClass[size]} ${surfaceClass}`}>
         {mobile === 'sheet' && <div className="pt-2.5 sm:hidden"><SheetHandle /></div>}
         {showClose ? (
           <OverlayHeader title={title} description={description} onClose={onClose} titleId={titleId} />

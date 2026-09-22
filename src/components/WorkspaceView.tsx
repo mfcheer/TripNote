@@ -301,9 +301,11 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
     })
   }
 
-  return <div className="flex h-full min-w-0 flex-col bg-bg" style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
+  return <div className="workspace-root flex h-full min-w-0 flex-col bg-bg" style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
     <header className="workspace-header flex h-[58px] shrink-0 items-center gap-3 border-b border-border/80 px-5">
       <LogoIcon size={28} className="shrink-0 shadow-[0_2px_7px_rgba(31,48,63,0.16)]" alt="北向" />
+      <span className="shrink-0 text-[14px] font-semibold tracking-[-0.025em] text-text">TripNote</span>
+      <span className="h-4 w-px shrink-0 bg-border/80" aria-hidden="true" />
       <div className="relative min-w-0">
         <button onClick={() => setTripMenuOpen((open) => !open)} className="flex max-w-[300px] items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-surface">
           <span className="truncate text-[14px] font-semibold">{trip.name}</span><span className="text-[10px] text-text-faint">⌄</span>
@@ -328,7 +330,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
     <div className="flex min-h-0 flex-1">
       <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} selectedWishPlaceId={selectedWishPlaceId} onSelectWishPlace={setSelectedWishPlaceId} onScheduleSuccess={handleScheduleSuccess} />
       <div role="separator" aria-label="调整想去宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group -ml-1 flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
-      <main data-workspace-scroll onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto bg-white/56 transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
+      <main data-workspace-scroll onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
         <TimelineView workspace showAllDays={showAllDays} onShowAllDays={() => setShowAllDays(true)} onFocusDay={(dayId) => { setActiveDay(dayId); setShowAllDays(false) }} hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
       <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>

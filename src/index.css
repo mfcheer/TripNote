@@ -47,21 +47,21 @@
 .mobile-plan-dock__primary { background: var(--color-action); color: white; box-shadow: 0 2px 8px rgba(55,78,87,.12); }
 .mobile-plan-dock__primary:active { background: var(--color-action-hover); }
 
-/* 冷静旅行编辑器：雾白纸面、石板蓝绿操作色，暖色只留给地图路线和少量语义信息。 */
+/* Apple-inspired travel workspace: 让内容、地图与操作拥有清晰的材质层级，而不是靠重色块分区。 */
 @theme {
-  --color-bg: #f5f7f7;
+  --color-bg: #f5f5f7;
   --color-surface: #ffffff;
-  --color-surface-2: #edf2f3;
-  --color-border: #dfe7e8;
-  --color-text: #26353c;
-  --color-text-muted: #718089;
-  --color-text-faint: #95a1a7;
-  --color-accent: #7896a0;
-  --color-accent-soft: #e8f0f1;
-  --color-accent-hover: #526f7a;
-  --color-action: #637f89;
-  --color-action-soft: #e9f1f2;
-  --color-action-hover: #4d6974;
+  --color-surface-2: #f0f2f5;
+  --color-border: #dfe2e7;
+  --color-text: #1d1d1f;
+  --color-text-muted: #6e7580;
+  --color-text-faint: #969ca5;
+  --color-accent: #2878d4;
+  --color-accent-soft: #e8f2ff;
+  --color-accent-hover: #1765bc;
+  --color-action: #2878d4;
+  --color-action-soft: #e8f2ff;
+  --color-action-hover: #1765bc;
 
   --color-cat-traffic: #668698;
   --color-cat-traffic-soft: #eaf1f4;
@@ -74,7 +74,7 @@
   --color-cat-shop: #9b7083;
   --color-cat-shop-soft: #f5eef1;
 
-  --font-sans: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", -apple-system, "Segoe UI", sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Display", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", sans-serif;
 }
 
 html, body, #root {
@@ -85,7 +85,7 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   color: var(--color-text);
-  background: var(--color-bg);
+  background: #f5f5f7;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -98,6 +98,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   outline-offset: 2px;
 }
 input::placeholder, textarea::placeholder { color: var(--color-text-faint); opacity: .9; }
+
+/* 统一表单与可点击控件的触感：轻边界、短反馈，避免旧式按钮堆叠。 */
+input, textarea, select {
+  border-color: color-mix(in srgb, var(--color-border) 92%, transparent);
+  background-color: rgba(255,255,255,.92);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.72);
+  transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: color-mix(in srgb, var(--color-accent) 70%, white) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 14%, transparent);
+}
 
 /* iOS 会在小于 16px 的表单文字获得焦点时自动放大页面；移动端统一输入字号，避免关闭弹窗后还要手动缩回。 */
 @media (max-width: 767px) {
@@ -179,8 +191,9 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
   position: relative;
   isolation: isolate;
   overflow: visible;
-  background: rgba(255,255,255,.94);
-  box-shadow: 0 1px 0 rgba(38,53,60,.055);
+  background: rgba(255,255,255,.82);
+  box-shadow: 0 1px 0 rgba(29,29,31,.08);
+  backdrop-filter: saturate(160%) blur(20px);
 }
 .trip-topbar::before {
   display: none;
@@ -196,12 +209,120 @@ input::placeholder, textarea::placeholder { color: var(--color-text-faint); opac
   }
 }
 
-/* 桌面编排页采用一张连续画布：边框只负责分区，阴影仅给地图浮层、弹窗与拖放反馈。 */
+/* 三栏布局保持不变：通过克制的材质区分，而不是加重卡片和阴影。 */
 .workspace-header {
-  background: rgba(255,255,255,.94);
-  box-shadow: inset 0 -1px 0 rgba(38,53,60,.055);
+  background: rgba(255,255,255,.84);
+  box-shadow: inset 0 -1px 0 rgba(29,29,31,.08);
+  backdrop-filter: saturate(160%) blur(20px);
 }
-.workspace-library { background: #f8faf9; }
+.workspace-library { background: #f8f9fb; }
+.workspace-root [data-workspace-scroll] { background: rgba(255,255,255,.82); }
+.workspace-root [role="separator"] { background: #f5f5f7; }
+.workspace-root [role="separator"] span { background: transparent; }
+.workspace-root [role="separator"]:hover span { background: color-mix(in srgb, var(--color-accent) 45%, transparent); }
+.app-sidebar {
+  background: #f7f8fa;
+  box-shadow: inset -1px 0 rgba(29,29,31,.035);
+}
+.app-sidebar nav > div > div[class*="rounded-md"] { border-radius: 10px; }
+.timeline-root [aria-label="行程日期导航"] {
+  background: rgba(255,255,255,.84) !important;
+  box-shadow: 0 1px 0 rgba(29,29,31,.07);
+  backdrop-filter: saturate(160%) blur(18px);
+}
+.timeline-root [data-quick-add] {
+  background: rgba(255,255,255,.84) !important;
+  box-shadow: 0 -1px 0 rgba(29,29,31,.07), 0 -8px 24px rgba(34,43,53,.04) !important;
+}
+.timeline-root [data-quick-add] > div > div {
+  border-color: rgba(29,29,31,.09) !important;
+  box-shadow: none !important;
+}
+.apple-budget-drawer {
+  border-color: rgba(255,255,255,.82) !important;
+  background: rgba(255,255,255,.96) !important;
+  box-shadow: 0 24px 72px rgba(20,29,38,.20) !important;
+  backdrop-filter: saturate(170%) blur(24px);
+}
+
+/* 设置、弹窗及子页面沿用同一套轻材质，而不是各自再造一层卡片。 */
+.settings-view > div > div {
+  border-color: rgba(29,29,31,.09) !important;
+  background: rgba(255,255,255,.9) !important;
+  box-shadow: 0 14px 34px rgba(33,43,54,.055) !important;
+}
+.settings-view details > div,
+.settings-view section > div.rounded-lg {
+  border-color: rgba(29,29,31,.09) !important;
+  background: #f8f9fb !important;
+}
+.apple-modal-backdrop {
+  background: rgba(30,34,40,.22) !important;
+  backdrop-filter: saturate(130%) blur(9px);
+}
+.apple-modal-surface {
+  border-color: rgba(255,255,255,.82) !important;
+  background: rgba(255,255,255,.94) !important;
+  box-shadow: 0 24px 72px rgba(20,29,38,.20) !important;
+  backdrop-filter: saturate(170%) blur(24px);
+}
+.apple-modal-surface > header,
+.apple-modal-surface > footer {
+  background: rgba(255,255,255,.68) !important;
+  border-color: rgba(29,29,31,.08) !important;
+}
+.apple-modal-surface > header { min-height: 64px; }
+
+/* 移动端不是桌面缩小版：日期、地图浮层和底部动作使用同一层次语言。 */
+.mobile-plan-root .mobile-day-rail {
+  background: rgba(255,255,255,.82);
+  backdrop-filter: saturate(160%) blur(18px);
+}
+.mobile-plan-root .mobile-day-chip { border-radius: 10px; }
+.mobile-plan-root .mobile-day-chip.is-active {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-hover);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+.mobile-plan-root .mobile-plan-dock,
+.mobile-plan-dock {
+  background: rgba(255,255,255,.88) !important;
+  box-shadow: 0 -1px 0 rgba(29,29,31,.07), 0 -8px 28px rgba(34,43,53,.045) !important;
+  backdrop-filter: saturate(160%) blur(18px);
+}
+.mobile-plan-dock__secondary, .mobile-plan-dock__primary { border-radius: 11px; }
+.mobile-plan-dock__secondary { background: #f1f3f6; }
+.mobile-plan-dock__primary { box-shadow: 0 3px 10px rgba(40,120,212,.18); }
+.wishlist-view .wishlist-search-panel {
+  border-color: rgba(29,29,31,.08);
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 10px 28px rgba(34,43,53,.045);
+}
+.wishlist-view .wishlist-list-surface {
+  border-color: rgba(29,29,31,.08);
+  background: rgba(255,255,255,.75);
+  box-shadow: none;
+}
+
+/* 地图控件使用与页面一致的轻材质，既不抢路线也不显得像第三方控件贴上去。 */
+.leaflet-control-zoom,
+.leaflet-control-attribution,
+.trip-map-view [class*="map-scope"] {
+  backdrop-filter: saturate(160%) blur(16px);
+}
+.leaflet-control-zoom {
+  border-color: rgba(255,255,255,.86) !important;
+  border-radius: 11px !important;
+  box-shadow: 0 5px 16px rgba(34,43,53,.12) !important;
+}
+.leaflet-control-zoom a { background: rgba(255,255,255,.9) !important; }
+.map-place-marker {
+  border-color: #fa6e58;
+  border-radius: 9px;
+  background: rgba(255,255,255,.93);
+  box-shadow: 0 3px 10px rgba(33,43,53,.14);
+  color: #e75e4d;
+}
 
 /* 细滚动条 */
 *::-webkit-scrollbar { width: 8px; height: 8px; }
