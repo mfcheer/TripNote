@@ -94,13 +94,6 @@ function formatMinutes(minutes: number) {
   return rest ? `${Math.floor(minutes / 60)} 小时 ${rest} 分钟` : `${minutes / 60} 小时`
 }
 
-function periodLabel(time: string) {
-  const hour = Number(time.split(':')[0])
-  if (hour < 12) return '上午'
-  if (hour < 18) return '下午'
-  return '晚上'
-}
-
 function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => void }) {
   const totalCost = trip.activities.reduce(
     (sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0),
@@ -1059,15 +1052,9 @@ function DaySection({
 
         {/* 时间轴 */}
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          <div className={`relative ${compact ? 'pl-[38px]' : 'pl-[44px] sm:pl-[52px]'}`}>
-            <div className={`flex flex-col ${compact ? 'gap-1.5' : 'gap-2.5'}`}>
+          <div className={`flex flex-col ${compact ? 'gap-1.5' : 'gap-2.5'}`}>
               {items.map((a, index) => (
                 <div key={a.id} className="relative flex min-w-0 items-start gap-2 sm:gap-3" data-activity-id={a.id}>
-                  {(!items[index - 1] || periodLabel(items[index - 1].time) !== periodLabel(a.time)) && (
-                    <div className={`absolute mt-0.5 text-right text-[10.5px] font-medium text-text-faint ${compact ? '-left-[37px] w-[30px]' : '-left-[43px] w-[35px] sm:-left-[51px] sm:w-[42px] sm:text-[11px]'}`}>
-                      {periodLabel(a.time)}
-                    </div>
-                  )}
                   <div className={`${compact ? 'w-[34px] pt-2 text-[11px]' : 'w-[40px] pt-3 text-[11.5px] sm:w-[48px] sm:text-[12.5px]'} shrink-0 text-right font-medium tabular-nums text-text-muted`}>
                     {a.time}
                   </div>
@@ -1109,7 +1096,6 @@ function DaySection({
               >
                 <PlusIcon size={15} /> 在这里添加安排
               </button>}
-            </div>
           </div>
         </SortableContext>
       </section>

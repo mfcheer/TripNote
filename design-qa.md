@@ -32,6 +32,7 @@
 - `npm run build` and `git diff --check` passed.
 - Follow-up polish check: the settings dialog keeps the same cool-white material and restrained separators as the workspace; the mobile itinerary remains legible at `390px` with no clipping or console errors. Exported itinerary cards now use the same cool-white / graphite palette, coral day progress, and the `TripNote` brand lockup.
 - Map language follow-up: `output/playwright/maptiler-settings.png` verifies the new MapTiler-aware settings entry in the live application with no console errors. The MapTiler SDK and its CSS are deferred into their own chunks, so the default OSM first-load bundle remains unaffected. A missing MapTiler Key retains the existing OSM layer rather than blocking maps, routes, markers, or map picking.
+- Timeline density follow-up: `output/playwright/timeline-no-period-desktop.png` and `output/playwright/timeline-no-period-mobile.png` verify that broad time-of-day labels are removed while each concrete activity time, route hint, and drag/drop structure remains readable.
 
 ## Comparison history
 
