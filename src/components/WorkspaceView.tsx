@@ -166,7 +166,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
         </div>}
         {searchFinished && results.length === 0 && <p className="mt-1.5 text-[10.5px] leading-relaxed text-text-faint">当前范围没有结果，可扩大搜索范围或直接添加自定义地点。</p>}
         </div>
-        <button onClick={onStartMapPick} className="shrink-0 rounded-md border border-border bg-white px-2.5 text-[11px] font-medium text-text-muted hover:border-accent/40 hover:text-accent" title="在右侧地图选择地点"><MapIcon size={14} /></button>
+        <button onClick={onStartMapPick} className="h-[34px] shrink-0 self-start rounded-md border border-border bg-white px-2.5 text-[11px] font-medium text-text-muted hover:border-accent/40 hover:text-accent" title="在右侧地图选择地点"><MapIcon size={14} /></button>
       </div>
     </div>
     <div className="min-h-0 flex-1 overflow-y-auto">
