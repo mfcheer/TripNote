@@ -4,6 +4,7 @@ import type { Trip } from '../types'
 export const seedTrip: Trip = {
   id: 'trip-northeast-loop',
   name: '东北大环线（示例）',
+  searchRegion: '东北',
   daysCount: 10,
   totalBudget: 13200,
   days: [

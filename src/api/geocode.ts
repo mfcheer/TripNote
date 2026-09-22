@@ -67,6 +67,16 @@ function dedupeResults(results: GeoResult[]) {
   })
 }
 
+function normalizedSearchText(value: string) {
+  return value.replace(/[\s·、,，'"（）()]/g, '').toLocaleLowerCase()
+}
+
+// 仅有“月牙”这类模糊命中不能算作找到了“涯月邑”。关键词没有真正命中时也应自动扩大范围。
+function needsGlobalFallback(results: GeoResult[], query: string) {
+  const normalizedQuery = normalizedSearchText(query)
+  return results.length < 3 || !results.some((result) => normalizedSearchText(result.label).includes(normalizedQuery))
+}
+
 async function searchWithAmap(query: string, key: string, signal?: AbortSignal, context?: PlaceSearchContext, global = false): Promise<GeoResult[]> {
   const cities = global ? [] : (context?.cities ?? []).slice(0, 5)
   const searches = cities.length ? cities : [undefined]
@@ -98,8 +108,10 @@ export async function searchPlaces(query: string, signal?: AbortSignal, amapWebS
     try {
       const localResults = await searchWithAmap(query, amapWebServiceKey, signal, context)
       // 区域内没有足够候选时自动补一次无范围检索，用户无需理解或切换搜索范围。
-      if (localResults.length >= 3 || !context) return localResults
-      return rankResults(dedupeResults([...localResults, ...await searchWithAmap(query, amapWebServiceKey, signal, context, true)]), context).slice(0, 8)
+      if (!needsGlobalFallback(localResults, query) || !context) return localResults
+      const expandedResults = rankResults(dedupeResults([...localResults, ...await searchWithAmap(query, amapWebServiceKey, signal, context, true)]), context).slice(0, 8)
+      // 高德对境外 POI 的覆盖不稳定；完全没有候选时继续使用 OSM 的全球兜底。
+      if (!needsGlobalFallback(expandedResults, query)) return expandedResults
     } catch (error) {
       if ((error as Error).name === 'AbortError') throw error
       // Key 配置错误或服务暂不可用时，继续使用原有服务，避免搜索入口失效。
@@ -125,10 +137,10 @@ export async function searchPlaces(query: string, signal?: AbortSignal, amapWebS
     lng: parseFloat(d.lon),
     label: d.display_name,
   }))
-  if (localResults.length >= 3 || !context?.viewbox) return localResults
+  if (!needsGlobalFallback(localResults, query) || !context?.viewbox) return localResults
   await throttle()
   const fallbackParams = new URLSearchParams({ q: query, format: 'json', limit: '8', 'accept-language': 'zh-CN' })
-  if (context.countryCode) fallbackParams.set('countrycodes', context.countryCode)
+  // 这一轮是真正的全球兜底，不能沿用旅行区域的国家限制。
   const fallback = await fetch(`${NOMINATIM_SEARCH}?${fallbackParams}`, { signal, headers: { Accept: 'application/json' } })
   if (!fallback.ok) return localResults
   const fallbackData = (await fallback.json()) as Array<{ lat: string; lon: string; display_name: string }>

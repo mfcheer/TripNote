@@ -186,6 +186,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
   const { trips, activeTripId, switchTrip, createTrip, deleteTrip, setTripSearchRegion, scheduleWishPlace, activeDayId, setActiveDay } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
   const totalCost = trip.activities.reduce((sum, activity) => sum + activity.costs.reduce((subtotal, cost) => subtotal + cost.amount, 0), 0)
+  const displayedSearchRegion = trip.searchRegion || (trip.name.includes('东北') ? '东北' : trip.name.includes('关西') ? '关西' : '')
   const [tripMenuOpen, setTripMenuOpen] = useState(false)
   const [createTripOpen, setCreateTripOpen] = useState(false)
   const [editRegionOpen, setEditRegionOpen] = useState(false)
@@ -327,7 +328,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
           <div className="mt-1 border-t border-border/70 pt-1"><button onClick={() => { setTripMenuOpen(false); setCreateTripOpen(true) }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-text-muted hover:bg-surface hover:text-text"><PlusIcon size={13} /> 创建新旅行</button></div>
         </div>}
       </div>
-      <button onClick={() => { setRegionDraft(trip.searchRegion ?? ''); setEditRegionOpen(true) }} className="hidden items-center gap-1 rounded-md px-2 py-1 text-[11.5px] text-text-faint transition-colors hover:bg-surface hover:text-text xl:inline-flex" title="编辑当前旅行的搜索区域"><MapIcon size={12} /> {trip.searchRegion || '设置旅行区域'} <span className="text-[10px]">›</span></button>
+      <button onClick={() => { setRegionDraft(displayedSearchRegion); setEditRegionOpen(true) }} className="hidden items-center gap-1 rounded-md px-2 py-1 text-[11.5px] text-text-faint transition-colors hover:bg-surface hover:text-text xl:inline-flex" title="编辑当前旅行的搜索区域"><MapIcon size={12} /> {displayedSearchRegion || '设置旅行区域'} <span className="text-[10px]">›</span></button>
       <span className="hidden text-[11.5px] text-text-faint 2xl:inline">{trip.days.length} 天 · {trip.days[0] ? `${displayDate(trip.days[0].date)} 起` : '待定日期'}</span>
       <div className="ml-auto flex items-center gap-1.5">
         <button onClick={onOpenFullMap} className="hidden items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] text-text-muted hover:bg-surface lg:flex"><MapIcon size={13} /> 全程地图</button>
