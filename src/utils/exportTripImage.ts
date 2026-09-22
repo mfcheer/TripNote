@@ -108,7 +108,46 @@ function drawTransit(ctx: CanvasRenderingContext2D, from: Activity, to: Activity
   return 38
 }
 
-function drawRouteOverview(ctx: CanvasRenderingContext2D, trip: Trip) {
+type RouteOverviewPoint = { lat: number; lng: number; dayIndex: number }
+
+function worldPoint(point: { lat: number; lng: number }, zoom: number) {
+  const scale = 256 * 2 ** zoom
+  const latitude = Math.max(-85.05112878, Math.min(85.05112878, point.lat))
+  const sin = Math.sin((latitude * Math.PI) / 180)
+  return {
+    x: ((point.lng + 180) / 360) * scale,
+    y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale,
+  }
+}
+
+function overviewZoom(points: RouteOverviewPoint[], width: number, height: number) {
+  for (let zoom = 14; zoom >= 1; zoom--) {
+    const world = points.map((point) => worldPoint(point, zoom))
+    const spanX = Math.max(...world.map((point) => point.x)) - Math.min(...world.map((point) => point.x))
+    const spanY = Math.max(...world.map((point) => point.y)) - Math.min(...world.map((point) => point.y))
+    if (spanX <= width - 40 && spanY <= height - 28) return zoom
+  }
+  return 1
+}
+
+function loadMapTile(zoom: number, x: number, y: number) {
+  return new Promise<HTMLImageElement | null>((resolve) => {
+    const image = new Image()
+    const timer = window.setTimeout(() => resolve(null), 4500)
+    image.onload = () => {
+      window.clearTimeout(timer)
+      resolve(image)
+    }
+    image.onerror = () => {
+      window.clearTimeout(timer)
+      resolve(null)
+    }
+    image.crossOrigin = 'anonymous'
+    image.src = `https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`
+  })
+}
+
+async function drawRouteOverview(ctx: CanvasRenderingContext2D, trip: Trip) {
   const x = PADDING
   const y = ROUTE_OVERVIEW_Y
   const w = WIDTH - PADDING * 2
@@ -136,18 +175,39 @@ function drawRouteOverview(ctx: CanvasRenderingContext2D, trip: Trip) {
   rounded(ctx, mapX, mapY, mapW, mapH, 13)
   if (points.length === 0) return
 
-  const lats = points.map((point) => point.lat)
-  const lngs = points.map((point) => point.lng)
-  const minLat = Math.min(...lats)
-  const maxLat = Math.max(...lats)
-  const minLng = Math.min(...lngs)
-  const maxLng = Math.max(...lngs)
-  const latSpan = Math.max(maxLat - minLat, 0.02)
-  const lngSpan = Math.max(maxLng - minLng, 0.02)
-  const toCanvasPoint = (point: { lat: number; lng: number }) => ({
-    x: mapX + 18 + ((point.lng - minLng) / lngSpan) * (mapW - 36),
-    y: mapY + 14 + ((maxLat - point.lat) / latSpan) * (mapH - 28),
+  const zoom = overviewZoom(points, mapW, mapH)
+  const world = points.map((point) => worldPoint(point, zoom))
+  const centerX = (Math.min(...world.map((point) => point.x)) + Math.max(...world.map((point) => point.x))) / 2
+  const centerY = (Math.min(...world.map((point) => point.y)) + Math.max(...world.map((point) => point.y))) / 2
+  const startX = centerX - mapW / 2
+  const startY = centerY - mapH / 2
+  const tileStartX = Math.floor(startX / 256)
+  const tileEndX = Math.floor((startX + mapW) / 256)
+  const tileStartY = Math.floor(startY / 256)
+  const tileEndY = Math.floor((startY + mapH) / 256)
+  const tileCount = 2 ** zoom
+  const tileJobs: Array<Promise<{ image: HTMLImageElement | null; x: number; y: number }>> = []
+  for (let tileX = tileStartX; tileX <= tileEndX; tileX++) {
+    for (let tileY = tileStartY; tileY <= tileEndY; tileY++) {
+      if (tileY < 0 || tileY >= tileCount) continue
+      const normalizedX = ((tileX % tileCount) + tileCount) % tileCount
+      tileJobs.push(loadMapTile(zoom, normalizedX, tileY).then((image) => ({ image, x: tileX, y: tileY })))
+    }
+  }
+  const tiles = await Promise.all(tileJobs)
+  ctx.save()
+  ctx.beginPath()
+  ctx.roundRect(mapX, mapY, mapW, mapH, 13)
+  ctx.clip()
+  tiles.forEach(({ image, x: tileX, y: tileY }) => {
+    if (image) ctx.drawImage(image, mapX + tileX * 256 - startX, mapY + tileY * 256 - startY, 256, 256)
   })
+  ctx.restore()
+
+  const toCanvasPoint = (point: { lat: number; lng: number }) => {
+    const position = worldPoint(point, zoom)
+    return { x: mapX + position.x - startX, y: mapY + position.y - startY }
+  }
   const canvasPoints = points.map(toCanvasPoint)
   if (canvasPoints.length > 1) {
     ctx.beginPath()
@@ -168,6 +228,11 @@ function drawRouteOverview(ctx: CanvasRenderingContext2D, trip: Trip) {
     ctx.lineWidth = 2
     ctx.stroke()
   })
+  ctx.fillStyle = 'rgba(255,255,255,.78)'
+  rounded(ctx, mapX + 4, mapY + mapH - 19, 92, 15, 7)
+  ctx.fillStyle = '#68727d'
+  ctx.font = '400 10px "PingFang SC", sans-serif'
+  ctx.fillText('© OpenStreetMap', mapX + 10, mapY + mapH - 8)
 }
 
 function dayColor(index: number, total: number) {
@@ -289,7 +354,7 @@ export async function exportTripImage(trip: Trip) {
   ctx.textAlign = 'right'
   ctx.fillText(`预算 ¥${trip.totalBudget.toLocaleString()}`, WIDTH - PADDING, 280)
   ctx.textAlign = 'left'
-  drawRouteOverview(ctx, trip)
+  await drawRouteOverview(ctx, trip)
 
   let y = ITINERARY_START_Y
   trip.days.forEach((day, index) => {
