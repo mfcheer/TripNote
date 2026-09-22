@@ -14,6 +14,9 @@ const PAPER = '#f7f7f9'
 const LINE = '#e2e4e8'
 const START = '#ef9b8a'
 const END = '#df6555'
+const ROUTE_OVERVIEW_Y = 308
+const ROUTE_OVERVIEW_HEIGHT = 136
+const ITINERARY_START_Y = 476
 
 const CATEGORY = {
   traffic: { color: '#668698', soft: '#eaf1f4' },
@@ -56,8 +59,115 @@ function formatMovement(meters: number) {
   return `${Math.round(meters)} m`
 }
 
+function formatMinutes(minutes: number) {
+  if (minutes < 60) return `${minutes} 分钟`
+  const rest = minutes % 60
+  return rest ? `${Math.floor(minutes / 60)} 小时 ${rest} 分钟` : `${minutes / 60} 小时`
+}
+
 function activityHeight(activity: Activity) {
   return activity.note ? 122 : (activity.location || activity.duration || activity.costs.length ? 96 : 76)
+}
+
+function transitHeight(from: Activity, to: Activity) {
+  return from.geo && to.geo ? 38 : (to.travelMode ? 38 : 0)
+}
+
+function transitCopy(from: Activity, to: Activity) {
+  const distance = from.geo && to.geo ? straightLineDistanceMeters(from.geo, to.geo) : 0
+  const mode = to.travelMode
+  const modeLabel = mode === 'drive' ? '自驾移动'
+    : mode === 'train' ? '火车移动'
+      : mode === 'flight' ? '飞机移动'
+        : mode === 'charter' ? '包车移动'
+          : mode === 'walk' ? '步行'
+            : ''
+  if (modeLabel) {
+    if (!distance) return modeLabel
+    if (mode === 'walk') return `步行约 ${formatMinutes(Math.max(1, Math.round(distance / 75)))} · ${formatMovement(distance)}`
+    return `${modeLabel} · ${formatMovement(distance)}`
+  }
+  if (!distance) return ''
+  if (distance < 15_000) return `步行约 ${formatMinutes(Math.max(1, Math.round(distance / 75)))} · ${formatMovement(distance)}`
+  return `跨城移动 · ${formatMovement(distance)} · 建议补充交通安排`
+}
+
+function drawTransit(ctx: CanvasRenderingContext2D, from: Activity, to: Activity, y: number, accent: string) {
+  const copy = transitCopy(from, to)
+  if (!copy) return 0
+  const width = WIDTH - PADDING - CONTENT_X
+  ctx.fillStyle = '#f5f6f8'
+  rounded(ctx, CONTENT_X + 10, y + 2, width - 10, 28, 10)
+  ctx.fillStyle = accent
+  ctx.beginPath()
+  ctx.arc(CONTENT_X + 26, y + 16, 3.5, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.fillStyle = '#7c858f'
+  ctx.font = '500 16px "PingFang SC", sans-serif'
+  ctx.fillText(copy, CONTENT_X + 40, y + 21)
+  return 38
+}
+
+function drawRouteOverview(ctx: CanvasRenderingContext2D, trip: Trip) {
+  const x = PADDING
+  const y = ROUTE_OVERVIEW_Y
+  const w = WIDTH - PADDING * 2
+  const h = ROUTE_OVERVIEW_HEIGHT
+  const points = trip.days.flatMap((day, dayIndex) =>
+    activitiesByDay(trip, day.id)
+      .filter((activity) => activity.geo)
+      .map((activity) => ({ ...activity.geo!, dayIndex })),
+  )
+
+  ctx.fillStyle = '#fff'
+  rounded(ctx, x, y, w, h, 18)
+  ctx.fillStyle = '#59616c'
+  ctx.font = '600 18px "PingFang SC", sans-serif'
+  ctx.fillText('全程路线概览', x + 22, y + 32)
+  ctx.fillStyle = '#9299a3'
+  ctx.font = '400 15px "PingFang SC", sans-serif'
+  ctx.fillText(points.length ? `已定位 ${points.length} 个地点 · 按日期由浅至深` : '为行程地点补充坐标后，这里会显示全程路线', x + 22, y + 57)
+
+  const mapX = x + 350
+  const mapY = y + 16
+  const mapW = w - 370
+  const mapH = h - 32
+  ctx.fillStyle = '#f3f6f7'
+  rounded(ctx, mapX, mapY, mapW, mapH, 13)
+  if (points.length === 0) return
+
+  const lats = points.map((point) => point.lat)
+  const lngs = points.map((point) => point.lng)
+  const minLat = Math.min(...lats)
+  const maxLat = Math.max(...lats)
+  const minLng = Math.min(...lngs)
+  const maxLng = Math.max(...lngs)
+  const latSpan = Math.max(maxLat - minLat, 0.02)
+  const lngSpan = Math.max(maxLng - minLng, 0.02)
+  const toCanvasPoint = (point: { lat: number; lng: number }) => ({
+    x: mapX + 18 + ((point.lng - minLng) / lngSpan) * (mapW - 36),
+    y: mapY + 14 + ((maxLat - point.lat) / latSpan) * (mapH - 28),
+  })
+  const canvasPoints = points.map(toCanvasPoint)
+  if (canvasPoints.length > 1) {
+    ctx.beginPath()
+    ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y)
+    canvasPoints.slice(1).forEach((point) => ctx.lineTo(point.x, point.y))
+    ctx.strokeStyle = '#e78a78'
+    ctx.lineWidth = 3
+    ctx.lineJoin = 'round'
+    ctx.lineCap = 'round'
+    ctx.stroke()
+  }
+  canvasPoints.forEach((point, index) => {
+    ctx.fillStyle = dayColor(points[index].dayIndex, trip.days.length)
+    ctx.beginPath()
+    ctx.arc(point.x, point.y, index === 0 || index === canvasPoints.length - 1 ? 6 : 4, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeStyle = '#fff'
+    ctx.lineWidth = 2
+    ctx.stroke()
+  })
 }
 
 function dayColor(index: number, total: number) {
@@ -122,11 +232,12 @@ function drawActivity(ctx: CanvasRenderingContext2D, activity: Activity, y: numb
 export async function exportTripImage(trip: Trip) {
   const itineraryHeight = trip.days.reduce((sum, day) => {
     const items = activitiesByDay(trip, day.id)
-    return sum + 112 + (items.length ? items.reduce((itemSum, item) => itemSum + activityHeight(item) + 20, 0) : 76) + 18
+    const transitTotal = items.slice(1).reduce((total, item, index) => total + transitHeight(items[index], item), 0)
+    return sum + 112 + (items.length ? items.reduce((itemSum, item) => itemSum + activityHeight(item) + 20, 0) + transitTotal : 76) + 18
   }, 0)
   const canvas = document.createElement('canvas')
   canvas.width = WIDTH
-  canvas.height = 326 + itineraryHeight + 72
+  canvas.height = ITINERARY_START_Y + itineraryHeight + 72
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('浏览器不支持图片导出')
 
@@ -178,8 +289,9 @@ export async function exportTripImage(trip: Trip) {
   ctx.textAlign = 'right'
   ctx.fillText(`预算 ¥${trip.totalBudget.toLocaleString()}`, WIDTH - PADDING, 280)
   ctx.textAlign = 'left'
+  drawRouteOverview(ctx, trip)
 
-  let y = 326
+  let y = ITINERARY_START_Y
   trip.days.forEach((day, index) => {
     const items = activitiesByDay(trip, day.id)
     const accent = dayColor(index, trip.days.length)
@@ -207,7 +319,10 @@ export async function exportTripImage(trip: Trip) {
       ctx.fillText('这一天暂未安排，可留作自由活动。', CONTENT_X + 24, y + 36)
       y += 76
     } else {
-      for (const activity of items) y += drawActivity(ctx, activity, y, accent)
+      for (const [activityIndex, activity] of items.entries()) {
+        y += drawActivity(ctx, activity, y, accent)
+        if (items[activityIndex + 1]) y += drawTransit(ctx, activity, items[activityIndex + 1], y, accent)
+      }
     }
     y += 18
   })
