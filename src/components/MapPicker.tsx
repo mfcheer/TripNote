@@ -6,6 +6,7 @@ import { reverseGeocode } from '../api/geocode'
 import type { GeoPoint } from '../types'
 import { useTripStore } from '../store'
 import AmapCanvas, { type AmapMarker } from './AmapCanvas'
+import MapTilerChineseLayer from './MapTilerLayer'
 
 const pickIcon = L.divIcon({
   className: '',
@@ -67,6 +68,7 @@ export default function MapPicker({
 }) {
   const amapWebServiceKey = useTripStore((state) => state.amapWebServiceKey)
   const amapJsKey = useTripStore((state) => state.amapJsKey)
+  const maptilerKey = useTripStore((state) => state.maptilerKey)
   const mapDisplayProvider = useTripStore((state) => state.mapDisplayProvider)
   const placeSearchProvider = useTripStore((state) => state.placeSearchProvider)
   const [picking, setPicking] = useState(false)
@@ -101,10 +103,14 @@ export default function MapPicker({
           center={point ? [point.lat, point.lng] : [initialCenter.lat, initialCenter.lng]}
           zoom={point ? 13 : initialZoom}
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          {mapDisplayProvider === 'maptiler-zh' && maptilerKey ? (
+            <MapTilerChineseLayer apiKey={maptilerKey} />
+          ) : (
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+          )}
           <InitialView center={point} fallbackCenter={initialCenter} fallbackZoom={initialZoom} />
           <ClickHandler onPick={handlePick} />
           <FollowPoint point={point} />

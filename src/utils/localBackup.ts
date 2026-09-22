@@ -7,7 +7,8 @@ export interface BackupData {
   /** Optional so complete backups created before map settings were included remain restorable. */
   amapJsKey?: string
   amapWebServiceKey?: string
-  mapDisplayProvider?: 'amap' | 'osm'
+  maptilerKey?: string
+  mapDisplayProvider?: 'amap' | 'osm' | 'maptiler-zh'
   placeSearchProvider?: 'amap' | 'osm'
 }
 

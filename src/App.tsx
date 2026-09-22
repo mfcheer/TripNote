@@ -75,6 +75,7 @@ export default function App() {
         mapRouteMode: state.mapRouteMode,
         amapJsKey: state.amapJsKey,
         amapWebServiceKey: state.amapWebServiceKey,
+        maptilerKey: state.maptilerKey,
         mapDisplayProvider: state.mapDisplayProvider,
         placeSearchProvider: state.placeSearchProvider,
       }

@@ -31,10 +31,12 @@ export default function SettingsView({
     resetAll,
     amapJsKey,
     amapWebServiceKey,
+    maptilerKey,
     mapDisplayProvider,
     placeSearchProvider,
     mapRouteMode,
     setAmapKeys,
+    setMaptilerKey,
     setMapDisplayProvider,
     setPlaceSearchProvider,
     setMapRouteMode,
@@ -43,13 +45,14 @@ export default function SettingsView({
   const info = useConfirmStore((s) => s.info)
   const [jsKey, setJsKey] = useState(amapJsKey)
   const [webServiceKey, setWebServiceKey] = useState(amapWebServiceKey)
+  const [maptilerApiKey, setMaptilerApiKey] = useState(maptilerKey)
   const [copied, setCopied] = useState(false)
   const [backupStatus, setBackupStatus] = useState<LocalBackupStatus | null>(null)
   const [backupBusy, setBackupBusy] = useState(false)
   const [isIos] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent))
   const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
 
-  const backupData: BackupData = { trips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey, mapDisplayProvider, placeSearchProvider }
+  const backupData: BackupData = { trips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider }
 
   async function refreshBackupStatus() {
     setBackupStatus(await getLocalBackupStatus())
@@ -132,7 +135,7 @@ export default function SettingsView({
         }
         const backup = data as {
           trip?: unknown
-          mapSettings?: { amapJsKey?: unknown; amapWebServiceKey?: unknown; mapRouteMode?: unknown; mapDisplayProvider?: unknown; placeSearchProvider?: unknown }
+          mapSettings?: { amapJsKey?: unknown; amapWebServiceKey?: unknown; maptilerKey?: unknown; mapRouteMode?: unknown; mapDisplayProvider?: unknown; placeSearchProvider?: unknown }
         }
         const tripData = backup.trip ?? data
         if (!importTrip(tripData)) {
@@ -142,15 +145,18 @@ export default function SettingsView({
         if (backup.mapSettings) {
           const nextJsKey = typeof backup.mapSettings.amapJsKey === 'string' ? backup.mapSettings.amapJsKey : ''
           const nextWebServiceKey = typeof backup.mapSettings.amapWebServiceKey === 'string' ? backup.mapSettings.amapWebServiceKey : ''
+          const nextMaptilerKey = typeof backup.mapSettings.maptilerKey === 'string' ? backup.mapSettings.maptilerKey : ''
           const nextRouteMode = backup.mapSettings.mapRouteMode === 'walking' ? 'walking' : 'direct'
-          const nextMapProvider = backup.mapSettings.mapDisplayProvider === 'osm' ? 'osm' : 'amap'
+          const nextMapProvider = backup.mapSettings.mapDisplayProvider === 'osm' || backup.mapSettings.mapDisplayProvider === 'maptiler-zh' ? backup.mapSettings.mapDisplayProvider : 'amap'
           const nextSearchProvider = backup.mapSettings.placeSearchProvider === 'osm' ? 'osm' : 'amap'
           setAmapKeys({ jsKey: nextJsKey, webServiceKey: nextWebServiceKey })
+          setMaptilerKey(nextMaptilerKey)
           setMapRouteMode(nextRouteMode)
           setMapDisplayProvider(nextMapProvider)
           setPlaceSearchProvider(nextSearchProvider)
           setJsKey(nextJsKey)
           setWebServiceKey(nextWebServiceKey)
+          setMaptilerApiKey(nextMaptilerKey)
           useToastStore.getState().show('已导入旅程和地图配置')
         }
       } catch {
@@ -162,12 +168,14 @@ export default function SettingsView({
 
   function saveMapConfig() {
     setAmapKeys({ jsKey, webServiceKey })
+    setMaptilerKey(maptilerApiKey)
     const hasJsKey = !!jsKey.trim()
     const hasWebServiceKey = !!webServiceKey.trim()
+    const hasMaptilerKey = !!maptilerApiKey.trim()
     useToastStore.getState().show(
-      hasJsKey || hasWebServiceKey
-        ? '高德 Key 已保存；地图展示和地点搜索将按下方来源选择执行'
-        : '已清除高德 Key；需要时会自动回退默认地图与搜索服务',
+      hasJsKey || hasWebServiceKey || hasMaptilerKey
+        ? '地图服务 Key 已保存；展示与搜索将按下方来源选择执行'
+        : '已清除地图服务 Key；需要时会自动回退默认地图与搜索服务',
     )
   }
 
@@ -211,7 +219,7 @@ export default function SettingsView({
         <section className="border-b border-border/80 py-6">
           <div className="mb-1 text-[15px] font-semibold">数据管理</div>
           <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">
-            数据仍保存在当前浏览器。完整备份包含全部旅行、当前旅行、高德两个 Key 与地图连线方式；可下载保存，也可在桌面 Chrome / Edge 自动归档到电脑文件夹。备份含密钥，请勿外发。
+            数据仍保存在当前浏览器。完整备份包含全部旅行、当前旅行、地图服务 Key 与地图连线方式；可下载保存，也可在桌面 Chrome / Edge 自动归档到电脑文件夹。备份含密钥，请勿外发。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
@@ -278,13 +286,13 @@ export default function SettingsView({
           <summary className="flex cursor-pointer list-none items-start justify-between gap-4 [&::-webkit-details-marker]:hidden">
             <div>
               <div className="text-[15px] font-semibold">高级地图设置</div>
-              <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">高德 API Key、地点搜索来源与地图连线方式</p>
+            <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">地图服务 Key、中文标注、地点搜索与地图连线方式</p>
             </div>
             <span className="mt-1 text-[12px] text-text-faint transition-transform group-open:rotate-180">⌄</span>
           </summary>
           <div className="mt-5 border-t border-border/80 pt-5">
             <p className="mb-4 max-w-[620px] text-[12.5px] leading-relaxed text-text-muted">
-              可分别选择地图展示与地点搜索的服务来源。高德缺少对应 Key 或加载失败时，会自动回退至 OSM、Nominatim；智能路线仍由 OSRM 提供。
+              可分别选择地图展示与地点搜索的服务来源。中文标注地图使用 MapTiler 矢量底图，优先显示中文地名，缺失时回退本地名称；高德或 MapTiler 缺少对应 Key 时，会自动回退至 OSM、Nominatim；智能路线仍由 OSRM 提供。
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-[12.5px] font-medium text-text-muted">
@@ -294,6 +302,10 @@ export default function SettingsView({
               <label className="text-[12.5px] font-medium text-text-muted">
                 Web 服务 Key（地点搜索）
                 <input value={webServiceKey} onChange={(event) => setWebServiceKey(event.target.value)} placeholder="留空则使用原地点搜索" className="mt-1.5 w-full rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] font-normal text-text outline-none focus:border-accent" />
+              </label>
+              <label className="text-[12.5px] font-medium text-text-muted sm:col-span-2">
+                MapTiler API Key（中文标注地图）
+                <input value={maptilerApiKey} onChange={(event) => setMaptilerApiKey(event.target.value)} placeholder="留空则无法启用中文标注地图" className="mt-1.5 w-full rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] font-normal text-text outline-none focus:border-accent" />
               </label>
             </div>
             <div className="mt-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
@@ -305,11 +317,12 @@ export default function SettingsView({
             <div className="mt-5 grid gap-4 border-t border-border/80 pt-4 sm:grid-cols-2">
               <div>
                 <div className="text-[12.5px] font-semibold text-text">地图展示</div>
-                <div className="mt-2 flex rounded-md bg-surface-2/70 p-1">
-                  <button onClick={() => setMapDisplayProvider('amap')} className={`flex-1 rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${mapDisplayProvider === 'amap' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>高德地图</button>
-                  <button onClick={() => setMapDisplayProvider('osm')} className={`flex-1 rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${mapDisplayProvider === 'osm' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>OpenStreetMap</button>
+                <div className="mt-2 grid grid-cols-3 rounded-md bg-surface-2/70 p-1">
+                  <button onClick={() => setMapDisplayProvider('amap')} className={`rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${mapDisplayProvider === 'amap' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>高德地图</button>
+                  <button onClick={() => setMapDisplayProvider('osm')} className={`rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${mapDisplayProvider === 'osm' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>OSM 本地</button>
+                  <button onClick={() => setMapDisplayProvider('maptiler-zh')} className={`rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${mapDisplayProvider === 'maptiler-zh' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>中文标注</button>
                 </div>
-                <p className="mt-1.5 text-[11px] text-text-faint">高德需 JS API Key；缺失时自动使用 OSM。</p>
+                <p className="mt-1.5 text-[11px] text-text-faint">{mapDisplayProvider === 'maptiler-zh' && !maptilerApiKey.trim() ? '尚未填写 MapTiler Key，当前地图会继续使用 OSM。' : '高德需 JS API Key；中文标注需 MapTiler Key，缺失时自动使用 OSM。'}</p>
               </div>
               <div>
                 <div className="text-[12.5px] font-semibold text-text">地点搜索</div>

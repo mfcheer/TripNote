@@ -8,6 +8,7 @@ import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint, typ
 import { fetchRouteInfo, routeProfileForSegment, straightLineDistanceMeters } from '../api/route'
 import { reverseGeocode } from '../api/geocode'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
+import MapTilerChineseLayer from './MapTilerLayer'
 import { useToastStore } from './toastStore'
 import { EmptyState } from './FeedbackState'
 
@@ -177,7 +178,7 @@ export default function MapView({
   followDayId?: string
   onWorkspaceMapScopeChange?: (scope: 'follow' | 'all') => void
 }) {
-  const { setActiveDay, amapJsKey, amapWebServiceKey, mapDisplayProvider, placeSearchProvider, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
+  const { setActiveDay, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
   const [filter, setFilter] = useState<'all' | string>(() => initialDayId === 'all' || trip.days.some((day) => day.id === initialDayId) ? initialDayId : 'all')
   const [amapUnavailable, setAmapUnavailable] = useState(false)
@@ -281,6 +282,7 @@ export default function MapView({
     })
   }, [addWishPlace, pickedCategory, pickedLocation, pickedName, pickedPoint, removeWishPlace, stopPicking])
   const useAmap = mapDisplayProvider === 'amap' && !!amapJsKey && !amapUnavailable
+  const useMapTilerChinese = mapDisplayProvider === 'maptiler-zh' && !!maptilerKey
   const followedDay = trip.days.find((day) => day.id === followDayId)
   const focusMapActivity = useCallback((activityId: string) => {
     useTripStore.getState().focusActivity(activityId)
@@ -405,10 +407,14 @@ export default function MapView({
         <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={amapLines} className="h-full w-full" zoom={9} onMapPick={isPicking ? handleMapPick : undefined} onError={handleAmapError} onRouteFallback={handleRouteFallback} />
       ) : (
       <MapContainer center={[34.9, 135.6]} zoom={9} className="h-full w-full">
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        {useMapTilerChinese ? (
+          <MapTilerChineseLayer apiKey={maptilerKey} />
+        ) : (
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+        )}
         <FitBounds points={allPoints} />
         <MapPickHandler enabled={isPicking} onPick={handleMapPick} />
 
