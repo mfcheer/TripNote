@@ -1,41 +1,44 @@
-# Design QA — Apple-style visual refresh
+# Design QA — Quiet Workspace redesign
 
 ## Comparison target and evidence
 
-- Source visual truth: `/Users/mfcheer/.codex/generated_images/01a062b1-92c2-7201-89de-2919c8c63072/exec-fb05850d-1552-4307-80f5-d1f2892a8b68.png`.
+- Source visual truth: `/Users/mfcheer/.codex/generated_images/01a062b1-92c2-7201-89de-2919c8c63072/exec-af910f45-2457-48eb-be42-3f8a3555635d.png`.
 - Source dimensions: `1495 × 1058` pixels.
-- Desktop implementation: `output/playwright/apple-desktop.png`, rendered at `1440 × 1024` CSS pixels, device scale factor `1`.
-- Desktop comparison: `output/playwright/apple-design-comparison.png`. The implementation was normalized to `1495 × 1058` before side-by-side review.
-- State: sample trip “东北大环线（示例）”, workspace view, “第1天” selected, right map in “跟随日期” state.
-- Mobile implementation: `output/playwright/apple-mobile.png`, `360 × 732` CSS pixels, and settings page `output/playwright/apple-mobile-settings.png` at the same size.
+- Desktop implementation: `output/playwright/apple-workspace-v2.png`, captured at `1440 × 1024` CSS pixels, device scale factor `1`.
+- Full-view comparison: `output/playwright/apple-workspace-v2-comparison.png`. Both images were normalized to `720 × 512` before horizontal comparison.
+- Mobile implementation: `output/playwright/apple-workspace-v2-mobile.png`, captured at `390 × 844` CSS pixels, device scale factor `1`.
+- State: sample trip “东北大环线（示例）”; desktop shows all itinerary days with the map following the active day. Mobile shows 第 3 天 with the itinerary map expanded.
 
 ## Findings
 
-- No actionable P0, P1, or P2 visual issues remain.
-- [P3] The live OpenStreetMap tile imagery is necessarily more detailed than the illustrative map in the source concept. The content, line/label contrast, and control hierarchy remain legible and are intentionally kept provider-driven.
+- No actionable P0, P1, or P2 differences remain for the selected “Quiet Workspace” concept.
+- [P3] The live OpenStreetMap canvas has denser road labels and a different crop from the illustrative map in the source. This is provider-driven and intentionally retained so live map interaction remains useful.
 
 ## Required fidelity surfaces
 
-- **Fonts and typography:** System-first font stack uses the platform SF/PingFang family; title, list-row, metadata, and compact control hierarchy match the reference’s restrained optical weight. Mobile inputs retain the existing 16px protection against iOS zoom.
-- **Spacing and layout rhythm:** The fixed top bar plus existing left / center / right workspace proportions are preserved. List rows, quiet separators, 10–12px control radii, and reduced elevation align with the approved reference without sacrificing dense itinerary editing.
-- **Colors and visual tokens:** Canvas changed to cool `#f5f5f7`; graphite text, pale blue selection/action states, and coral-only route/warning semantics are applied globally. Decorative gradients and dark primary-action treatment were removed.
-- **Image quality and assets:** Existing polar-bear product mark remains intact. Live map tiles and map data continue to come from the configured map provider; no raster placeholder was introduced.
-- **Copy and content:** Existing TripNote travel, planning, map, export, settings, backup, and mobile labels remain unchanged, preserving user familiarity.
+- **Fonts and typography:** Platform system font stack remains in use. The implementation reduces visual noise through a stronger day-title hierarchy, restrained metadata colors, and compact toolbar text. Chinese text remains readable at desktop and mobile sizes.
+- **Spacing and layout rhythm:** The implementation now uses a 62px light toolbar and 8px exterior gutters around three 18px-radius workspace surfaces. The left library, central itinerary, and map retain the target’s continuous column rhythm; resize handles are visually quiet until interaction.
+- **Colors and visual tokens:** The canvas is a near-neutral cool gray; surfaces are translucent white; selection/action blue is desaturated; coral remains reserved for map routes and warnings. Heavy navy blocks and pronounced shadows are absent.
+- **Image quality and asset fidelity:** Existing product polar-bear mark is retained. Live map tiles remain provider-generated; no placeholder imagery or reconstructed icon assets were introduced.
+- **Copy and content:** Existing travel planning language, trip data, map controls, export, and budget actions remain functional and familiar. The current-trip region remains visible in the toolbar.
 
 ## Responsive and interaction checks
 
-- Desktop workspace loaded in Chromium at `1440 × 1024` and presents the revised three-column surface without clipping.
-- Mobile itinerary loaded at `360 × 732`; top header, horizontal date rail, map controls, timeline, and fixed action dock remain visible and separated.
-- Mobile settings was opened through the settings control and visually checked at `360 × 732`; settings sections, backup actions, and map configuration entry retain the new material hierarchy.
-- Production build passed with `npm run build`; `git diff --check` passed. Browser console showed only the React DevTools development notice, with no application errors.
+- Desktop loaded in Chromium at `1440 × 1024`; the three workspace panels, map controls, list rows, and itinerary remained visible without clipping.
+- Mobile loaded at `390 × 844`; the day rail, map, itinerary, and bottom actions remained distinct and usable.
+- Primary interactions checked: desktop render, responsive resize, map/date workspace render, and browser console review. No application errors were reported.
+- `npm run build` and `git diff --check` passed.
 
 ## Comparison history
 
-1. **Initial implementation:** Global cool-gray/blue token refresh, material top bars, lightweight dividers, modal shell, settings surface, mobile day rail/dock, wishlist surfaces, and map controls were applied.
-2. **Review result:** Desktop comparison found no major structural mismatch because the approved target explicitly preserves the existing three-column layout. Mobile and settings screenshots confirmed the same hierarchy was carried into responsive and subpage contexts.
+1. **Initial mismatch:** Existing workspace surfaces ran edge-to-edge, while the approved target uses three calm, independently readable workspace surfaces with subtle exterior breathing room.
+   - **Fix:** Added shared workspace gutters, 18px panel radii, light panel borders, a taller material toolbar, and quiet resize separators.
+2. **Initial mismatch:** The itinerary’s sticky date navigation visually spanned the full content edge instead of reading as an internal control strip.
+   - **Fix:** Pulled the date navigation into the central content surface with a restrained material background and matching radius.
+3. **Post-fix evidence:** `output/playwright/apple-workspace-v2-comparison.png` shows the selected visual’s proportions, calm surfaces, and route emphasis reproduced without reducing live planning density.
 
 ## Follow-up polish
 
-- If a future custom map skin is introduced, its road-label density can be tuned to more closely resemble the calm illustrative map treatment.
+- Consider an optional low-detail custom basemap in a later map-provider pass if the live OSM label density becomes distracting.
 
 final result: passed

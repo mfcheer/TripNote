@@ -150,7 +150,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     </div>
   }
 
-  return <aside className="workspace-library flex min-h-0 shrink-0 flex-col border-r border-border/80" style={{ width: 'var(--workspace-library-width)' }}>
+  return <aside className="workspace-library flex min-h-0 shrink-0 flex-col overflow-hidden rounded-[18px] border border-border/70 bg-white" style={{ width: 'var(--workspace-library-width)' }}>
     <div className="border-b border-border/70 px-4 pt-4 pb-3">
       <div className="flex items-center justify-between">
         <div className="text-[14px] font-semibold text-text">想去</div>
@@ -311,7 +311,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
   }
 
   return <div className="workspace-root flex h-full min-w-0 flex-col bg-bg" style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
-    <header className="workspace-header relative z-[1000] flex h-[58px] shrink-0 items-center gap-3 border-b border-border/80 px-5">
+    <header className="workspace-header relative z-[1000] flex h-[62px] shrink-0 items-center gap-3 border-b border-border/70 px-6">
       <LogoIcon size={28} className="shrink-0 shadow-[0_2px_7px_rgba(31,48,63,0.16)]" alt="北向" />
       <span className="shrink-0 text-[14px] font-semibold tracking-[-0.025em] text-text">TripNote</span>
       <span className="h-4 w-px shrink-0 bg-border/80" aria-hidden="true" />
@@ -337,14 +337,14 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
         <button onClick={() => setBudgetDrawerOpen(true)} className="inline-flex rounded-md bg-surface px-2 py-1 text-[10.5px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent-hover" title="查看并设置旅行总预算">预算 ¥{totalCost.toLocaleString()}{trip.totalBudget ? ` / ¥${trip.totalBudget.toLocaleString()}` : ''}</button>
       </div>
     </header>
-    <div className="flex min-h-0 flex-1">
+    <div className="flex min-h-0 flex-1 gap-2 bg-bg px-2 pb-2">
       <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} selectedWishPlaceId={selectedWishPlaceId} onSelectWishPlace={setSelectedWishPlaceId} onScheduleSuccess={handleScheduleSuccess} />
-      <div role="separator" aria-label="调整想去宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group -ml-1 flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
-      <main data-workspace-scroll onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
+      <div role="separator" aria-label="调整想去宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>
+      <main data-workspace-scroll onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto rounded-[18px] border border-border/70 bg-white transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
         <TimelineView workspace showAllDays={showAllDays} onShowAllDays={() => setShowAllDays(true)} onFocusDay={(dayId) => { setActiveDay(dayId); setShowAllDays(false) }} hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
-      <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center bg-white/80"><span className="h-9 w-px bg-border group-hover:bg-accent" /></div>
-      <aside className="min-w-[360px] shrink-0 border-l border-border/80" style={{ width: 'var(--workspace-map-width)' }}><MapView key={showAllDays ? 'all' : activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} workspaceMapScope={workspaceMapScope} followDayId={activeDayId} onWorkspaceMapScopeChange={setWorkspaceMapScope} /></aside>
+      <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>
+      <aside className="min-w-[360px] shrink-0 overflow-hidden rounded-[18px] border border-border/70 bg-white" style={{ width: 'var(--workspace-map-width)' }}><MapView key={showAllDays ? 'all' : activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} workspaceMapScope={workspaceMapScope} followDayId={activeDayId} onWorkspaceMapScopeChange={setWorkspaceMapScope} /></aside>
     </div>
     {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     {createTripOpen && <ModalShell title="创建新旅行" description="填一次旅行区域，之后地点搜索会自动优先匹配这里。" onClose={() => setCreateTripOpen(false)} size="md" footer={<><button onClick={() => setCreateTripOpen(false)} className="rounded-md px-3 py-2 text-[12px] text-text-muted hover:bg-surface">取消</button><button onClick={submitNewTrip} className="rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white hover:bg-action-hover">创建旅行</button></>}>
