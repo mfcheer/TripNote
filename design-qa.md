@@ -7,6 +7,8 @@
 - Desktop implementation: `output/playwright/apple-workspace-v2.png`, captured at `1440 × 1024` CSS pixels, device scale factor `1`.
 - Full-view comparison: `output/playwright/apple-workspace-v2-comparison.png`. Both images were normalized to `720 × 512` before horizontal comparison.
 - Mobile implementation: `output/playwright/apple-workspace-v2-mobile.png`, captured at `390 × 844` CSS pixels, device scale factor `1`.
+- Secondary-surface desktop evidence: `output/playwright/quiet-polish-settings.png`, captured at `1440 × 1024` CSS pixels.
+- Secondary-surface mobile evidence: `output/playwright/quiet-polish-mobile.png`, captured at `390 × 844` CSS pixels.
 - State: sample trip “东北大环线（示例）”; desktop shows all itinerary days with the map following the active day. Mobile shows 第 3 天 with the itinerary map expanded.
 
 ## Findings
@@ -28,6 +30,7 @@
 - Mobile loaded at `390 × 844`; the day rail, map, itinerary, and bottom actions remained distinct and usable.
 - Primary interactions checked: desktop render, responsive resize, map/date workspace render, and browser console review. No application errors were reported.
 - `npm run build` and `git diff --check` passed.
+- Follow-up polish check: the settings dialog keeps the same cool-white material and restrained separators as the workspace; the mobile itinerary remains legible at `390px` with no clipping or console errors. Exported itinerary cards now use the same cool-white / graphite palette, coral day progress, and the `TripNote` brand lockup.
 
 ## Comparison history
 

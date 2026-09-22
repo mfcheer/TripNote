@@ -258,13 +258,18 @@ input:focus, textarea:focus, select:focus {
 .settings-view > div > div {
   border-color: rgba(29,29,31,.09) !important;
   background: rgba(255,255,255,.9) !important;
-  box-shadow: 0 14px 34px rgba(33,43,54,.055) !important;
+  box-shadow: 0 10px 28px rgba(33,43,54,.045) !important;
 }
 .settings-view details > div,
 .settings-view section > div.rounded-lg {
   border-color: rgba(29,29,31,.09) !important;
-  background: #f8f9fb !important;
+  background: #f7f8fa !important;
 }
+.settings-view section { position: relative; }
+.settings-view section > div.rounded-lg { border-radius: 14px !important; }
+.settings-view details summary { border-radius: 10px; transition: background-color .16s ease; }
+.settings-view details summary:hover { background: #f7f8fa; }
+.settings-view details[open] summary { margin: -8px -10px 0; padding: 8px 10px; }
 .apple-modal-backdrop {
   background: rgba(30,34,40,.22) !important;
   backdrop-filter: saturate(130%) blur(9px);
@@ -272,7 +277,7 @@ input:focus, textarea:focus, select:focus {
 .apple-modal-surface {
   border-color: rgba(255,255,255,.82) !important;
   background: rgba(255,255,255,.94) !important;
-  box-shadow: 0 24px 72px rgba(20,29,38,.20) !important;
+  box-shadow: 0 28px 78px rgba(20,29,38,.18) !important;
   backdrop-filter: saturate(170%) blur(24px);
 }
 .apple-modal-surface > header,
@@ -303,15 +308,21 @@ input:focus, textarea:focus, select:focus {
 .mobile-plan-dock__secondary { background: #f1f3f6; }
 .mobile-plan-dock__primary { box-shadow: 0 3px 10px rgba(40,120,212,.18); }
 .wishlist-view .wishlist-search-panel {
-  border-color: rgba(29,29,31,.08);
-  background: rgba(255,255,255,.9);
-  box-shadow: 0 10px 28px rgba(34,43,53,.045);
+  border-color: rgba(29,29,31,.075);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255,255,255,.96), rgba(249,250,252,.92));
+  box-shadow: 0 8px 24px rgba(34,43,53,.04);
 }
 .wishlist-view .wishlist-list-surface {
   border-color: rgba(29,29,31,.08);
-  background: rgba(255,255,255,.75);
+  border-radius: 16px;
+  background: rgba(255,255,255,.82);
   box-shadow: none;
 }
+.wishlist-view .wishlist-list-surface > div + div { border-top: 1px solid rgba(29,29,31,.055); }
+.wishlist-view .wishlist-list-surface > div > div > div { border-radius: 12px; }
+.wishlist-view > aside { background: rgba(250,251,252,.9) !important; }
+.wishlist-view > aside > div:last-child { border-radius: 14px; overflow: hidden; }
 
 /* 地图控件使用与页面一致的轻材质，既不抢路线也不显得像第三方控件贴上去。 */
 .leaflet-control-zoom,
