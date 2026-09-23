@@ -56,46 +56,6 @@
   transition: background-color .18s ease, color .18s ease, transform .18s ease;
 }
 .mobile-plan-dock__trigger:active { background: var(--color-action-hover); transform: scale(.97); }
-.mobile-plan-dock__menu {
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 12px;
-  right: 12px;
-  display: grid;
-  gap: 3px;
-  padding: 5px;
-  border: 1px solid rgba(29,29,31,.08);
-  border-radius: 15px;
-  background: rgba(255,255,255,.98);
-  box-shadow: 0 10px 30px rgba(32,40,46,.16);
-  backdrop-filter: blur(20px);
-}
-.mobile-plan-dock__menu-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 50px;
-  padding: 8px 10px;
-  border-radius: 11px;
-  text-align: left;
-  color: var(--color-text);
-}
-.mobile-plan-dock__menu-item:active { background: var(--color-surface); }
-.mobile-plan-dock__menu-item strong, .mobile-plan-dock__menu-item small { display: block; }
-.mobile-plan-dock__menu-item strong { font-size: 12.5px; line-height: 1.3; }
-.mobile-plan-dock__menu-item small { margin-top: 2px; font-size: 10.5px; color: var(--color-text-faint); }
-.mobile-plan-dock__menu-icon {
-  display: flex;
-  width: 30px;
-  height: 30px;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  border-radius: 9px;
-  background: var(--color-accent-soft);
-  color: var(--color-accent);
-}
-.mobile-plan-dock__menu-icon.is-primary { background: var(--color-action-soft); color: var(--color-action); }
 .mobile-map-actions {
   display: flex;
   align-items: center;

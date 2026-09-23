@@ -31,7 +31,6 @@ function readMobileMapCollapsed() {
 export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () => void }) {
   const trip = useActiveTrip()
   const { activeDayId, setActiveDay, selectActivity } = useTripStore()
-  const [quickAddRequest, setQuickAddRequest] = useState(0)
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const [wishSheetOpen, setWishSheetOpen] = useState(false)
   const [mapHeight, setMapHeight] = useState(readMobileMapHeight)
@@ -40,10 +39,6 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
   const timelineScrollRef = useRef<HTMLDivElement>(null)
   const activeDay = trip.days.find((day) => day.id === activeDayId) ?? trip.days[0]
   const items = useMemo(() => activeDay ? activitiesByDay(trip, activeDay.id) : [], [activeDay, trip.activities])
-  const unscheduledCount = trip.wishPlaces.filter((place) => {
-    const ids = [...(place.scheduledActivityIds ?? []), ...(place.scheduledActivityId ? [place.scheduledActivityId] : [])]
-    return !ids.some((id) => trip.activities.some((activity) => activity.id === id))
-  }).length
   const totalCost = trip.activities.reduce(
     (sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0),
     0,
@@ -175,13 +170,11 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
       )}
 
       <div ref={timelineScrollRef} data-mobile-timeline-scroll className="min-h-0 flex-1 overflow-y-auto">
-        <TimelineView onOpenFullMap={onOpenFullMap} onOpenBudget={() => setBudgetDrawerOpen(true)} mobilePresentation showAllDays quickAddRequest={quickAddRequest} />
+        <TimelineView onOpenFullMap={onOpenFullMap} onOpenBudget={() => setBudgetDrawerOpen(true)} mobilePresentation showAllDays />
       </div>
 
       <MobilePlanDock
-        unscheduledCount={unscheduledCount}
-        onOpenPlaces={() => setWishSheetOpen(true)}
-        onPrimaryAction={() => setQuickAddRequest((request) => request + 1)}
+        onOpen={() => setWishSheetOpen(true)}
       />
       {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
       {wishSheetOpen && (
