@@ -5,6 +5,7 @@ import WishlistView from './components/WishlistView'
 import ArrangeView from './components/ArrangeView'
 import WorkspaceView from './components/WorkspaceView'
 import MobilePlanView from './components/MobilePlanView'
+import MobilePlanDock from './components/MobilePlanDock'
 import SettingsView from './components/SettingsView'
 import ConfirmDialog from './components/ConfirmDialog'
 import Toast from './components/Toast'
@@ -176,21 +177,17 @@ export default function App() {
             <SettingsView canInstall={!!installPrompt} onInstall={installApp} />
           </div>
         )}
-        {view === 'plan' && visiblePlanTab !== 'timeline' && <nav className="mobile-plan-dock mobile-safe-bottom shrink-0 border-t border-border/80 bg-white/96 px-3 pt-2 shadow-[0_-4px_18px_rgba(32,40,46,0.06)]" aria-label="想去操作">
-          <button
-            onClick={() => setPlanTab('places')}
-            className="mobile-plan-dock__secondary bg-surface-2/78 font-semibold text-text"
-            aria-current="page"
-          >
-            <HeartIcon size={17} /> 想去
-          </button>
-          <button
-            onClick={() => setPlanTab('timeline')}
-            className="mobile-plan-dock__primary"
-          >
-            <CalendarIcon size={18} /> 返回行程
-          </button>
-        </nav>}
+        {view === 'plan' && visiblePlanTab !== 'timeline' && (
+          <MobilePlanDock
+            mode="places"
+            unscheduledCount={trip.wishPlaces.filter((place) => {
+              const scheduledIds = [...(place.scheduledActivityIds ?? []), ...(place.scheduledActivityId ? [place.scheduledActivityId] : [])]
+              return !scheduledIds.some((id) => trip.activities.some((activity) => activity.id === id))
+            }).length}
+            onOpenPlaces={() => setPlanTab('places')}
+            onPrimaryAction={() => setPlanTab('timeline')}
+          />
+        )}
       </main>
       </div>
       {fullScreenMapDayId && (

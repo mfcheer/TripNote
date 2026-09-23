@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { activitiesByDay, displayDate, useActiveTrip, useTripStore } from '../store'
-import { HeartIcon, MapIcon, PlusIcon, WalletIcon } from './Icons'
+import { ChevronDownIcon, MapIcon, WalletIcon } from './Icons'
 import MapView from './MapView'
+import MobilePlanDock from './MobilePlanDock'
 import TimelineView, { BudgetDrawer } from './TimelineView'
 
 function dayDate(day: { date: string }) {
@@ -20,7 +21,9 @@ function readMobileMapHeight() {
 }
 
 function readMobileMapCollapsed() {
-  return localStorage.getItem(MOBILE_MAP_COLLAPSED_KEY) === 'true'
+  const saved = localStorage.getItem(MOBILE_MAP_COLLAPSED_KEY)
+  // 首次进入优先把视线留给日程；用户主动展开或收起后，始终尊重其偏好。
+  return saved === null ? true : saved === 'true'
 }
 
 // 手机端以“看路线 → 编排当天 → 补充地点”为单一连续任务，地图不再是需要跳转的独立页面。
@@ -86,8 +89,8 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
 
   return (
     <div className="mobile-plan-root flex h-full min-h-0 flex-col bg-bg">
-      <div ref={railRef} className="mobile-day-rail shrink-0 border-b border-border/75 bg-white/86 px-3 py-2">
-        <div className="flex w-max min-w-full items-stretch gap-1.5">
+      <div ref={railRef} className="mobile-day-rail shrink-0 px-3 py-1.5">
+        <div className="flex w-max min-w-full items-stretch gap-1">
           {trip.days.map((day) => {
             const active = day.id === activeDay.id
             return (
@@ -96,9 +99,9 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
                 data-day-id={day.id}
                 onClick={() => selectDay(day.id)}
                 className={`mobile-day-chip ${active ? 'is-active' : ''}`}
+                aria-label={`${day.label} ${dayDate(day)}`}
               >
                 <span>{dayDate(day)}</span>
-                <strong>{day.label}</strong>
               </button>
             )
           })}
@@ -106,22 +109,20 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
       </div>
 
       {!mapCollapsed ? <>
-      <section className="relative shrink-0 overflow-hidden border-b border-border bg-surface" style={{ height: mapHeight }}>
+      <section className="relative shrink-0 overflow-hidden bg-surface" style={{ height: mapHeight }}>
         <MapView key={activeDay.id} initialDayId={activeDay.id} compact />
-        <div className="pointer-events-none absolute top-3 left-3 z-[600] rounded-md border border-white/80 bg-white/92 px-2.5 py-1.5 text-[11.5px] font-semibold text-text shadow-[0_3px_12px_rgba(32,40,46,0.11)] backdrop-blur">
-          {activeDay.label}{activeDay.place ? ` · ${activeDay.place}` : ''} · {items.length} 项
+        <div className="pointer-events-none absolute top-3 left-3 z-[600] rounded-md bg-white/92 px-2.5 py-1.5 text-[11.5px] font-semibold text-text shadow-[0_2px_10px_rgba(32,40,46,0.10)] backdrop-blur">
+          {activeDay.place || '当天地图'} · {items.length} 个地点
         </div>
-        <button
-          onClick={() => setBudgetDrawerOpen(true)}
-          className="absolute bottom-3 left-3 z-[600] inline-flex min-h-9 items-center gap-1.5 rounded-md border border-white/85 bg-white/94 px-2.5 py-1.5 text-[11px] font-medium text-text-muted shadow-[0_3px_12px_rgba(32,40,46,0.12)] backdrop-blur active:bg-surface"
-          title="查看并设置旅行总预算"
-        >
+      </section>
+      <div className="mobile-map-actions shrink-0">
+        <button onClick={() => setBudgetDrawerOpen(true)} className="mobile-map-actions__button" title="查看并设置旅行总预算">
           <WalletIcon size={13} /> 预算 ¥{totalCost.toLocaleString()}{trip.totalBudget ? ` / ¥${trip.totalBudget.toLocaleString()}` : ''}
         </button>
-        <button onClick={onOpenFullMap} className="absolute right-3 bottom-3 z-[600] inline-flex items-center gap-1.5 rounded-md border border-white/85 bg-white/94 px-2.5 py-1.5 text-[11px] font-medium text-text-muted shadow-[0_3px_12px_rgba(32,40,46,0.12)] backdrop-blur active:bg-surface" title="查看完整行程地图">
+        <button onClick={onOpenFullMap} className="mobile-map-actions__button" title="查看完整行程地图">
           <MapIcon size={13} /> 全程地图
         </button>
-      </section>
+      </div>
       <div
         role="separator"
         aria-label="调整地图高度"
@@ -132,15 +133,15 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
         <span className="h-1 w-10 rounded-full bg-border transition-colors group-active:bg-accent" />
       </div>
       </> : (
-        <div className="flex h-11 shrink-0 items-center gap-1.5 border-b border-border/80 bg-white/90 px-3 shadow-[0_2px_8px_rgba(32,40,46,0.035)]">
+        <div className="mobile-map-summary shrink-0">
           <button
             onClick={() => setMapCollapsed(false)}
             className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-2 text-left text-[11.5px] font-medium text-text-muted active:bg-surface"
             aria-label="展开当天地图"
           >
             <MapIcon size={15} className="shrink-0 text-accent" />
-            <span className="truncate">地图 · {activeDay.label}{activeDay.place ? ` · ${activeDay.place}` : ''}</span>
-            <span className="ml-auto shrink-0 text-[10.5px] text-text-faint">展开</span>
+            <span className="truncate">{activeDay.place || '当天地图'} · {items.length} 个地点</span>
+            <ChevronDownIcon size={14} className="ml-auto shrink-0 text-text-faint" />
           </button>
           <button
             onClick={onOpenFullMap}
@@ -152,17 +153,15 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
       )}
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <TimelineView onOpenFullMap={onOpenFullMap} mobilePresentation quickAddRequest={quickAddRequest} />
+        <TimelineView onOpenFullMap={onOpenFullMap} onOpenBudget={() => setBudgetDrawerOpen(true)} mobilePresentation quickAddRequest={quickAddRequest} />
       </div>
 
-      <nav className="mobile-plan-dock mobile-safe-bottom shrink-0 border-t border-border/80 bg-white/96 px-3 pt-2 shadow-[0_-4px_18px_rgba(32,40,46,0.06)]" aria-label="当天行程操作">
-        <button onClick={() => setPlanTab('places')} className="mobile-plan-dock__secondary">
-          <HeartIcon size={17} /> 想去 {unscheduledCount}
-        </button>
-        <button onClick={() => setQuickAddRequest((request) => request + 1)} className="mobile-plan-dock__primary">
-          <PlusIcon size={18} /> 添加安排
-        </button>
-      </nav>
+      <MobilePlanDock
+        mode="timeline"
+        unscheduledCount={unscheduledCount}
+        onOpenPlaces={() => setPlanTab('places')}
+        onPrimaryAction={() => setQuickAddRequest((request) => request + 1)}
+      />
       {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     </div>
   )

@@ -140,7 +140,7 @@ function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => 
   )
 }
 
-function DayOverview({ items, scheduleWarningCount, compact = false }: { items: Activity[]; scheduleWarningCount: number; compact?: boolean }) {
+function DayOverview({ items, scheduleWarningCount, compact = false, onOpenBudget }: { items: Activity[]; scheduleWarningCount: number; compact?: boolean; onOpenBudget?: () => void }) {
   const plannedMinutes = items.reduce((total, activity) => total + (activityDurationMinutes(activity) ?? 0), 0)
   const dayCost = items.reduce((total, activity) => total + activity.costs.reduce((sum, cost) => sum + cost.amount, 0), 0)
   const geoItems = useMemo(() => items.filter((activity) => activity.geo), [items])
@@ -178,6 +178,7 @@ function DayOverview({ items, scheduleWarningCount, compact = false }: { items: 
     <div className={`${compact ? 'mb-2 gap-x-2 text-[11px]' : 'mb-4 gap-x-3 text-[12px]'} flex flex-wrap items-center gap-y-1 px-0.5 text-text-muted`}>
       <span>{items.length} 个安排</span>
       {dayCost > 0 && <span className="font-medium text-accent-hover">当天 ¥{dayCost.toLocaleString()}</span>}
+      {onOpenBudget && <button onClick={onOpenBudget} className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10.5px] font-medium text-text-muted transition-colors hover:bg-surface hover:text-accent" title="查看旅行总预算"><WalletIcon size={12} /> 预算</button>}
       {!compact && plannedMinutes > 0 && <span className="hidden sm:inline">已安排 {formatMinutes(plannedMinutes)}</span>}
       {!compact && <span className="hidden sm:inline">{geoItems.length} 个已定位地点</span>}
       {!compact && visibleWalking?.durationMinutes && <span className="hidden md:inline">步行约 {visibleWalking.durationMinutes} 分钟</span>}
@@ -807,7 +808,7 @@ function SortableActivity({
 }
 
 // 天标题：日期/地点点击可编辑；修改任意一天的日期会连续顺延后续天。
-function DayHeaderInfo({ day }: { day: { id: string; date: string; place: string } }) {
+function DayHeaderInfo({ day, mobilePresentation = false }: { day: { id: string; date: string; place: string }; mobilePresentation?: boolean }) {
   const updateDay = useTripStore((s) => s.updateDay)
   const [editing, setEditing] = useState(false)
   const [date, setDate] = useState(day.date)
@@ -828,7 +829,7 @@ function DayHeaderInfo({ day }: { day: { id: string; date: string; place: string
         className="flex items-center gap-2 rounded-md px-1.5 py-0.5 text-left transition-colors hover:bg-surface"
         title="点击编辑日期/地点"
       >
-        {showDate && (
+        {showDate && (!mobilePresentation || !showPlace) && (
           <span className="text-[12.5px] text-text-muted">{isStd ? displayDate(day.date) : day.date}</span>
         )}
         {showPlace && (
@@ -898,6 +899,8 @@ function DaySection({
   hideQuickAdd = false,
   introducedActivityId = null,
   forceExpanded = false,
+  mobilePresentation = false,
+  onOpenBudget,
   onNativeWishDrop,
   onFocusDay,
   confirmedDrop = false,
@@ -912,6 +915,8 @@ function DaySection({
   hideQuickAdd?: boolean
   introducedActivityId?: string | null
   forceExpanded?: boolean
+  mobilePresentation?: boolean
+  onOpenBudget?: () => void
   onNativeWishDrop?: (event: NativeDragEvent<HTMLElement>, dayId: string) => void
   onFocusDay?: (dayId: string) => void
   confirmedDrop?: boolean
@@ -967,9 +972,9 @@ function DaySection({
   return (
       <section id={`workspace-day-${dayId}`} ref={setNodeRef} onDragOver={(event) => { if (acceptsWish(event)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setNativeWishOver(true) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setNativeWishOver(false) }} onDrop={(event) => { if (!acceptsWish(event)) return; setNativeWishOver(false); setNativeDropConfirmed(true); onNativeWishDrop?.(event, dayId) }} className={`${compact ? 'mb-3 scroll-mt-[48px] pb-3' : 'mb-5 pb-5 sm:mb-7 sm:pb-7'} border-b border-border/70 transition-colors last:border-b-0`}>
         {/* 天标题 */}
-        <header className={`${compact ? 'mb-2 gap-x-2' : 'mb-3 gap-x-3 gap-y-2'} ${isOver || nativeWishOver || activityDropTarget ? 'itinerary-day-header-drop-target -mx-2 rounded-xl bg-white/92 px-2.5 py-2 shadow-[0_7px_18px_rgba(47,72,91,0.10)]' : ''} ${confirmedDrop || nativeDropConfirmed ? 'itinerary-day-header-drop-confirmed' : ''} flex flex-wrap items-center px-0.5 transition-[padding,background-color,box-shadow,transform]`}>
+        <header className={`${compact ? mobilePresentation ? 'mb-1.5 gap-x-2' : 'mb-2 gap-x-2' : 'mb-3 gap-x-3 gap-y-2'} ${isOver || nativeWishOver || activityDropTarget ? 'itinerary-day-header-drop-target -mx-2 rounded-xl bg-white/92 px-2.5 py-2 shadow-[0_7px_18px_rgba(47,72,91,0.10)]' : ''} ${confirmedDrop || nativeDropConfirmed ? 'itinerary-day-header-drop-confirmed' : ''} flex flex-wrap items-center px-0.5 transition-[padding,background-color,box-shadow,transform]`}>
           <h2 className={`${compact ? 'text-[17px]' : 'text-[19px]'} font-semibold tracking-[-0.02em]`}>{day.label}</h2>
-          <DayHeaderInfo day={day} />
+          <DayHeaderInfo day={day} mobilePresentation={mobilePresentation} />
           {(isOver || nativeWishOver || activityDropTarget) && <span className="itinerary-day-drop-label rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-medium text-accent-hover">{activityDropTarget ? `移到${day.label}` : `安排到${day.label}`}</span>}
           {forceExpanded && onFocusDay && <button onClick={() => onFocusDay(dayId)} className="rounded-md px-2 py-1 text-[11px] font-medium text-text-faint transition-colors hover:bg-white hover:text-accent" title={`只查看${day.label}`}>聚焦</button>}
           <details className="relative ml-auto">
@@ -1048,7 +1053,7 @@ function DaySection({
           </details>
         </header>
 
-        <DayOverview items={items} scheduleWarningCount={warnings.size} compact={compact} />
+        <DayOverview items={items} scheduleWarningCount={warnings.size} compact={compact} onOpenBudget={onOpenBudget} />
 
         {/* 时间轴 */}
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
@@ -1271,7 +1276,7 @@ function WorkspaceDayNavigator({ showAllDays, onShowAllDays, onFocusDay }: { sho
   )
 }
 
-export default function TimelineView({ onOpenFullMap, workspace = false, showAllDays = false, onShowAllDays, onFocusDay, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; workspace?: boolean; showAllDays?: boolean; onShowAllDays?: () => void; onFocusDay?: (dayId: string) => void; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
+export default function TimelineView({ onOpenFullMap, onOpenBudget, workspace = false, showAllDays = false, onShowAllDays, onFocusDay, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; onOpenBudget?: () => void; workspace?: boolean; showAllDays?: boolean; onShowAllDays?: () => void; onFocusDay?: (dayId: string) => void; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
   const trip = useActiveTrip()
   const { selectedActivityId, editingActivityId, activeDayId, addDay, reorderActivity, scheduleWishPlace, setActiveDay, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -1434,9 +1439,9 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
       onDragCancel={() => { setDraggingId(null); setDragOverDayId(null) }}
       onDragEnd={onDragEnd}
     >
-      <div className="timeline-root flex min-h-full min-w-0">
+      <div className={`timeline-root flex min-h-full min-w-0 ${mobilePresentation ? 'mobile-timeline' : ''}`}>
         <div className="min-w-0 flex-1">
-          <div className={`${workspace ? 'max-w-none px-5 py-5' : mobilePresentation ? 'mr-auto max-w-[980px] px-4 pt-2 pb-4 sm:px-7 sm:py-7 lg:px-10' : 'mr-auto max-w-[980px] px-3 py-4 sm:px-7 sm:py-7 lg:px-10'}`}>
+          <div className={`${workspace ? 'max-w-none px-5 py-5' : mobilePresentation ? 'mr-auto max-w-[980px] px-3.5 pt-1.5 pb-3 sm:px-7 sm:py-7 lg:px-10' : 'mr-auto max-w-[980px] px-3 py-4 sm:px-7 sm:py-7 lg:px-10'}`}>
             {!workspace && !mobilePresentation && <MobileDayStrip trip={trip} />}
             {workspace && onShowAllDays && onFocusDay && <WorkspaceDayNavigator showAllDays={showAllDays} onShowAllDays={onShowAllDays} onFocusDay={onFocusDay} />}
             {!workspace && !mobilePresentation && <div className="mb-3 flex items-center justify-between sm:mb-4">
@@ -1476,7 +1481,7 @@ export default function TimelineView({ onOpenFullMap, workspace = false, showAll
               </div>
             )}
             {((workspace && !showAllDays) || mobilePresentation ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={workspace && showAllDays} onNativeWishDrop={workspace && showAllDays ? handleNativeWishDrop : undefined} onFocusDay={workspace && showAllDays ? onFocusDay : undefined} confirmedDrop={recentlyDroppedDayId === d.id} activityDropTarget={draggingId !== null && dragOverDayId === d.id} />
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={workspace && showAllDays} mobilePresentation={mobilePresentation} onOpenBudget={mobilePresentation ? onOpenBudget : undefined} onNativeWishDrop={workspace && showAllDays ? handleNativeWishDrop : undefined} onFocusDay={workspace && showAllDays ? onFocusDay : undefined} confirmedDrop={recentlyDroppedDayId === d.id} activityDropTarget={draggingId !== null && dragOverDayId === d.id} />
             ))}
             {workspace && showAllDays && <button onClick={() => addDay(trip.days.at(-1)?.id)} className="mb-4 flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border bg-white/65 px-3 py-3 text-[12px] font-medium text-text-faint transition-colors hover:border-accent/45 hover:bg-white hover:text-accent"><PlusIcon size={14} /> 在行程末尾添加一天</button>}
           </div>
