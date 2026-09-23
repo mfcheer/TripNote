@@ -167,7 +167,7 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
 
         {addOpen && <div className="relative mb-3 rounded-xl border border-border/80 bg-surface p-2.5">
           <div className="flex gap-2">
-            <input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && addManual()} placeholder="搜索或直接输入地点名称" aria-label="搜索并收藏新地点" className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[13px] outline-none focus:border-accent" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && addManual()} placeholder="搜索或直接输入地点名称" aria-label="搜索并收藏新地点" className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-[13px]" />
             <button type="button" onClick={addManual} disabled={!query.trim()} className={`${overlayPrimaryButtonClass} min-h-9 shrink-0 px-3 text-[12px]`}>收藏</button>
           </div>
           <div className="mt-2 flex items-center gap-2">
