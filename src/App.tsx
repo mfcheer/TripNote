@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react'
 import Sidebar, { MobileHeader } from './components/Sidebar'
 import MapView from './components/MapView'
-import WishlistView from './components/WishlistView'
 import ArrangeView from './components/ArrangeView'
 import WorkspaceView from './components/WorkspaceView'
 import MobilePlanView from './components/MobilePlanView'
-import MobilePlanDock from './components/MobilePlanDock'
 import SettingsView from './components/SettingsView'
 import ConfirmDialog from './components/ConfirmDialog'
 import Toast from './components/Toast'
@@ -162,12 +160,11 @@ export default function App() {
               <WorkspaceView onExport={downloadImage} exporting={exportingImage} onOpenFullMap={() => setFullScreenMapDayId('all')} />
             </div>
             <div className="min-h-0 min-w-0 flex-1 overflow-hidden lg:hidden">
-              {visiblePlanTab === 'timeline' && (
+              {visiblePlanTab !== 'arrange' && (
                 <div className="h-full overflow-y-auto">
                   <MobilePlanView onOpenFullMap={() => setFullScreenMapDayId('all')} />
                 </div>
               )}
-              {visiblePlanTab === 'places' && <WishlistView />}
               {visiblePlanTab === 'arrange' && <ArrangeView />}
             </div>
           </>
@@ -176,17 +173,6 @@ export default function App() {
           <div className="min-h-0 flex-1 overflow-y-auto">
             <SettingsView canInstall={!!installPrompt} onInstall={installApp} />
           </div>
-        )}
-        {view === 'plan' && visiblePlanTab !== 'timeline' && (
-          <MobilePlanDock
-            mode="places"
-            unscheduledCount={trip.wishPlaces.filter((place) => {
-              const scheduledIds = [...(place.scheduledActivityIds ?? []), ...(place.scheduledActivityId ? [place.scheduledActivityId] : [])]
-              return !scheduledIds.some((id) => trip.activities.some((activity) => activity.id === id))
-            }).length}
-            onOpenPlaces={() => setPlanTab('places')}
-            onPrimaryAction={() => setPlanTab('timeline')}
-          />
         )}
       </main>
       </div>

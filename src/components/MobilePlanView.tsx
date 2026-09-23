@@ -30,7 +30,7 @@ function readMobileMapCollapsed() {
 // 手机端以“看路线 → 编排当天 → 补充地点”为单一连续任务，地图不再是需要跳转的独立页面。
 export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () => void }) {
   const trip = useActiveTrip()
-  const { activeDayId, setActiveDay, selectActivity, setPlanTab } = useTripStore()
+  const { activeDayId, setActiveDay, selectActivity } = useTripStore()
   const [quickAddRequest, setQuickAddRequest] = useState(0)
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const [wishSheetOpen, setWishSheetOpen] = useState(false)
@@ -188,10 +188,6 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
       {wishSheetOpen && (
         <MobileWishSheet
           onClose={() => setWishSheetOpen(false)}
-          onOpenFullWishlist={() => {
-            setWishSheetOpen(false)
-            setPlanTab('places')
-          }}
         />
       )}
     </div>

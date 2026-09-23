@@ -85,7 +85,7 @@ function WishlistRouteLine({ line }: { line: AmapLine }) {
   </Fragment>
 }
 
-function CustomMapWishDialog({
+export function CustomMapWishDialog({
   initialName,
   initialCategory,
   onSaved,
