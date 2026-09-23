@@ -35,6 +35,7 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
   const [mapHeight, setMapHeight] = useState(readMobileMapHeight)
   const [mapCollapsed, setMapCollapsed] = useState(readMobileMapCollapsed)
   const railRef = useRef<HTMLDivElement>(null)
+  const timelineScrollRef = useRef<HTMLDivElement>(null)
   const activeDay = trip.days.find((day) => day.id === activeDayId) ?? trip.days[0]
   const items = useMemo(() => activeDay ? activitiesByDay(trip, activeDay.id) : [], [activeDay, trip.activities])
   const unscheduledCount = trip.wishPlaces.filter((place) => {
@@ -54,10 +55,29 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
     localStorage.setItem(MOBILE_MAP_COLLAPSED_KEY, String(mapCollapsed))
   }, [mapCollapsed])
 
+  // 连续浏览时，时间轴会更新当前天；这里让顶部日期条也安静地跟随，而不抢走用户的滚动。
+  useEffect(() => {
+    if (!activeDay) return
+    requestAnimationFrame(() => {
+      railRef.current
+        ?.querySelector<HTMLButtonElement>(`[data-day-id="${activeDay.id}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    })
+  }, [activeDay?.id])
+
   function selectDay(id: string) {
     setActiveDay(id)
     selectActivity(null)
-    requestAnimationFrame(() => railRef.current?.querySelector<HTMLButtonElement>(`[data-day-id="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }))
+    requestAnimationFrame(() => {
+      const container = timelineScrollRef.current
+      const target = container?.querySelector<HTMLElement>(`#workspace-day-${id}`)
+      if (!container || !target) return
+      // `scrollIntoView` 在嵌套的移动端滚动区可能只滚动页面本身；直接控制容器更稳定。
+      container.scrollTo({
+        top: Math.max(0, target.offsetTop - container.offsetTop - 8),
+        behavior: 'smooth',
+      })
+    })
   }
 
   function startMapResize(event: ReactPointerEvent<HTMLDivElement>) {
@@ -152,8 +172,8 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
         </div>
       )}
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
-        <TimelineView onOpenFullMap={onOpenFullMap} onOpenBudget={() => setBudgetDrawerOpen(true)} mobilePresentation quickAddRequest={quickAddRequest} />
+      <div ref={timelineScrollRef} data-mobile-timeline-scroll className="min-h-0 flex-1 overflow-y-auto">
+        <TimelineView onOpenFullMap={onOpenFullMap} onOpenBudget={() => setBudgetDrawerOpen(true)} mobilePresentation showAllDays quickAddRequest={quickAddRequest} />
       </div>
 
       <MobilePlanDock

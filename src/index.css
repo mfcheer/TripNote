@@ -357,6 +357,49 @@ input:focus, textarea:focus, select:focus {
 .wishlist-view > aside { background: rgba(250,251,252,.9) !important; }
 .wishlist-view > aside > div:last-child { border-radius: 14px; overflow: hidden; }
 
+/* 想去页的搜索区在手机上只保留输入的优先级：实际输入仍维持 16px，避免 iPhone 聚焦缩放；
+   通过更紧凑的高度与更轻的占位文案降低它对页面的压迫感。 */
+@media (max-width: 767px) {
+  .wishlist-view .wishlist-search-panel {
+    margin-bottom: 10px;
+    border-radius: 13px;
+    padding: 10px;
+  }
+  .wishlist-view .wishlist-search-panel > div:first-child {
+    margin-bottom: 6px;
+    font-size: 10.5px;
+  }
+  .wishlist-view .wishlist-primary-search {
+    min-height: 40px;
+    padding: 8px 10px !important;
+    line-height: 1.25;
+  }
+  .wishlist-view .wishlist-primary-search::placeholder {
+    color: color-mix(in srgb, var(--color-text-faint) 86%, white);
+    font-size: 13px;
+    letter-spacing: -.01em;
+  }
+  .wishlist-view .wishlist-search-panel > .flex > button,
+  .wishlist-view .wishlist-search-panel > .flex > select {
+    min-height: 36px;
+    padding-top: 7px;
+    padding-bottom: 7px;
+    font-size: 12px !important;
+  }
+  .wishlist-view .wishlist-filter-search {
+    min-height: 34px;
+    padding: 6px 10px !important;
+    line-height: 1.25;
+  }
+  .wishlist-view .wishlist-filter-search::placeholder {
+    font-size: 12.5px;
+  }
+  .wishlist-view .wishlist-search-panel + div {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+}
+
 /* 地图控件使用与页面一致的轻材质，既不抢路线也不显得像第三方控件贴上去。 */
 .leaflet-control-zoom,
 .leaflet-control-attribution,

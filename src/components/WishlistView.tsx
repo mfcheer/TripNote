@@ -630,7 +630,7 @@ export default function WishlistView() {
                   onKeyDown={(event) => event.key === 'Enter' && addManual()}
                   placeholder="输入地点名称，搜索并收藏"
                   aria-label="搜索并收藏新地点"
-                  className="w-full rounded-md border border-border bg-white px-3 py-2.5 text-[13px] outline-none focus:border-accent sm:py-2"
+                  className="wishlist-primary-search w-full rounded-md border border-border bg-white px-3 py-2.5 text-[13px] outline-none focus:border-accent sm:py-2"
                 />
                 {results.length > 0 && (
                   <ul className="absolute top-full left-0 z-20 mt-1 max-h-[230px] w-full overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
@@ -688,7 +688,7 @@ export default function WishlistView() {
               onChange={(event) => setKeyword(event.target.value)}
               placeholder="筛选想去地点"
               aria-label="筛选想去地点"
-              className="w-full rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent sm:w-[180px]"
+              className="wishlist-filter-search w-full rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent sm:w-[180px]"
             />
             <button onClick={() => setCategory('all')} className={`border-b-2 px-2.5 py-1 text-[12px] font-medium ${category === 'all' ? 'border-action text-text' : 'border-transparent text-text-muted hover:text-text'}`}>全部 {trip.wishPlaces.length}</button>
             {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => (

@@ -1398,20 +1398,39 @@ export default function TimelineView({ onOpenFullMap, onOpenBudget, workspace = 
 
   // 连续编排时，滚到哪一天就把那天设为当前天：快速添加、想去卡片的“＋”与地图联动都会保持一致。
   useEffect(() => {
-    if (!workspace || !showAllDays || typeof IntersectionObserver === 'undefined') return
-    const root = document.querySelector<HTMLElement>('[data-workspace-scroll]')
-    const sections = [...document.querySelectorAll<HTMLElement>('[id^="workspace-day-"]')]
+    const isContinuous = (workspace && showAllDays) || mobilePresentation
+    if (!isContinuous) return
+    const root = document.querySelector<HTMLElement>(workspace ? '[data-workspace-scroll]' : '[data-mobile-timeline-scroll]')
+    const sections = root ? [...root.querySelectorAll<HTMLElement>('[id^="workspace-day-"]')] : []
     if (!root || !sections.length) return
-    const observer = new IntersectionObserver((entries) => {
-      const visible = entries
-        .filter((entry) => entry.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
-      const dayId = visible?.target.id.replace('workspace-day-', '')
-      if (dayId) setActiveDay(dayId)
-    }, { root, threshold: [0.25, 0.5, 0.75] })
-    sections.forEach((section) => observer.observe(section))
-    return () => observer.disconnect()
-  }, [workspace, showAllDays, setActiveDay, trip.days.length])
+
+    let frame = 0
+    let lastDayId = ''
+    const syncActiveDay = () => {
+      frame = 0
+      const anchor = root.getBoundingClientRect().top + 42
+      // 以已经越过阅读锚点的最后一个日期为准，避免两天交界时因面积变化而提前跳到下一天。
+      let currentSection = sections[0]
+      for (const section of sections) {
+        if (section.getBoundingClientRect().top <= anchor) currentSection = section
+        else break
+      }
+      const dayId = currentSection.id.replace('workspace-day-', '')
+      if (dayId && dayId !== lastDayId) {
+        lastDayId = dayId
+        setActiveDay(dayId)
+      }
+    }
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(syncActiveDay)
+    }
+    root.addEventListener('scroll', onScroll, { passive: true })
+    syncActiveDay()
+    return () => {
+      root.removeEventListener('scroll', onScroll)
+      if (frame) cancelAnimationFrame(frame)
+    }
+  }, [workspace, showAllDays, mobilePresentation, setActiveDay, trip.days.length])
 
   // 时间轴滚动时，用视口中最靠近中心的安排给地图一个轻量提示；
   // 鼠标悬停优先级更高，因此不会抢走正在查看的地点。
@@ -1480,8 +1499,8 @@ export default function TimelineView({ onOpenFullMap, onOpenBudget, workspace = 
                 </div>
               </div>
             )}
-            {((workspace && !showAllDays) || mobilePresentation ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
-              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={workspace && showAllDays} mobilePresentation={mobilePresentation} onOpenBudget={mobilePresentation ? onOpenBudget : undefined} onNativeWishDrop={workspace && showAllDays ? handleNativeWishDrop : undefined} onFocusDay={workspace && showAllDays ? onFocusDay : undefined} confirmedDrop={recentlyDroppedDayId === d.id} activityDropTarget={draggingId !== null && dragOverDayId === d.id} />
+            {((workspace && !showAllDays) ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
+              <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={(workspace && showAllDays) || mobilePresentation} mobilePresentation={mobilePresentation} onOpenBudget={mobilePresentation ? onOpenBudget : undefined} onNativeWishDrop={workspace && showAllDays ? handleNativeWishDrop : undefined} onFocusDay={workspace && showAllDays ? onFocusDay : undefined} confirmedDrop={recentlyDroppedDayId === d.id} activityDropTarget={draggingId !== null && dragOverDayId === d.id} />
             ))}
             {workspace && showAllDays && <button onClick={() => addDay(trip.days.at(-1)?.id)} className="mb-4 flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border bg-white/65 px-3 py-3 text-[12px] font-medium text-text-faint transition-colors hover:border-accent/45 hover:bg-white hover:text-accent"><PlusIcon size={14} /> 在行程末尾添加一天</button>}
           </div>
