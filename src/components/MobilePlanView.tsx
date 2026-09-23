@@ -179,7 +179,6 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
       </div>
 
       <MobilePlanDock
-        mode="timeline"
         unscheduledCount={unscheduledCount}
         onOpenPlaces={() => setWishSheetOpen(true)}
         onPrimaryAction={() => setQuickAddRequest((request) => request + 1)}
