@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { searchPlaces, tripSearchContext, type GeoResult } from '../api/geocode'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS, ClockIcon, MapIcon, PlusIcon, TrashIcon } from './Icons'
+import { CATEGORY_ICONS, ClockIcon, MapIcon, TrashIcon } from './Icons'
 import ModalShell, { overlayPrimaryButtonClass } from './OverlayShell'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
@@ -27,7 +27,6 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null)
   const [targetDayId, setTargetDayId] = useState(() => activeDayId || trip.days[0]?.id || '')
   const [time, setTime] = useState(() => nextActivityTime(trip, activeDayId || trip.days[0]?.id || ''))
-  const [addOpen, setAddOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeoResult[]>([])
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'empty' | 'results'>('idle')
@@ -97,7 +96,6 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
     const id = addWishPlace({ title, category, location: result.label, geo: { lat: result.lat, lng: result.lng } })
     setSelectedPlaceId(id)
     clearAdd()
-    setAddOpen(false)
     useToastStore.getState().show(`已收藏「${title}」`)
   }
 
@@ -107,7 +105,6 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
     const id = addWishPlace({ title, category })
     setSelectedPlaceId(id)
     clearAdd()
-    setAddOpen(false)
     useToastStore.getState().show(`已收藏「${title}」`)
   }
 
@@ -160,12 +157,8 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
         size="md"
         bodyClassName="pt-2.5 pb-5"
       >
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="text-[11.5px] text-text-faint">地点都在这里管理与安排</div>
-          <button type="button" onClick={() => setAddOpen((open) => !open)} className="inline-flex min-h-8 items-center gap-1.5 rounded-lg bg-action-soft px-2.5 text-[11.5px] font-semibold text-action transition-colors hover:bg-action hover:text-white"><PlusIcon size={13} /> 收藏地点</button>
-        </div>
-
-        {addOpen && <div className="relative mb-3 rounded-xl border border-border/80 bg-surface p-2.5">
+        <div className="mb-2 text-[11.5px] text-text-faint">地点都在这里管理与安排</div>
+        <div className="relative mb-3 rounded-xl border border-border/80 bg-surface p-2.5">
           <div className="flex gap-2">
             <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && addManual()} placeholder="搜索或直接输入地点名称" aria-label="搜索并收藏新地点" className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-[13px]" />
             <button type="button" onClick={addManual} disabled={!query.trim()} className={`${overlayPrimaryButtonClass} min-h-9 shrink-0 px-3 text-[12px]`}>收藏</button>
@@ -177,7 +170,7 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
           {searchStatus === 'loading' && <div className="mt-2 text-[11px] text-text-faint">正在搜索…</div>}
           {results.length > 0 && <div className="mt-2 overflow-hidden rounded-lg border border-border bg-white">{results.map((result) => <button key={`${result.lat},${result.lng}`} type="button" onClick={() => addFromResult(result)} className="block w-full border-b border-border/70 px-3 py-2 text-left last:border-b-0 hover:bg-accent-soft"><span className="block truncate text-[12.5px] font-medium text-text">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}</div>}
           {searchStatus === 'empty' && query.trim().length >= 2 && <div className="mt-2 text-[11px] leading-relaxed text-text-faint">没有找到这个地点；可直接收藏名称，或在地图上选点。</div>}
-        </div>}
+        </div>
 
         {places.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-[12px] leading-relaxed text-text-faint">还没有收藏地点。可以搜索，或从地图上选一个位置。</div> : <div className="divide-y divide-border/80">
           {places.map((place, index) => {
@@ -207,7 +200,7 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
           })}
         </div>}
       </ModalShell>
-      {showCustomMap && <CustomMapWishDialog initialName={query.trim()} initialCategory={category} onSaved={(id) => { setSelectedPlaceId(id); clearAdd(); setAddOpen(false); setShowCustomMap(false) }} onClose={() => setShowCustomMap(false)} />}
+      {showCustomMap && <CustomMapWishDialog initialName={query.trim()} initialCategory={category} onSaved={(id) => { setSelectedPlaceId(id); clearAdd(); setShowCustomMap(false) }} onClose={() => setShowCustomMap(false)} />}
     </>
   )
 }
