@@ -3,6 +3,7 @@ import { activitiesByDay, displayDate, useActiveTrip, useTripStore } from '../st
 import { ChevronDownIcon, MapIcon, WalletIcon } from './Icons'
 import MapView from './MapView'
 import MobilePlanDock from './MobilePlanDock'
+import MobileWishSheet from './MobileWishSheet'
 import TimelineView, { BudgetDrawer } from './TimelineView'
 
 function dayDate(day: { date: string }) {
@@ -32,6 +33,7 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
   const { activeDayId, setActiveDay, selectActivity, setPlanTab } = useTripStore()
   const [quickAddRequest, setQuickAddRequest] = useState(0)
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
+  const [wishSheetOpen, setWishSheetOpen] = useState(false)
   const [mapHeight, setMapHeight] = useState(readMobileMapHeight)
   const [mapCollapsed, setMapCollapsed] = useState(readMobileMapCollapsed)
   const railRef = useRef<HTMLDivElement>(null)
@@ -179,10 +181,19 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
       <MobilePlanDock
         mode="timeline"
         unscheduledCount={unscheduledCount}
-        onOpenPlaces={() => setPlanTab('places')}
+        onOpenPlaces={() => setWishSheetOpen(true)}
         onPrimaryAction={() => setQuickAddRequest((request) => request + 1)}
       />
       {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
+      {wishSheetOpen && (
+        <MobileWishSheet
+          onClose={() => setWishSheetOpen(false)}
+          onOpenFullWishlist={() => {
+            setWishSheetOpen(false)
+            setPlanTab('places')
+          }}
+        />
+      )}
     </div>
   )
 }
