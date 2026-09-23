@@ -20,7 +20,7 @@ function compactDate(date: string) {
  */
 export default function MobileWishSheet({ onClose, onOpenFullWishlist }: { onClose: () => void; onOpenFullWishlist: () => void }) {
   const trip = useActiveTrip()
-  const { activeDayId, scheduleWishPlace, setActiveDay, selectActivity } = useTripStore()
+  const { activeDayId, scheduleWishPlace, cancelWishSchedule, setActiveDay, selectActivity } = useTripStore()
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null)
   const [targetDayId, setTargetDayId] = useState(() => activeDayId || trip.days[0]?.id || '')
   const [time, setTime] = useState(() => nextActivityTime(trip, activeDayId || trip.days[0]?.id || ''))
@@ -61,7 +61,12 @@ export default function MobileWishSheet({ onClose, onOpenFullWishlist }: { onClo
     if (!activityId) return
     setActiveDay(targetDay.id)
     selectActivity(activityId)
-    useToastStore.getState().show(`已安排「${selectedPlace.title}」到 ${targetDay.label} · ${time}`)
+    useToastStore.getState().show(`已安排「${selectedPlace.title}」到 ${targetDay.label} · ${time}`, {
+      undo: () => {
+        cancelWishSchedule(selectedPlace.id, activityId)
+        useToastStore.getState().show(`已撤销「${selectedPlace.title}」的安排`, { tone: 'neutral' })
+      },
+    })
     setSelectedPlaceId(null)
   }
 

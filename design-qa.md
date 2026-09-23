@@ -13,6 +13,7 @@
 - Opened the bottom “想去 3” control from the itinerary without navigating away.
 - Selected a saved location; the same sheet exposed date chips, editable suggested time, and the primary “安排” action.
 - Completed an assignment end-to-end. The sheet stayed open, the location count changed from 3 to 2, and the scheduled location was removed from the quick list.
+- Clicked the toast’s “撤销” action after an assignment. The newly created activity was removed and the place returned to the pending count.
 - Checked browser console errors after the assignment: none.
 
 ## Findings
@@ -32,13 +33,14 @@
 ## Comparison history
 
 1. Initial implementation exposed the chosen mobile sheet and inline selection state. No P0/P1/P2 issues found.
-2. Ran the primary assignment flow. The row removed and count updated with no console errors; no visual correction was required.
+2. Ran the primary assignment and undo flow. The row removed, count updated, and “撤销” restored the pending location; no visual correction was required.
 
 ## Implementation checklist
 
 - [x] Keep the itinerary visible behind the quick-arrange surface.
 - [x] Keep full “想去” management reachable without making it the required next step.
 - [x] Allow date selection, time adjustment, and save in the same sheet.
+- [x] Allow an immediate undo after quick scheduling.
 - [x] Verify the primary flow on a 390px mobile viewport.
 
 final result: passed
