@@ -26,17 +26,13 @@ function suggestedTime(trip: ReturnType<typeof useActiveTrip>, dayId: string) {
 export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
   const trip = useActiveTrip()
   const {
-    activeDayId, amapWebServiceKey, placeSearchProvider, addActivity, addWishPlace, removeWishPlace, restoreTrips,
+    activeDayId, amapWebServiceKey, placeSearchProvider, addWishPlace, removeWishPlace, restoreTrips,
     scheduleWishPlace, cancelWishSchedule, setActiveDay, selectActivity,
   } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null)
   const [targetDayId, setTargetDayId] = useState(() => activeDayId || trip.days[0]?.id || '')
   const [time, setTime] = useState(() => suggestedTime(trip, activeDayId || trip.days[0]?.id || ''))
-  const [directDayId, setDirectDayId] = useState(() => activeDayId || trip.days[0]?.id || '')
-  const [directTime, setDirectTime] = useState(() => suggestedTime(trip, activeDayId || trip.days[0]?.id || ''))
-  const [directTitle, setDirectTitle] = useState('')
-  const [directCategory, setDirectCategory] = useState<ActivityCategory>('sight')
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GeoResult[]>([])
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'empty' | 'results'>('idle')
@@ -158,52 +154,16 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
     })
   }
 
-  function addDirectActivity() {
-    const title = directTitle.trim()
-    if (!title || !directDayId) return
-    const { trips, activeTripId } = useTripStore.getState()
-    const activityId = addActivity({
-      dayId: directDayId,
-      time: directTime,
-      title,
-      category: directCategory,
-      costs: [],
-    })
-    const day = trip.days.find((item) => item.id === directDayId)
-    setActiveDay(directDayId)
-    selectActivity(activityId)
-    setDirectTitle('')
-    useToastStore.getState().show(`已添加「${title}」到 ${day?.label ?? '行程'} · ${directTime}`, {
-      undo: () => {
-        useTripStore.getState().restoreTrips(trips, activeTripId)
-        useToastStore.getState().show(`已撤销「${title}」的添加`, { tone: 'neutral' })
-      },
-    })
-  }
-
   return (
     <>
       <ModalShell
-        title="添加"
-        description="直接新建安排，或从想去地点库安排"
+        title={<><span>想去</span><span className="ml-2 text-text-muted">{places.length}</span></>}
+        description={`待安排 ${unscheduledCount} · 已安排 ${places.length - unscheduledCount}`}
         onClose={onClose}
         size="md"
         bodyClassName="pt-2.5 pb-5"
       >
-        <section className="mb-3 rounded-xl border border-action/10 bg-action-soft/32 p-2.5">
-          <div className="mb-2 flex items-center justify-between gap-2"><span className="text-[12px] font-semibold text-text">直接添加安排</span><span className="text-[10.5px] text-text-faint">交通、住宿或临时事项</span></div>
-          <div className="flex gap-2">
-            <input type="time" value={directTime} onChange={(event) => setDirectTime(event.target.value)} className="w-[76px] shrink-0 rounded-lg border border-border bg-white px-2 py-2 text-[16px] font-medium text-text outline-none focus:border-accent sm:text-[13px]" aria-label="直接添加的时间" />
-            <input value={directTitle} onChange={(event) => setDirectTitle(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && addDirectActivity()} placeholder="例如：取车、入住酒店" aria-label="安排名称" className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-[13px]" />
-          </div>
-          <div className="mt-2 flex items-center gap-2">
-            <select value={directDayId} onChange={(event) => { setDirectDayId(event.target.value); setDirectTime(suggestedTime(trip, event.target.value)) }} className="min-w-0 flex-1 rounded-lg border border-border bg-white px-2.5 py-1.5 text-[11.5px] text-text-muted outline-none focus:border-accent" aria-label="直接添加的日期">{trip.days.map((day) => <option key={day.id} value={day.id}>{day.label} · {day.place || '待定'}</option>)}</select>
-            <select value={directCategory} onChange={(event) => setDirectCategory(event.target.value as ActivityCategory)} className="w-[78px] shrink-0 rounded-lg border border-border bg-white px-2 py-1.5 text-[11.5px] text-text-muted outline-none focus:border-accent" aria-label="安排分类">{(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => <option key={value} value={value}>{CATEGORY_META[value].label}</option>)}</select>
-            <button type="button" onClick={addDirectActivity} disabled={!directTitle.trim()} className={`${overlayPrimaryButtonClass} min-h-8 shrink-0 px-3 text-[12px]`}>加入</button>
-          </div>
-        </section>
-
-        <div className="mb-2 flex items-center justify-between gap-2"><span className="text-[12px] font-semibold text-text">想去地点</span><span className="text-[10.5px] text-text-faint">待安排 {unscheduledCount} · 已安排 {places.length - unscheduledCount}</span></div>
+        <div className="mb-2 text-[11.5px] text-text-faint">搜索、收藏或选择一个地点安排到行程</div>
         <div className="relative mb-3 rounded-xl border border-border/80 bg-surface p-2.5">
           <div className="flex gap-2">
             <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && addManual()} placeholder="搜索或直接输入地点名称" aria-label="搜索并收藏新地点" className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-[13px]" />
