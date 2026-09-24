@@ -25,6 +25,7 @@ export default function SettingsView({
 }) {
   const {
     trips,
+    deletedTrips,
     activeTripId,
     importTrip,
     restoreBackup,
@@ -52,7 +53,7 @@ export default function SettingsView({
   const [isIos] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent))
   const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
 
-  const backupData: BackupData = { trips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider }
+  const backupData: BackupData = { trips, deletedTrips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider }
 
   async function refreshBackupStatus() {
     setBackupStatus(await getLocalBackupStatus())

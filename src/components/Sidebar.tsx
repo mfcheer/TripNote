@@ -7,6 +7,7 @@ import { CalendarIcon, ChevronDownIcon, DownloadIcon, EditIcon, LogoIcon, PlusIc
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
+import TripTrashDialog from './TripTrashDialog'
 
 const NAV_ITEMS: { key: ViewKey; label: string; Icon: (p: { size?: number }) => ReactElement }[] = [
   { key: 'plan', label: '行程规划', Icon: CalendarIcon },
@@ -169,6 +170,7 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
   const trip = useActiveTrip()
   const [open, setOpen] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
+  const [tripTrashOpen, setTripTrashOpen] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
   const askConfirm = useConfirmStore((s) => s.ask)
@@ -260,13 +262,10 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
                         onClick={() =>
                           askConfirm({
                             title: `删除旅程「${t.name}」？`,
-                            message: '其全部行程和花费将一并删除。',
+                            message: '会移入回收站，可随时恢复。',
                             onConfirm: () => {
-                              const { trips, activeTripId } = useTripStore.getState()
                               deleteTrip(t.id)
-                              useToastStore.getState().show(`已删除旅程「${t.name}」`, {
-                                undo: () => useTripStore.getState().restoreTrips(trips, activeTripId),
-                              })
+                              useToastStore.getState().show(`已将旅程「${t.name}」移入回收站`)
                             },
                           })
                         }
@@ -285,6 +284,15 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
             <button
               onClick={() => {
                 setOpen(false)
+                setTripTrashOpen(true)
+              }}
+              className="flex w-full items-center gap-2 px-3.5 py-2 text-[13px] text-text-muted transition-colors hover:text-accent"
+            >
+              <TrashIcon size={14} /> 回收站
+            </button>
+            <button
+              onClick={() => {
+                setOpen(false)
                 setShowCreateDialog(true)
               }}
               className="flex w-full items-center gap-2 px-3.5 py-2 text-[13px] text-text-muted transition-colors hover:text-accent"
@@ -295,6 +303,7 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
         </div>
       )}
       {showCreateDialog && <CreateTripDialog onClose={() => setShowCreateDialog(false)} />}
+      {tripTrashOpen && <TripTrashDialog onClose={() => setTripTrashOpen(false)} />}
     </div>
   )
 }

@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Activity, Cost, Trip, TripDay, ViewKey, PlanTab, WishPlace } from './types'
+import type { Activity, Cost, DeletedTrip, Trip, TripDay, ViewKey, PlanTab, WishPlace } from './types'
 import type { ActivityFormValues } from './components/ActivityForm'
 import { seedTrip } from './data/seed'
 import type { BackupData } from './utils/localBackup'
@@ -16,6 +16,7 @@ export interface TripCreateInput {
 
 interface TripState {
   trips: Trip[]
+  deletedTrips: DeletedTrip[]
   activeTripId: string
   view: ViewKey
   planTab: PlanTab
@@ -48,6 +49,9 @@ interface TripState {
   switchTrip: (tripId: string) => void
   createTrip: (input: string | TripCreateInput) => string
   deleteTrip: (tripId: string) => void
+  restoreDeletedTrip: (tripId: string) => void
+  purgeDeletedTrip: (tripId: string) => void
+  emptyTripTrash: () => void
   renameTrip: (tripId: string, name: string) => void
   setTripSearchRegion: (tripId: string, searchRegion: string) => void
   importTrip: (data: unknown) => boolean
@@ -277,6 +281,7 @@ export const useTripStore = create<TripState>()(
   persist(
     (set, get) => ({
       trips: [seedTrip],
+      deletedTrips: [],
       activeTripId: seedTrip.id,
       view: 'plan',
       planTab: 'timeline',
@@ -367,12 +372,15 @@ export const useTripStore = create<TripState>()(
 
       deleteTrip: (tripId) => {
         set((s) => {
+          const deleted = s.trips.find((trip) => trip.id === tripId)
+          if (!deleted) return s
           const rest = s.trips.filter((t) => t.id !== tripId)
           // 至少保留一个旅程
           if (rest.length === 0) {
             const fresh = blankTrip('新旅程')
             return {
               trips: [fresh],
+              deletedTrips: [{ trip: deleted, deletedAt: new Date().toISOString() }, ...s.deletedTrips.filter((entry) => entry.trip.id !== tripId)],
               activeTripId: fresh.id,
               activeDayId: fresh.days[0].id,
               selectedActivityId: null,
@@ -383,15 +391,37 @@ export const useTripStore = create<TripState>()(
             const next = rest[0]
             return {
               trips: rest,
+              deletedTrips: [{ trip: deleted, deletedAt: new Date().toISOString() }, ...s.deletedTrips.filter((entry) => entry.trip.id !== tripId)],
               activeTripId: next.id,
               activeDayId: next.days[0]?.id ?? '',
               selectedActivityId: null,
               editingActivityId: null,
             }
           }
-          return { trips: rest }
+          return {
+            trips: rest,
+            deletedTrips: [{ trip: deleted, deletedAt: new Date().toISOString() }, ...s.deletedTrips.filter((entry) => entry.trip.id !== tripId)],
+          }
         })
       },
+
+      restoreDeletedTrip: (tripId) =>
+        set((s) => {
+          const entry = s.deletedTrips.find((item) => item.trip.id === tripId)
+          if (!entry || s.trips.some((trip) => trip.id === tripId)) return s
+          return {
+            trips: [...s.trips, entry.trip],
+            deletedTrips: s.deletedTrips.filter((item) => item.trip.id !== tripId),
+            activeTripId: entry.trip.id,
+            activeDayId: entry.trip.days[0]?.id ?? '',
+            selectedActivityId: null,
+            editingActivityId: null,
+            view: 'plan',
+            planTab: 'timeline',
+          }
+        }),
+      purgeDeletedTrip: (tripId) => set((s) => ({ deletedTrips: s.deletedTrips.filter((item) => item.trip.id !== tripId) })),
+      emptyTripTrash: () => set({ deletedTrips: [] }),
 
       renameTrip: (tripId, name) =>
         set((s) => ({
@@ -423,6 +453,12 @@ export const useTripStore = create<TripState>()(
         const activeTrip = trips.find((trip) => trip.id === data.activeTripId) ?? trips[0]
         set({
           trips,
+          deletedTrips: Array.isArray(data.deletedTrips)
+            ? data.deletedTrips.flatMap((entry) => {
+                const trip = normalizeRestoredTrips([entry?.trip])[0]
+                return trip ? [{ trip, deletedAt: typeof entry?.deletedAt === 'string' ? entry.deletedAt : new Date().toISOString() }] : []
+              })
+            : [],
           activeTripId: activeTrip.id,
           activeDayId: activeTrip.days[0]?.id ?? '',
           selectedActivityId: null,
@@ -445,6 +481,7 @@ export const useTripStore = create<TripState>()(
       resetAll: () =>
         set({
           trips: [seedTrip],
+          deletedTrips: [],
           activeTripId: seedTrip.id,
           activeDayId: 'd1',
           selectedActivityId: null,
@@ -893,17 +930,18 @@ export const useTripStore = create<TripState>()(
     }),
     {
       name: 'tripnote-store',
-      version: 11,
+      version: 12,
       migrate: (persisted: unknown) => {
         const state = persisted as
-          | { trips?: Trip[]; activeTripId?: string; trip?: unknown; theme?: unknown }
+          | { trips?: Trip[]; deletedTrips?: DeletedTrip[]; activeTripId?: string; trip?: unknown; theme?: unknown }
           | undefined
         if (!state) return persisted as object
         // v5：移除已废弃的深色主题偏好，统一使用优化后的浅色界面。
         const { theme: _legacyTheme, ...stateWithoutTheme } = state
         // v4：为既有多旅程补上想去清单字段，并继续兼容更早的花费结构。
         if (stateWithoutTheme.trips) {
-          // v11：将从未改名的旧关西示例换成东北大环线；用户创建或改名过的旅行不受影响。
+        // v11：将从未改名的旧关西示例换成东北大环线；用户创建或改名过的旅行不受影响。
+        // v12：为既有数据补上回收站，避免删除功能升级后出现空字段。
           const replacingLegacySample = stateWithoutTheme.trips.some((trip) => trip.id === 'trip-kansai' && trip.name === '日本关西之旅（示例）')
           const trips = stateWithoutTheme.trips.map((trip) =>
             trip.id === 'trip-kansai' && trip.name === '日本关西之旅（示例）' ? seedTrip : migrateTrip(trip),
@@ -911,18 +949,20 @@ export const useTripStore = create<TripState>()(
           return {
             ...stateWithoutTheme,
             trips,
+            deletedTrips: stateWithoutTheme.deletedTrips ?? [],
             activeTripId: replacingLegacySample && stateWithoutTheme.activeTripId === 'trip-kansai' ? seedTrip.id : stateWithoutTheme.activeTripId,
           }
         }
         // v2 及更早：单个 trip → 包装成数组
         if (stateWithoutTheme.trip) {
           const trip = migrateTrip(stateWithoutTheme.trip)
-          return { ...stateWithoutTheme, trips: [trip], activeTripId: trip.id }
+          return { ...stateWithoutTheme, trips: [trip], deletedTrips: stateWithoutTheme.deletedTrips ?? [], activeTripId: trip.id }
         }
         return stateWithoutTheme
       },
       partialize: (s) => ({
         trips: s.trips,
+        deletedTrips: s.deletedTrips,
         activeTripId: s.activeTripId,
         amapJsKey: s.amapJsKey,
         amapWebServiceKey: s.amapWebServiceKey,

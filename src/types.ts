@@ -72,6 +72,12 @@ export interface Trip {
   totalBudget: number
 }
 
+// 已删除旅行会保留完整快照，便于在回收站中恢复。
+export interface DeletedTrip {
+  trip: Trip
+  deletedAt: string
+}
+
 export const CATEGORY_META: Record<
   ActivityCategory,
   { label: string; color: string; soft: string }

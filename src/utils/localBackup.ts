@@ -1,7 +1,9 @@
-import type { Trip } from '../types'
+import type { DeletedTrip, Trip } from '../types'
 
 export interface BackupData {
   trips: Trip[]
+  /** 回收站内的旅行，恢复备份后仍可找回。 */
+  deletedTrips?: DeletedTrip[]
   activeTripId: string
   mapRouteMode: 'direct' | 'walking'
   /** Optional so complete backups created before map settings were included remain restorable. */

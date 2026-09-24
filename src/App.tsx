@@ -70,6 +70,7 @@ export default function App() {
     function toBackupData(state: ReturnType<typeof useTripStore.getState>): BackupData {
       return {
         trips: state.trips,
+        deletedTrips: state.deletedTrips,
         activeTripId: state.activeTripId,
         mapRouteMode: state.mapRouteMode,
         amapJsKey: state.amapJsKey,
