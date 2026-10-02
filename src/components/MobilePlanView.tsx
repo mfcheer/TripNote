@@ -5,7 +5,6 @@ import MapView from './MapView'
 import MobilePlanDock from './MobilePlanDock'
 import MobileWishSheet from './MobileWishSheet'
 import TimelineView, { BudgetDrawer } from './TimelineView'
-import GettingStartedCard from './GettingStartedCard'
 
 function dayDate(day: { date: string }) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day.date)) return day.date === '待定' ? '待定' : day.date
@@ -171,8 +170,7 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
       )}
 
       <div ref={timelineScrollRef} data-mobile-timeline-scroll className="min-h-0 flex-1 overflow-y-auto">
-        <div className="px-3.5 pt-3"><GettingStartedCard compact /></div>
-        <TimelineView onOpenFullMap={onOpenFullMap} onOpenBudget={() => setBudgetDrawerOpen(true)} mobilePresentation showAllDays />
+        <TimelineView onOpenFullMap={onOpenFullMap} onOpenBudget={() => setBudgetDrawerOpen(true)} onOpenWish={() => setWishSheetOpen(true)} mobilePresentation showAllDays />
       </div>
 
       <MobilePlanDock

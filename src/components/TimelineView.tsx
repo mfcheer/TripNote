@@ -1276,7 +1276,7 @@ function WorkspaceDayNavigator({ showAllDays, onShowAllDays, onFocusDay }: { sho
   )
 }
 
-export default function TimelineView({ onOpenFullMap, onOpenBudget, workspace = false, showAllDays = false, onShowAllDays, onFocusDay, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; onOpenBudget?: () => void; workspace?: boolean; showAllDays?: boolean; onShowAllDays?: () => void; onFocusDay?: (dayId: string) => void; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
+export default function TimelineView({ onOpenFullMap, onOpenBudget, onOpenWish, workspace = false, showAllDays = false, onShowAllDays, onFocusDay, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; onOpenBudget?: () => void; onOpenWish?: () => void; workspace?: boolean; showAllDays?: boolean; onShowAllDays?: () => void; onFocusDay?: (dayId: string) => void; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
   const trip = useActiveTrip()
   const { selectedActivityId, editingActivityId, activeDayId, addDay, reorderActivity, scheduleWishPlace, setActiveDay, setPlanTab } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
@@ -1486,7 +1486,7 @@ export default function TimelineView({ onOpenFullMap, onOpenBudget, workspace = 
                     <span className="mt-0.5 block text-[12.5px] font-medium">添加第一个安排</span>
                     <span className="mt-0.5 block text-[11px] text-text-faint">直接输入地点或事项</span>
                   </button>
-                  <button onClick={() => setPlanTab('places')} className="rounded-lg border border-border bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-[0_2px_8px_rgba(49,92,125,0.10)]">
+                  <button onClick={() => onOpenWish ? onOpenWish() : setPlanTab('places')} className="rounded-lg border border-border bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-[0_2px_8px_rgba(49,92,125,0.10)]">
                     <span className="text-[11px] font-semibold text-text-muted">02</span>
                     <span className="mt-0.5 block text-[12.5px] font-medium">先收藏想去的地点</span>
                     <span className="mt-0.5 block text-[11px] text-text-faint">日期暂未确定也没关系</span>

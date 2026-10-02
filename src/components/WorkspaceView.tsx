@@ -11,7 +11,6 @@ import SettingsView from './SettingsView'
 import { useConfirmStore } from './confirmStore'
 import TripTrashDialog from './TripTrashDialog'
 import DataSafetyStatus from './DataSafetyStatus'
-import GettingStartedCard from './GettingStartedCard'
 
 const WISH_DRAG_TYPE = 'application/x-tripnote-wish-id'
 
@@ -346,7 +345,6 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
       <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} selectedWishPlaceId={selectedWishPlaceId} onSelectWishPlace={setSelectedWishPlaceId} onScheduleSuccess={handleScheduleSuccess} />
       <div role="separator" aria-label="调整想去宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>
       <main data-workspace-scroll onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto rounded-[18px] border border-border/70 bg-white transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
-        <div className="px-5 pt-5"><GettingStartedCard /></div>
         <TimelineView workspace showAllDays={showAllDays} onShowAllDays={() => setShowAllDays(true)} onFocusDay={(dayId) => { setActiveDay(dayId); setShowAllDays(false) }} hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
       <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>
