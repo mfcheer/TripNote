@@ -129,6 +129,27 @@ docker compose -f compose.agent.yaml up -d --build
 
 默认地址为 `http://NAS_IP:8787`。在 TripNote 的“设置 → 规划助手”填写这个地址，再从桌面行程页右上角点击“帮我规划”。若使用 GitHub Pages 或 HTTPS 域名，请将 Agent 服务也通过 HTTPS 反向代理暴露，并在 `agent-server/.env` 中将 `CORS_ORIGIN` 限制为你的 TripNote 域名。
 
+DeepSeek 可直接使用，无需改动服务代码。将 `agent-server/.env` 改为：
+
+```dotenv
+OPENAI_API_KEY=你的 DeepSeek API Key
+OPENAI_MODEL=deepseek-flash
+OPENAI_BASE_URL=https://api.deepseek.com
+PORT=8787
+CORS_ORIGIN=*
+```
+
+也可直接在电脑本地启动，不需要 Docker：
+
+```bash
+cd agent-server
+cp .env.example .env
+# 编辑 .env，填入上面的 DeepSeek 配置
+npm start
+```
+
+随后在另一个终端于项目根目录运行 `npm run dev`，并在 TripNote 的“设置 → 规划助手”填写 `http://localhost:8787`。服务运行在你的电脑上，但规划请求会发送给 DeepSeek 的云端 API；API Key 始终只保存在本机的 `agent-server/.env`，不会写入浏览器备份或 Git 仓库。
+
 ## GitHub Pages 发布
 
 仓库包含 `.github/workflows/deploy-pages.yml`。在 GitHub 仓库的 **Settings → Pages → Build and deployment** 中选择 **GitHub Actions**；之后每次推送 `main` 都会自动发布到：
