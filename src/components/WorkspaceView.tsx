@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent as NativeDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
-import { searchPlaces, tripSearchContext, type GeoResult } from '../api/geocode'
+import { searchPlaces, splitPlaceResults, tripSearchContext, type GeoResult } from '../api/geocode'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS, HeartIcon, LogoIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type WishPlace } from '../types'
@@ -28,6 +28,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   const [loading, setLoading] = useState(false)
   const [searchFinished, setSearchFinished] = useState(false)
   const activeDayId = useTripStore((state) => state.activeDayId)
+  const groupedResults = splitPlaceResults(results)
 
   useEffect(() => {
     const term = query.trim()
@@ -164,9 +165,11 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
         <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && results.length === 0 && addPlainPlace()} placeholder="搜索或添加地点" className="w-full rounded-md border border-border bg-white px-3 py-2 text-[12px] outline-none focus:border-accent" />
         {loading && <span className="absolute top-2.5 right-3 text-[10.5px] text-text-faint">搜索中</span>}
         {results.length > 0 && <div className="absolute inset-x-0 top-[calc(100%+5px)] z-[800] max-h-[220px] overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-[0_10px_28px_rgba(32,40,46,0.14)]">
-          {results.map((result) => <button key={`${result.lat}-${result.lng}`} onClick={() => addResult(result)} className="block w-full px-3 py-2 text-left hover:bg-surface"><span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}
+          {groupedResults.trip.length > 0 && <div className="px-3 py-1 text-[10px] font-medium text-text-muted">旅行范围内</div>}
+          {groupedResults.trip.map((result) => <button key={`${result.lat}-${result.lng}`} onClick={() => addResult(result)} className="block w-full px-3 py-2 text-left hover:bg-surface"><span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}
+          {groupedResults.broader.length > 0 && <><div className="border-y border-border/60 bg-surface/70 px-3 py-1 text-[10px] font-medium text-text-faint">其他可能地点</div>{groupedResults.broader.map((result) => <button key={`${result.lat}-${result.lng}`} onClick={() => addResult(result)} className="block w-full px-3 py-2 text-left hover:bg-surface"><span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}</>}
         </div>}
-        {searchFinished && results.length === 0 && <p className="mt-1.5 text-[10.5px] leading-relaxed text-text-faint">当前范围没有结果，可扩大搜索范围或直接添加自定义地点。</p>}
+        {searchFinished && results.length === 0 && <button onClick={addPlainPlace} className="mt-1.5 text-left text-[10.5px] leading-relaxed text-accent hover:text-accent-hover">未找到「{query.trim()}」· 直接收藏这个名称</button>}
         </div>
         <button onClick={onStartMapPick} className="h-[34px] shrink-0 self-start rounded-md border border-border bg-white px-2.5 text-[11px] font-medium text-text-muted hover:border-accent/40 hover:text-accent" title="在右侧地图选择地点"><MapIcon size={14} /></button>
       </div>

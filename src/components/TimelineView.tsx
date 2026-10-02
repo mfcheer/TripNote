@@ -25,7 +25,7 @@ import InlineActivityDetail from './ActivityDetail'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import { CATEGORY_META, type Activity, type ActivityCategory, type Trip } from '../types'
-import { searchPlaces, tripSearchContext, type GeoResult } from '../api/geocode'
+import { searchPlaces, splitPlaceResults, tripSearchContext, type GeoResult } from '../api/geocode'
 import { fetchRouteInfo, fetchWalkingRouteInfo, routeProfileForSegment, straightLineDistanceMeters, WALKING_DISTANCE_THRESHOLD_METERS } from '../api/route'
 import DayMapPreview from './DayMapPreview'
 import ModalShell, { OverlayHeader, SheetHandle } from './OverlayShell'
@@ -422,6 +422,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
   const [cost, setCost] = useState('')
   const [note, setNote] = useState('')
   const abortRef = useRef<AbortController | null>(null)
+  const groupedResults = splitPlaceResults(results)
 
   useEffect(() => {
     const query = title.trim()
@@ -550,7 +551,8 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
           {loading && <InlineStatus loading className="absolute top-1 right-1 border-transparent bg-white/94 py-1 shadow-none">搜索中</InlineStatus>}
           {results.length > 0 && (
             <ul className="absolute top-full left-0 z-20 mt-1 max-h-[220px] w-full overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
-              {results.map((place) => (
+              {groupedResults.trip.length > 0 && <li className="px-3 py-1 text-[10.5px] font-medium text-text-muted">旅行范围内</li>}
+              {groupedResults.trip.map((place) => (
                 <li key={`${place.lat},${place.lng}`} className={`flex items-center gap-2 px-1.5 py-1 ${results[resultIndex] === place ? 'bg-accent-soft' : 'hover:bg-accent-soft'}`}>
                   <button onClick={() => pickPlace(place)} onMouseEnter={() => setResultIndex(results.indexOf(place))} className="min-w-0 flex-1 px-1.5 py-1 text-left">
                     <div className="truncate text-[12.5px] font-medium">{place.label.split(',')[0]}</div>
@@ -562,6 +564,13 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
                   >
                     收藏
                   </button>
+                </li>
+              ))}
+              {groupedResults.broader.length > 0 && <li className="my-1 border-y border-border/70 bg-surface px-3 py-1 text-[10.5px] font-medium text-text-faint">其他可能地点</li>}
+              {groupedResults.broader.map((place) => (
+                <li key={`${place.lat},${place.lng}`} className={`flex items-center gap-2 px-1.5 py-1 ${results[resultIndex] === place ? 'bg-accent-soft' : 'hover:bg-accent-soft'}`}>
+                  <button onClick={() => pickPlace(place)} onMouseEnter={() => setResultIndex(results.indexOf(place))} className="min-w-0 flex-1 px-1.5 py-1 text-left"><div className="truncate text-[12.5px] font-medium">{place.label.split(',')[0]}</div><div className="mt-0.5 truncate text-[11px] text-text-faint">{place.label}</div></button>
+                  <button onClick={() => savePlace(place)} className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:border-accent hover:text-accent">收藏</button>
                 </li>
               ))}
             </ul>

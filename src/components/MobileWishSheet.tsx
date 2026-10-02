@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { searchPlaces, tripSearchContext, type GeoResult } from '../api/geocode'
+import { searchPlaces, splitPlaceResults, tripSearchContext, type GeoResult } from '../api/geocode'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS, ClockIcon, MapIcon, TrashIcon } from './Icons'
 import ModalShell, { overlayPrimaryButtonClass } from './OverlayShell'
@@ -49,6 +49,7 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
   const selectedPlace = places.find((place) => place.id === selectedPlaceId) ?? null
   const targetDay = trip.days.find((day) => day.id === targetDayId) ?? trip.days[0]
   const unscheduledCount = places.filter((place) => scheduledItemsFor(place).length === 0).length
+  const groupedResults = splitPlaceResults(results)
 
   useEffect(() => {
     const keyword = query.trim()
@@ -174,8 +175,12 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
             <button type="button" onClick={() => setShowCustomMap(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-text-muted hover:border-accent hover:text-accent"><MapIcon size={13} /> 地图选点</button>
           </div>
           {searchStatus === 'loading' && <div className="mt-2 text-[11px] text-text-faint">正在搜索…</div>}
-          {results.length > 0 && <div className="mt-2 overflow-hidden rounded-lg border border-border bg-white">{results.map((result) => <button key={`${result.lat},${result.lng}`} type="button" onClick={() => addFromResult(result)} className="block w-full border-b border-border/70 px-3 py-2 text-left last:border-b-0 hover:bg-accent-soft"><span className="block truncate text-[12.5px] font-medium text-text">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}</div>}
-          {searchStatus === 'empty' && query.trim().length >= 2 && <div className="mt-2 text-[11px] leading-relaxed text-text-faint">没有找到这个地点；可直接收藏名称，或在地图上选点。</div>}
+          {results.length > 0 && <div className="mt-2 overflow-hidden rounded-lg border border-border bg-white">
+            {groupedResults.trip.length > 0 && <div className="border-b border-border/70 bg-surface px-3 py-1.5 text-[10.5px] font-medium text-text-muted">旅行范围内</div>}
+            {groupedResults.trip.map((result) => <button key={`${result.lat},${result.lng}`} type="button" onClick={() => addFromResult(result)} className="block w-full border-b border-border/70 px-3 py-2 text-left last:border-b-0 hover:bg-accent-soft"><span className="block truncate text-[12.5px] font-medium text-text">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}
+            {groupedResults.broader.length > 0 && <><div className="border-y border-border/70 bg-surface px-3 py-1.5 text-[10.5px] font-medium text-text-faint">其他可能地点</div>{groupedResults.broader.map((result) => <button key={`${result.lat},${result.lng}`} type="button" onClick={() => addFromResult(result)} className="block w-full border-b border-border/70 px-3 py-2 text-left last:border-b-0 hover:bg-accent-soft"><span className="block truncate text-[12.5px] font-medium text-text">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}</>}
+          </div>}
+          {searchStatus === 'empty' && query.trim().length >= 2 && <div className="mt-2 text-[11px] leading-relaxed text-text-faint">没有找到这个地点；可以直接收藏「{query.trim()}」，或在地图上选点。</div>}
         </div>
 
         {places.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-[12px] leading-relaxed text-text-faint">还没有收藏地点。可以搜索，或从地图上选一个位置。</div> : <div className="divide-y divide-border/80">

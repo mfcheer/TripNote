@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent as Nativ
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { searchPlaces, tripSearchContext, type GeoResult } from '../api/geocode'
+import { searchPlaces, splitPlaceResults, tripSearchContext, type GeoResult } from '../api/geocode'
 import { fetchRouteInfo, routeProfileForSegment } from '../api/route'
 import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CalendarIcon, CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, TrashIcon } from './Icons'
@@ -407,6 +407,7 @@ export default function WishlistView() {
   const [schedulingPlaceId, setSchedulingPlaceId] = useState<string | null>(null)
   const [showCustomMap, setShowCustomMap] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
+  const groupedResults = splitPlaceResults(results)
 
   useEffect(() => {
     localStorage.setItem(WISHLIST_MAP_WIDTH_KEY, String(mapPanelWidth))
@@ -634,7 +635,17 @@ export default function WishlistView() {
                 />
                 {results.length > 0 && (
                   <ul className="absolute top-full left-0 z-20 mt-1 max-h-[230px] w-full overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
-                    {results.map((result) => (
+                    {groupedResults.trip.length > 0 && <li className="px-3 py-1 text-[10.5px] font-medium text-text-muted">旅行范围内</li>}
+                    {groupedResults.trip.map((result) => (
+                      <li key={`${result.lat},${result.lng}`}>
+                        <button onClick={() => addFromResult(result)} className="w-full px-3 py-2 text-left hover:bg-accent-soft">
+                          <div className="truncate text-[12.5px] font-medium">{result.label.split(',')[0]}</div>
+                          <div className="mt-0.5 truncate text-[11px] text-text-faint">{result.label}</div>
+                        </button>
+                      </li>
+                    ))}
+                    {groupedResults.broader.length > 0 && <li className="my-1 border-y border-border/70 bg-surface px-3 py-1 text-[10.5px] font-medium text-text-faint">其他可能地点</li>}
+                    {groupedResults.broader.map((result) => (
                       <li key={`${result.lat},${result.lng}`}>
                         <button onClick={() => addFromResult(result)} className="w-full px-3 py-2 text-left hover:bg-accent-soft">
                           <div className="truncate text-[12.5px] font-medium">{result.label.split(',')[0]}</div>
@@ -651,12 +662,7 @@ export default function WishlistView() {
                   <div className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-border bg-white p-3 shadow-lg">
                     <InlineStatus tone="warning" className="border-0 bg-transparent p-0 font-medium">没有找到「{searching.trim()}」</InlineStatus>
                     <p className="mt-1 text-[11.5px] leading-relaxed text-text-faint">已自动扩大搜索范围。可能是小众地点、临时地标或地图未收录的位置，你也可以直接在地图上点选并自定义名称。</p>
-                    <button
-                      onClick={() => setShowCustomMap(true)}
-                      className="mt-2 flex items-center gap-1.5 rounded-md bg-accent-soft px-2.5 py-1.5 text-[11.5px] font-medium text-accent-hover transition-colors hover:bg-accent hover:text-white"
-                    >
-                      <MapIcon size={13} /> 在地图上选点
-                    </button>
+                    <div className="mt-2 flex gap-2"><button onClick={addManual} className="rounded-md bg-action px-2.5 py-1.5 text-[11.5px] font-medium text-white hover:bg-action-hover">收藏「{searching.trim()}」</button><button onClick={() => setShowCustomMap(true)} className="flex items-center gap-1.5 rounded-md bg-accent-soft px-2.5 py-1.5 text-[11.5px] font-medium text-accent-hover transition-colors hover:bg-accent hover:text-white"><MapIcon size={13} /> 在地图上选点</button></div>
                   </div>
                 )}
               </div>

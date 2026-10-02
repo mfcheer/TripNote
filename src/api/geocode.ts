@@ -8,6 +8,15 @@ export interface GeoResult {
   lat: number
   lng: number
   label: string
+  /** 搜索结果来自旅行范围内，还是为避免漏项补充的更广范围。 */
+  scope?: 'trip' | 'broader'
+}
+
+export function splitPlaceResults(results: GeoResult[]) {
+  return {
+    trip: results.filter((result) => result.scope === 'trip'),
+    broader: results.filter((result) => result.scope !== 'trip'),
+  }
 }
 
 export interface PlaceSearchContext {
@@ -28,6 +37,16 @@ const REGION_PRESETS: Array<{ aliases: string[]; context: RegionPreset }> = [
   { aliases: ['东北', '东北大环线', '东北环线'], context: { region: '东北地区', cities: ['哈尔滨', '伊春', '漠河', '吉林市', '延吉', '长白山'], viewbox: [118, 54.5, 135.5, 40.5], countryCode: 'cn' } },
   { aliases: ['关西', '日本关西'], context: { region: '日本关西', cities: ['大阪', '京都', '奈良', '神户'], viewbox: [134.2, 35.7, 136.5, 33.7], countryCode: 'jp' } },
 ]
+
+// 开放地理库常只收录当地文字或罗马字。先覆盖少量高频旅行地别名，
+// 并保留原词查询，让用户不需要理解底层语言或改用另一套地图服务。
+const PLACE_ALIASES: Record<string, string[]> = {
+  '涯月邑': ['애월읍', 'Aewol-eup'],
+  '牛岛': ['우도', 'Udo'],
+  '城山日出峰': ['성산일출봉', 'Seongsan Ilchulbong'],
+  '汉拿山': ['한라산', 'Hallasan'],
+  '济州岛': ['제주도', 'Jeju'],
+}
 
 type AmapPlaceResponse = {
   status?: string
@@ -71,10 +90,25 @@ function normalizedSearchText(value: string) {
   return value.replace(/[\s·、,，'"（）()]/g, '').toLocaleLowerCase()
 }
 
-// 仅有“月牙”这类模糊命中不能算作找到了“涯月邑”。关键词没有真正命中时也应自动扩大范围。
+function queryVariants(query: string) {
+  return [query, ...(PLACE_ALIASES[query.trim()] ?? [])]
+}
+
+function hasExactQueryMatch(results: GeoResult[], query: string) {
+  const variants = queryVariants(query).map(normalizedSearchText)
+  return results.some((result) => {
+    const label = normalizedSearchText(result.label)
+    return variants.some((variant) => label.includes(variant))
+  })
+}
+
+// 本地有一个明确命中就优先保留，不能仅因候选较少而塞入全球同名地点。
 function needsGlobalFallback(results: GeoResult[], query: string) {
-  const normalizedQuery = normalizedSearchText(query)
-  return results.length < 3 || !results.some((result) => normalizedSearchText(result.label).includes(normalizedQuery))
+  return !hasExactQueryMatch(results, query)
+}
+
+function withScope(results: GeoResult[], scope: NonNullable<GeoResult['scope']>) {
+  return results.map((result) => ({ ...result, scope }))
 }
 
 async function searchWithAmap(query: string, key: string, signal?: AbortSignal, context?: PlaceSearchContext, global = false): Promise<GeoResult[]> {
@@ -106,10 +140,17 @@ export type PlaceSearchProvider = 'amap' | 'osm'
 export async function searchPlaces(query: string, signal?: AbortSignal, amapWebServiceKey?: string, provider: PlaceSearchProvider = 'amap', context?: PlaceSearchContext): Promise<GeoResult[]> {
   if (provider === 'amap' && amapWebServiceKey) {
     try {
-      const localResults = await searchWithAmap(query, amapWebServiceKey, signal, context)
+      let localResults = await searchWithAmap(query, amapWebServiceKey, signal, context)
+      if (needsGlobalFallback(localResults, query)) {
+        for (const alias of queryVariants(query).slice(1)) {
+          localResults = dedupeResults([...localResults, ...await searchWithAmap(alias, amapWebServiceKey, signal, context)])
+          if (!needsGlobalFallback(localResults, query)) break
+        }
+      }
+      localResults = withScope(localResults, context ? 'trip' : 'broader')
       // 区域内没有足够候选时自动补一次无范围检索，用户无需理解或切换搜索范围。
       if (!needsGlobalFallback(localResults, query) || !context) return localResults
-      const expandedResults = rankResults(dedupeResults([...localResults, ...await searchWithAmap(query, amapWebServiceKey, signal, context, true)]), context).slice(0, 8)
+      const expandedResults = rankResults(dedupeResults([...localResults, ...withScope(await searchWithAmap(query, amapWebServiceKey, signal, context, true), 'broader')]), context, query).slice(0, 8)
       // 高德对境外 POI 的覆盖不稳定；完全没有候选时继续使用 OSM 的全球兜底。
       if (!needsGlobalFallback(expandedResults, query)) return expandedResults
     } catch (error) {
@@ -132,11 +173,23 @@ export async function searchPlaces(query: string, signal?: AbortSignal, amapWebS
   })
   if (!res.ok) throw new Error(`地理编码请求失败: ${res.status}`)
   const data = (await res.json()) as Array<{ lat: string; lon: string; display_name: string }>
-  const localResults = data.map((d) => ({
+  let localResults: GeoResult[] = withScope(data.map((d) => ({
     lat: parseFloat(d.lat),
     lng: parseFloat(d.lon),
     label: d.display_name,
-  }))
+  })), context ? 'trip' : 'broader')
+  if (needsGlobalFallback(localResults, query) && context) {
+    for (const alias of queryVariants(query).slice(1)) {
+      await throttle()
+      const aliasParams = new URLSearchParams(params)
+      aliasParams.set('q', context.region && !context.viewbox ? `${context.region} ${alias}` : alias)
+      const aliasResponse = await fetch(`${NOMINATIM_SEARCH}?${aliasParams}`, { signal, headers: { Accept: 'application/json' } })
+      if (!aliasResponse.ok) continue
+      const aliasData = (await aliasResponse.json()) as Array<{ lat: string; lon: string; display_name: string }>
+      localResults = dedupeResults([...localResults, ...withScope(aliasData.map((d) => ({ lat: parseFloat(d.lat), lng: parseFloat(d.lon), label: d.display_name })), 'trip')])
+      if (!needsGlobalFallback(localResults, query)) break
+    }
+  }
   if (!needsGlobalFallback(localResults, query) || !context?.viewbox) return localResults
   await throttle()
   const fallbackParams = new URLSearchParams({ q: query, format: 'json', limit: '8', 'accept-language': 'zh-CN' })
@@ -144,12 +197,12 @@ export async function searchPlaces(query: string, signal?: AbortSignal, amapWebS
   const fallback = await fetch(`${NOMINATIM_SEARCH}?${fallbackParams}`, { signal, headers: { Accept: 'application/json' } })
   if (!fallback.ok) return localResults
   const fallbackData = (await fallback.json()) as Array<{ lat: string; lon: string; display_name: string }>
-  return rankResults(dedupeResults([...localResults, ...fallbackData.map((d) => ({ lat: parseFloat(d.lat), lng: parseFloat(d.lon), label: d.display_name }))]), context).slice(0, 8)
+  return rankResults(dedupeResults([...localResults, ...withScope(fallbackData.map((d) => ({ lat: parseFloat(d.lat), lng: parseFloat(d.lon), label: d.display_name })), 'broader')]), context, query).slice(0, 8)
 }
 
-function rankResults(results: GeoResult[], context: PlaceSearchContext) {
+function rankResults(results: GeoResult[], context: PlaceSearchContext, query = '') {
   const tokens = [context.region, ...(context.cities ?? [])].filter(Boolean).map((value) => value!.toLocaleLowerCase())
-  return results.map((result, index) => ({ result, index, score: tokens.reduce((score, token) => score + (result.label.toLocaleLowerCase().includes(token) ? 100 : 0), 0) }))
+  return results.map((result, index) => ({ result, index, score: tokens.reduce((score, token) => score + (result.label.toLocaleLowerCase().includes(token) ? 100 : 0), 0) + (hasExactQueryMatch([result], query) ? 500 : 0) + (result.scope === 'trip' ? 20 : 0) }))
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map(({ result }) => result)
 }
