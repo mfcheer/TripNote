@@ -52,6 +52,7 @@ interface TripState {
   switchTrip: (tripId: string) => void
   createTrip: (input: string | TripCreateInput) => string
   createTripFromAgentDraft: (draft: AgentPlanDraft) => string
+  applyAgentDraftToCurrent: (draft: AgentPlanDraft) => void
   deleteTrip: (tripId: string) => void
   restoreDeletedTrip: (tripId: string) => void
   purgeDeletedTrip: (tripId: string) => void
@@ -135,6 +136,54 @@ function blankTrip(input: string | TripCreateInput): Trip {
     wishPlaces: [],
     expenses: [],
     totalBudget: Number.isFinite(options.totalBudget) ? Math.max(0, options.totalBudget!) : 0,
+  }
+}
+
+function agentDraftTrip(draft: AgentPlanDraft, id: string, previous?: Trip): Trip {
+  const previousActivities = new Map(previous?.activities.map((activity) => [`${activity.title}\u0000${activity.location ?? ''}`.toLocaleLowerCase(), activity]) ?? [])
+  const previousWishes = new Map(previous?.wishPlaces.map((wish) => [`${wish.title}\u0000${wish.location ?? ''}`.toLocaleLowerCase(), wish]) ?? [])
+  const days = draft.days.map((day, index) => ({
+    id: makeId('day'), label: `第${index + 1}天`, date: isDate(day.date) ? day.date : '待定', place: day.place.trim() || '待定地点',
+  }))
+  const wishByTitle = new Map<string, WishPlace>()
+  const activities: Activity[] = draft.days.flatMap((day, dayIndex) => day.activities.map((activity) => {
+    const title = activity.title.trim() || '待补充安排'
+    const key = `${title}\u0000${activity.location ?? ''}`.toLocaleLowerCase()
+    const knownActivity = previousActivities.get(key)
+    const knownWish = previousWishes.get(key)
+    const wish = wishByTitle.get(key) ?? {
+      id: makeId('wish'), title, category: activity.category, location: activity.location, note: activity.note,
+      geo: knownActivity?.geo ?? knownWish?.geo, scheduledActivityIds: [],
+    }
+    const activityId = makeId('activity')
+    wish.scheduledActivityIds = [...wish.scheduledActivityIds!, activityId]
+    wishByTitle.set(key, wish)
+    return {
+      id: activityId,
+      dayId: days[dayIndex].id,
+      time: /^\d{2}:\d{2}$/.test(activity.time) ? activity.time : '09:00',
+      title,
+      category: activity.category,
+      location: activity.location,
+      duration: activity.duration,
+      durationMinutes: activity.durationMinutes,
+      note: activity.note,
+      geo: knownActivity?.geo ?? knownWish?.geo,
+      travelMode: activity.travelMode,
+      sourceWishId: wish.id,
+      costs: activity.estimatedCost && activity.estimatedCost > 0 ? [{ id: makeId('cost'), amount: activity.estimatedCost }] : [],
+    }
+  }))
+  return {
+    id,
+    name: draft.tripName.trim() || 'AI 旅行草案',
+    searchRegion: draft.searchRegion?.trim() || previous?.searchRegion,
+    daysCount: days.length,
+    days,
+    activities,
+    wishPlaces: [...wishByTitle.values()],
+    expenses: [],
+    totalBudget: Number.isFinite(draft.totalBudget) ? Math.max(0, draft.totalBudget!) : (previous?.totalBudget ?? 0),
   }
 }
 
@@ -378,54 +427,24 @@ export const useTripStore = create<TripState>()(
 
       createTripFromAgentDraft: (draft) => {
         const id = makeId('trip')
-        const days = draft.days.map((day, index) => ({
-          id: makeId('day'),
-          label: `第${index + 1}天`,
-          date: isDate(day.date) ? day.date : '待定',
-          place: day.place.trim() || '待定地点',
-        }))
-        const wishByTitle = new Map<string, WishPlace>()
-        const activities: Activity[] = draft.days.flatMap((day, dayIndex) => day.activities.map((activity) => {
-          const title = activity.title.trim() || '待补充安排'
-          const key = `${title}\u0000${activity.location ?? ''}`.toLocaleLowerCase()
-          const wish = wishByTitle.get(key) ?? {
-            id: makeId('wish'), title, category: activity.category, location: activity.location, note: activity.note, scheduledActivityIds: [],
-          }
-          const id = makeId('activity')
-          wish.scheduledActivityIds = [...wish.scheduledActivityIds!, id]
-          wishByTitle.set(key, wish)
-          return {
-            id,
-            dayId: days[dayIndex].id,
-            time: /^\d{2}:\d{2}$/.test(activity.time) ? activity.time : '09:00',
-            title,
-            category: activity.category,
-            location: activity.location,
-            duration: activity.duration,
-            durationMinutes: activity.durationMinutes,
-            note: activity.note,
-            travelMode: activity.travelMode,
-            sourceWishId: wish.id,
-            costs: activity.estimatedCost && activity.estimatedCost > 0 ? [{ id: makeId('cost'), amount: activity.estimatedCost }] : [],
-          }
-        }))
-        const trip: Trip = {
-          id,
-          name: draft.tripName.trim() || 'AI 旅行草案',
-          searchRegion: draft.searchRegion?.trim(),
-          daysCount: days.length,
-          days,
-          activities,
-          wishPlaces: [...wishByTitle.values()],
-          expenses: [],
-          totalBudget: Number.isFinite(draft.totalBudget) ? Math.max(0, draft.totalBudget!) : 0,
-        }
+        const trip = agentDraftTrip(draft, id)
         set((s) => ({
-          trips: [...s.trips, trip], activeTripId: id, activeDayId: days[0]?.id ?? '',
+          trips: [...s.trips, trip], activeTripId: id, activeDayId: trip.days[0]?.id ?? '',
           selectedActivityId: null, editingActivityId: null, view: 'plan', planTab: 'timeline',
         }))
         return id
       },
+
+      applyAgentDraftToCurrent: (draft) => set((s) => {
+        const current = s.trips.find((trip) => trip.id === s.activeTripId)
+        if (!current) return s
+        const next = agentDraftTrip(draft, current.id, current)
+        return {
+          trips: s.trips.map((trip) => trip.id === current.id ? next : trip),
+          activeDayId: next.days[0]?.id ?? '', selectedActivityId: null, editingActivityId: null,
+          view: 'plan', planTab: 'timeline',
+        }
+      }),
 
       deleteTrip: (tripId) => {
         set((s) => {

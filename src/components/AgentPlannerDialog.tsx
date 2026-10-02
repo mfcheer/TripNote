@@ -19,7 +19,7 @@ function isDayChanged(before: { place: string; activities: Array<{ title: string
 
 export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClose: () => void; onOpenSettings: () => void }) {
   const trip = useActiveTrip()
-  const { agentServiceUrl, createTripFromAgentDraft } = useTripStore()
+  const { agentServiceUrl, createTripFromAgentDraft, applyAgentDraftToCurrent, restoreTrips, trips, activeTripId } = useTripStore()
   const [input, setInput] = useState<AgentPlanInput>({
     mode: 'create',
     destination: trip.searchRegion || trip.days[0]?.place || '', days: Math.max(1, Math.min(14, trip.days.length || 3)),
@@ -52,6 +52,21 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
     onClose()
   }
 
+  function applyToCurrentTrip() {
+    if (!draft) return
+    const snapshot = trips
+    const previousActiveTripId = activeTripId
+    // 当前旅行始终保留名称；Agent 的建议只调整其日期、地点、事项与预算。
+    applyAgentDraftToCurrent({ ...draft, tripName: trip.name })
+    useToastStore.getState().show('已应用助手调整到当前旅行', {
+      undo: () => {
+        restoreTrips(snapshot, previousActiveTripId)
+        useToastStore.getState().show('已恢复调整前的旅行', { tone: 'neutral' })
+      },
+    })
+    onClose()
+  }
+
   const changedDays = draft && revising
     ? draft.days.filter((day, index) => isDayChanged({
       place: trip.days[index]?.place ?? '',
@@ -59,7 +74,7 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
     }, day)).length
     : 0
 
-  if (draft) return <ModalShell title="确认旅行草案" description="确认后会创建一份新的旅行，不会修改当前行程。" onClose={onClose} size="lg" mobile="sheet" footer={<><button onClick={() => setDraft(null)} className={overlaySecondaryButtonClass}>返回修改</button><button onClick={applyDraft} className={overlayPrimaryButtonClass}>创建这份旅行</button></>}>
+  if (draft) return <ModalShell title={revising ? '确认行程调整' : '确认旅行草案'} description={revising ? '默认应用到当前旅行，可撤销；也可以另存为一份新旅行。' : '确认后会创建一份新的旅行，不会修改当前行程。'} onClose={onClose} size="lg" mobile="sheet" footer={revising ? <><button onClick={() => setDraft(null)} className={overlaySecondaryButtonClass}>返回修改</button><button onClick={applyDraft} className={overlaySecondaryButtonClass}>另存为新旅行</button><button onClick={applyToCurrentTrip} className={overlayPrimaryButtonClass}>应用到当前旅行</button></> : <><button onClick={() => setDraft(null)} className={overlaySecondaryButtonClass}>返回修改</button><button onClick={applyDraft} className={overlayPrimaryButtonClass}>创建这份旅行</button></>}>
     <div className="space-y-4">
       <div className="rounded-xl border border-action/15 bg-action-soft/35 px-4 py-3"><div className="text-[15px] font-semibold text-text">{draft.tripName}</div><div className="mt-1 text-[12px] text-text-muted">{draft.days.length} 天{draft.totalBudget ? ` · 预计 ¥${draft.totalBudget.toLocaleString()}` : ''}{revising ? ` · 调整 ${changedDays} 天` : ''}</div></div>
       {revising && <div className="rounded-lg border border-border/80 bg-surface px-3 py-2.5 text-[11.5px] leading-relaxed text-text-muted">以下按天对比当前旅行与助手草案。原行程会完整保留，确认后只创建一份新的调整稿。</div>}
