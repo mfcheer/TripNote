@@ -114,6 +114,15 @@ export async function chooseLocalBackupDirectory() {
   return getLocalBackupStatus()
 }
 
+// 目录句柄仍被浏览器记住、但写权限暂时回到 prompt 时，可在明确的用户点击中直接恢复授权。
+export async function reauthorizeLocalBackupDirectory() {
+  const handle = await readDirectoryHandle()
+  if (!handle) throw new Error('未找到已记住的备份文件夹，请重新选择文件夹')
+  const permission = await handle.requestPermission?.({ mode: 'readwrite' }) ?? 'denied'
+  if (permission !== 'granted') throw new Error('浏览器未允许写入该备份文件夹')
+  return getLocalBackupStatus()
+}
+
 export function buildBackup(data: BackupData): NorthwardBackup {
   return {
     format: 'northward-backup',

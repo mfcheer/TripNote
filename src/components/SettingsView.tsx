@@ -8,6 +8,7 @@ import {
   chooseLocalBackupDirectory,
   getLocalBackupStatus,
   isNorthwardBackup,
+  reauthorizeLocalBackupDirectory,
   type BackupData,
   type LocalBackupStatus,
   writeLocalBackup,
@@ -108,6 +109,23 @@ export default function SettingsView({
       useToastStore.getState().show(`已备份到「${result.directoryName} / TripNote备份」`)
     } catch (error) {
       info({ title: '备份未完成', message: error instanceof Error ? error.message : '请重新选择备份文件夹后再试。' })
+      void refreshBackupStatus()
+    } finally {
+      setBackupBusy(false)
+    }
+  }
+
+  async function reauthorizeBackupFolder() {
+    setBackupBusy(true)
+    try {
+      const status = await reauthorizeLocalBackupDirectory()
+      const result = await writeLocalBackup(backupData)
+      setBackupStatus(await getLocalBackupStatus())
+      useToastStore.getState().show(`已恢复「${status.configured ? status.directoryName : result.directoryName}」的自动备份，并完成最新备份`)
+    } catch (error) {
+      if ((error as DOMException)?.name !== 'AbortError') {
+        info({ title: '未恢复自动备份', message: error instanceof Error ? `${error.message}。你也可以重新选择备份文件夹。` : '请重新授权或选择一个新的备份文件夹。' })
+      }
       void refreshBackupStatus()
     } finally {
       setBackupBusy(false)
@@ -260,7 +278,7 @@ export default function SettingsView({
                     {backupStatus.configured
                       ? backupStatus.permission === 'granted'
                         ? `已连接「${backupStatus.directoryName} / TripNote备份」。修改后约 30 秒自动归档，并保留最近 100 份历史。${backupStatus.lastBackupAt ? ` 上次备份：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
-                        : `已记住「${backupStatus.directoryName}」，但浏览器需要重新授权后才能继续自动写入。`
+                        : `已记住「${backupStatus.directoryName}」，但浏览器暂未允许写入。重新授权后会立即完成一份最新备份，并继续自动归档。`
                       : '选择一个本机文件夹后，TripNote 会在应用打开期间自动创建完整备份（含当前高德 Key 和地图连线配置）。'}
                   </p>
                 ) : (
@@ -268,7 +286,12 @@ export default function SettingsView({
                 )}
               </div>
               {backupStatus?.supported && (
-                <div className="flex shrink-0 gap-2">
+                <div className="flex shrink-0 flex-wrap gap-2">
+                  {backupStatus.configured && backupStatus.permission !== 'granted' && (
+                    <button onClick={reauthorizeBackupFolder} disabled={backupBusy} className="rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50">
+                      {backupBusy ? '授权中…' : '重新授权'}
+                    </button>
+                  )}
                   <button onClick={selectBackupFolder} disabled={backupBusy} className="rounded-md bg-surface-2 px-3 py-2 text-[12px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50">
                     {backupStatus.configured ? '更换文件夹' : '选择文件夹'}
                   </button>
