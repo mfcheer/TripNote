@@ -10,6 +10,8 @@ import ModalShell from './OverlayShell'
 import SettingsView from './SettingsView'
 import { useConfirmStore } from './confirmStore'
 import TripTrashDialog from './TripTrashDialog'
+import DataSafetyStatus from './DataSafetyStatus'
+import GettingStartedCard from './GettingStartedCard'
 
 const WISH_DRAG_TYPE = 'application/x-tripnote-wish-id'
 
@@ -311,7 +313,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
 
   return <div className="workspace-root flex h-full min-w-0 flex-col bg-bg" style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
     <header className="workspace-header relative z-[1000] flex h-[62px] shrink-0 items-center gap-3 border-b border-border/70 px-6">
-      <LogoIcon size={28} className="shrink-0 shadow-[0_2px_7px_rgba(31,48,63,0.16)]" alt="北向" />
+      <LogoIcon size={28} className="shrink-0 shadow-[0_2px_7px_rgba(31,48,63,0.16)]" alt="TripNote" />
       <span className="shrink-0 text-[14px] font-semibold tracking-[-0.025em] text-text">TripNote</span>
       <span className="h-4 w-px shrink-0 bg-border/80" aria-hidden="true" />
       <div className="relative min-w-0">
@@ -328,6 +330,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
             <button onClick={() => { setTripMenuOpen(false); setTripTrashOpen(true) }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-text-muted hover:bg-surface hover:text-text"><TrashIcon size={13} /> 回收站{deletedTrips.length ? ` · ${deletedTrips.length}` : ''}</button>
             <button onClick={() => { setTripMenuOpen(false); setCreateTripOpen(true) }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-text-muted hover:bg-surface hover:text-text"><PlusIcon size={13} /> 创建新旅行</button>
           </div>
+          <DataSafetyStatus onOpenSettings={() => { setTripMenuOpen(false); setSettingsOpen(true) }} />
         </div>}
       </div>
       <button onClick={() => { setRegionDraft(displayedSearchRegion); setEditRegionOpen(true) }} className="hidden items-center gap-1 rounded-md px-2 py-1 text-[11.5px] text-text-faint transition-colors hover:bg-surface hover:text-text xl:inline-flex" title="编辑当前旅行的搜索区域"><MapIcon size={12} /> {displayedSearchRegion || '设置旅行区域'} <span className="text-[10px]">›</span></button>
@@ -343,6 +346,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
       <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} selectedWishPlaceId={selectedWishPlaceId} onSelectWishPlace={setSelectedWishPlaceId} onScheduleSuccess={handleScheduleSuccess} />
       <div role="separator" aria-label="调整想去宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>
       <main data-workspace-scroll onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto rounded-[18px] border border-border/70 bg-white transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
+        <div className="px-5 pt-5"><GettingStartedCard /></div>
         <TimelineView workspace showAllDays={showAllDays} onShowAllDays={() => setShowAllDays(true)} onFocusDay={(dayId) => { setActiveDay(dayId); setShowAllDays(false) }} hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
       <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>

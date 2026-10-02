@@ -105,7 +105,7 @@ export default function SettingsView({
     try {
       const result = await writeLocalBackup(backupData)
       setBackupStatus(await getLocalBackupStatus())
-      useToastStore.getState().show(`已备份到「${result.directoryName} / 北向备份」`)
+      useToastStore.getState().show(`已备份到「${result.directoryName} / TripNote备份」`)
     } catch (error) {
       info({ title: '备份未完成', message: error instanceof Error ? error.message : '请重新选择备份文件夹后再试。' })
       void refreshBackupStatus()
@@ -191,12 +191,12 @@ export default function SettingsView({
         <section className="border-b border-border/80 py-6">
           <div className="mb-1 text-[15px] font-semibold">安装与分享</div>
           <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">
-            将北向安装到桌面后，会以独立应用打开。把链接发给朋友，他们会拥有自己的本地行程，彼此不会看到或修改对方的数据。
+            将 TripNote 安装到桌面后，会以独立应用打开。把链接发给朋友，他们会拥有自己的本地行程，彼此不会看到或修改对方的数据。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             {!isStandalone && canInstall && onInstall && (
               <button onClick={onInstall} className="rounded-md bg-action px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover">
-                安装北向
+                安装 TripNote
               </button>
             )}
             <button onClick={copyAccessLink} className="rounded-md bg-surface-2 px-4 py-2 text-[13px] font-medium text-text-muted transition-colors hover:text-text">
@@ -213,7 +213,7 @@ export default function SettingsView({
               部署到 HTTPS 域名后，可在 Chrome、Edge 的浏览器菜单或地址栏中选择“安装应用”。
             </div>
           )}
-          {isStandalone && <div className="mt-4 text-[12px] font-medium text-accent-hover">北向已安装到此设备。</div>}
+          {isStandalone && <div className="mt-4 text-[12px] font-medium text-accent-hover">TripNote 已安装到此设备。</div>}
         </section>
 
         {/* 数据管理 */}
@@ -259,9 +259,9 @@ export default function SettingsView({
                   <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">
                     {backupStatus.configured
                       ? backupStatus.permission === 'granted'
-                        ? `已连接「${backupStatus.directoryName} / 北向备份」。修改后约 30 秒自动归档，并保留最近 100 份历史。${backupStatus.lastBackupAt ? ` 上次备份：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
+                        ? `已连接「${backupStatus.directoryName} / TripNote备份」。修改后约 30 秒自动归档，并保留最近 100 份历史。${backupStatus.lastBackupAt ? ` 上次备份：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
                         : `已记住「${backupStatus.directoryName}」，但浏览器需要重新授权后才能继续自动写入。`
-                      : '选择一个本机文件夹后，北向会在应用打开期间自动创建完整备份（含当前高德 Key 和地图连线配置）。'}
+                      : '选择一个本机文件夹后，TripNote 会在应用打开期间自动创建完整备份（含当前高德 Key 和地图连线配置）。'}
                   </p>
                 ) : (
                   <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">当前浏览器不支持直接写入指定文件夹。可继续使用上方“下载完整备份”；桌面 Chrome、Edge 在 HTTPS 页面中可开启自动归档。</p>

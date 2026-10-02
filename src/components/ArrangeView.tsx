@@ -69,9 +69,9 @@ export default function ArrangeView() {
   }
 
   return (
-    <div className="hidden h-full min-w-0 flex-col bg-bg lg:flex">
+    <div className="hidden h-full min-w-0 flex-col bg-bg md:flex">
       <div className="flex min-h-0 flex-1">
-        <aside className="flex w-[276px] shrink-0 flex-col border-r border-border/80 bg-white/72">
+        <aside className="flex w-[236px] shrink-0 flex-col border-r border-border/80 bg-white/72 lg:w-[276px]">
           <div className="border-b border-border/70 px-4 py-4">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -147,7 +147,7 @@ export default function ArrangeView() {
           <div className="text-[12px] font-semibold text-text">按天编排</div>
           <div className="text-[10.5px] text-text-faint">拖动地点到某一天，先确认再写入行程</div>
         </div>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-2">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(130px,1fr))] gap-2 lg:grid-cols-[repeat(auto-fit,minmax(150px,1fr))]">
           {trip.days.map((day) => {
             const isDropTarget = dropDayId === day.id
             return (

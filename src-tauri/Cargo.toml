@@ -1,7 +1,7 @@
 [package]
 name = "tripnote"
 version = "0.1.0"
-description = "北向：旅行规划桌面应用"
+description = "TripNote：旅行规划桌面应用"
 authors = ["mfcheer"]
 license = "MIT"
 edition = "2021"

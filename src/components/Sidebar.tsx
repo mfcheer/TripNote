@@ -8,6 +8,7 @@ import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 import TripTrashDialog from './TripTrashDialog'
+import DataSafetyStatus from './DataSafetyStatus'
 
 const NAV_ITEMS: { key: ViewKey; label: string; Icon: (p: { size?: number }) => ReactElement }[] = [
   { key: 'plan', label: '行程规划', Icon: CalendarIcon },
@@ -166,7 +167,7 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
 
 // 旅程切换器：点击展开下拉，支持切换 / 重命名 / 新建 / 删除
 function TripSwitcher({ compact = false }: { compact?: boolean }) {
-  const { trips, activeTripId, switchTrip, deleteTrip, renameTrip } = useTripStore()
+  const { trips, activeTripId, switchTrip, deleteTrip, renameTrip, setView } = useTripStore()
   const trip = useActiveTrip()
   const [open, setOpen] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
@@ -300,6 +301,7 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
               <PlusIcon size={14} /> 新建旅程
             </button>
           </div>
+          <DataSafetyStatus onOpenSettings={() => { setOpen(false); setView('settings') }} />
         </div>
       )}
       {showCreateDialog && <CreateTripDialog onClose={() => setShowCreateDialog(false)} />}
@@ -313,7 +315,7 @@ export function MobileHeader({ onExport, exporting }: { onExport: () => void; ex
 
   return (
     <header className="trip-topbar mobile-safe-top relative z-[900] flex shrink-0 items-center gap-1.5 border-b border-border px-3 pb-2 backdrop-blur md:hidden">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full" aria-label="北向">
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full" aria-label="TripNote">
         <LogoIcon size={36} />
       </div>
       <TripSwitcher compact />
@@ -404,8 +406,8 @@ export default function Sidebar() {
           <LogoIcon size={40} />
         </div>
         <div>
-          <div className="text-[15px] font-semibold leading-tight tracking-[0.08em]">北向</div>
-          <div className="mt-1 text-[9px] font-medium leading-tight tracking-[0.18em] text-text-faint">NORTHWARD</div>
+          <div className="text-[15px] font-semibold leading-tight tracking-[-0.02em]">TripNote</div>
+          <div className="mt-1 text-[9px] font-medium leading-tight tracking-[0.16em] text-text-faint">TRAVEL PLANNER</div>
         </div>
       </div>
 

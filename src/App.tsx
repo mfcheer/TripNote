@@ -11,11 +11,10 @@ import { useActiveTrip, useTripStore } from './store'
 import type { PlanTab } from './types'
 import { exportTripImage } from './utils/exportTripImage'
 import { useToastStore } from './components/toastStore'
-import { CalendarIcon, DownloadIcon, HeartIcon, MapIcon, PinIcon } from './components/Icons'
+import { CalendarIcon, DownloadIcon, MapIcon, PinIcon } from './components/Icons'
 import { flushScheduledBackup, scheduleLocalBackup, type BackupData } from './utils/localBackup'
 
 const PLAN_TABS: { key: PlanTab; label: string; Icon: typeof CalendarIcon }[] = [
-  { key: 'places', label: '想去', Icon: HeartIcon },
   { key: 'arrange', label: '编排', Icon: PinIcon },
   { key: 'timeline', label: '行程', Icon: CalendarIcon },
 ]
@@ -28,7 +27,8 @@ interface BeforeInstallPromptEvent extends Event {
 export default function App() {
   const { view, planTab, setPlanTab } = useTripStore()
   const trip = useActiveTrip()
-  const visiblePlanTab = planTab === 'map' || planTab === 'budget' ? 'timeline' : planTab
+  // 兼容旧版遗留的 places / map / budget 标签：平板只保留行程与编排两个明确视图。
+  const visiblePlanTab = planTab === 'arrange' ? 'arrange' : 'timeline'
   const [exportingImage, setExportingImage] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [fullScreenMapDayId, setFullScreenMapDayId] = useState<string | null>(() => planTab === 'map' ? 'all' : null)
@@ -40,7 +40,7 @@ export default function App() {
     }
     function onInstalled() {
       setInstallPrompt(null)
-      useToastStore.getState().show('北向已添加到设备')
+      useToastStore.getState().show('TripNote 已添加到设备')
     }
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
     window.addEventListener('appinstalled', onInstalled)
@@ -119,7 +119,7 @@ export default function App() {
         <MobileHeader onExport={downloadImage} exporting={exportingImage} />
         {view === 'plan' && (
           <>
-            {/* 行程规划子标签 */}
+            {/* 平板采用双栏编排与连续行程两个明确视图，避免标签切换后内容无变化。 */}
             <div className="trip-topbar hidden h-[52px] shrink-0 items-end justify-between border-b border-border/80 px-7 md:flex lg:hidden">
               <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
                 {PLAN_TABS.map(({ key, label, Icon }) => {
@@ -128,7 +128,7 @@ export default function App() {
                     <button
                       key={key}
                       onClick={() => setPlanTab(key)}
-                      className={`relative shrink-0 items-center gap-1.5 px-3 pb-3 pt-2 text-[13px] transition-colors ${key === 'arrange' ? 'hidden lg:flex' : 'flex'} ${
+                      className={`relative flex shrink-0 items-center gap-1.5 px-3 pb-3 pt-2 text-[13px] transition-colors ${
                         active ? 'font-semibold text-text' : 'text-text-muted hover:text-text'
                       }`}
                     >
@@ -143,7 +143,7 @@ export default function App() {
                   <button
                     onClick={installApp}
                     className="rounded-md px-2.5 py-1 text-[12px] font-medium text-accent transition-colors hover:bg-accent-soft"
-                    title="将北向添加到设备"
+                    title="将 TripNote 添加到设备"
                   >
                     安装应用
                   </button>
@@ -161,7 +161,7 @@ export default function App() {
               <WorkspaceView onExport={downloadImage} exporting={exportingImage} onOpenFullMap={() => setFullScreenMapDayId('all')} />
             </div>
             <div className="min-h-0 min-w-0 flex-1 overflow-hidden lg:hidden">
-              {visiblePlanTab !== 'arrange' && (
+              {visiblePlanTab === 'timeline' && (
                 <div className="h-full overflow-y-auto">
                   <MobilePlanView onOpenFullMap={() => setFullScreenMapDayId('all')} />
                 </div>

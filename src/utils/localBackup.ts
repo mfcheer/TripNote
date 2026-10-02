@@ -46,8 +46,8 @@ const DB_VERSION = 1
 const STORE_NAME = 'settings'
 const DIRECTORY_KEY = 'directory-handle'
 const LAST_BACKUP_KEY = 'northward-local-backup-last-at'
-const BACKUP_FOLDER = '北向备份'
-const LATEST_FILE = '北向-最新备份.json'
+const BACKUP_FOLDER = 'TripNote备份'
+const LATEST_FILE = 'TripNote-最新备份.json'
 const MAX_HISTORY_FILES = 100
 
 export type LocalBackupStatus =
@@ -134,7 +134,7 @@ export function backupFileName(date = new Date()) {
     String(date.getMonth() + 1).padStart(2, '0'),
     String(date.getDate()).padStart(2, '0'),
   ].join('-') + `-${String(date.getHours()).padStart(2, '0')}-${String(date.getMinutes()).padStart(2, '0')}-${String(date.getSeconds()).padStart(2, '0')}`
-  return `北向-完整备份-${stamp}.json`
+  return `TripNote-完整备份-${stamp}.json`
 }
 
 async function writeJson(directory: DirectoryHandle, name: string, value: NorthwardBackup) {
@@ -148,7 +148,7 @@ async function cleanupHistory(directory: DirectoryHandle) {
   if (!directory.entries || !directory.removeEntry) return
   const names: string[] = []
   for await (const [name, handle] of directory.entries()) {
-    if (handle.kind === 'file' && /^北向-完整备份-.*\.json$/.test(name)) names.push(name)
+    if (handle.kind === 'file' && /^(?:TripNote|北向)-完整备份-.*\.json$/.test(name)) names.push(name)
   }
   names.sort((a, b) => b.localeCompare(a))
   await Promise.all(names.slice(MAX_HISTORY_FILES).map((name) => directory.removeEntry!(name)))
