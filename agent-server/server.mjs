@@ -34,7 +34,7 @@ function promptFor(payload) {
   const { input = {}, context = {} } = payload
   return `你是 TripNote 的旅行规划助手。请按用户需求生成现实可执行的旅行草案。
 用户需求：目的地=${input.destination || ''}；天数=${input.days || ''}；出发日期=${input.startDate || '未定'}；出行方式=${input.transport || '未定'}；偏好=${input.preferences || '未提供'}。
-已有旅行上下文：名称=${context.name || '无'}；区域=${context.searchRegion || '无'}；已收藏地点=${Array.isArray(context.places) ? context.places.join('、') : '无'}。
+任务模式=${input.mode === 'revise' ? '调整现有旅行：保留合理安排，仅按用户调整要求生成完整的新副本' : '新建旅行'}。已有旅行上下文：名称=${context.name || '无'}；区域=${context.searchRegion || '无'}；已收藏地点=${Array.isArray(context.places) ? context.places.join('、') : '无'}；当前行程=${JSON.stringify(context.itinerary || [])}。
 严格只输出 JSON，不要 Markdown。使用如下结构：
 {"tripName":"","searchRegion":"","totalBudget":0,"assumptions":[""],"warnings":[""],"days":[{"date":"YYYY-MM-DD 或留空","place":"城市或区域","activities":[{"time":"HH:MM","title":"","category":"traffic|sight|food|stay|shop","location":"","durationMinutes":90,"duration":"1.5小时","note":"","estimatedCost":0,"travelMode":"walk|drive|train|flight|charter"}]}]}
 规则：必须恰好给出用户要求的天数；每天 2-5 项；交通段用 traffic；不要编造精确营业时间、价格或不存在的预约；不确定信息写入 assumptions 或 warnings；把较长跨城移动明确标注。`

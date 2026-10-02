@@ -310,7 +310,7 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
   )
 }
 
-export function MobileHeader({ onExport, exporting }: { onExport: () => void; exporting: boolean }) {
+export function MobileHeader({ onExport, exporting, onOpenAgent }: { onExport: () => void; exporting: boolean; onOpenAgent: () => void }) {
   const { view, setView } = useTripStore()
 
   return (
@@ -319,6 +319,14 @@ export function MobileHeader({ onExport, exporting }: { onExport: () => void; ex
         <LogoIcon size={36} />
       </div>
       <TripSwitcher compact />
+      <button
+        onClick={onOpenAgent}
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-[17px] text-accent active:bg-accent-soft"
+        aria-label="让助手帮我规划"
+        title="帮我规划"
+      >
+        ✦
+      </button>
       <button
         onClick={onExport}
         disabled={exporting}

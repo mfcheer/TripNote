@@ -1,6 +1,7 @@
 import type { ActivityCategory, AgentPlanDraft, TravelMode, Trip } from '../types'
 
 export interface AgentPlanInput {
+  mode?: 'create' | 'revise'
   destination: string
   days: number
   startDate?: string
@@ -56,7 +57,15 @@ export async function requestAgentPlan(serviceUrl: string, input: AgentPlanInput
     body: JSON.stringify({
       input,
       // 仅传递必要旅行摘要，不上传完整本地数据库。
-      context: currentTrip ? { name: currentTrip.name, searchRegion: currentTrip.searchRegion, places: currentTrip.wishPlaces.slice(0, 30).map((place) => place.title) } : undefined,
+      context: currentTrip ? {
+        name: currentTrip.name,
+        searchRegion: currentTrip.searchRegion,
+        places: currentTrip.wishPlaces.slice(0, 30).map((place) => place.title),
+        itinerary: currentTrip.days.slice(0, 30).map((day) => ({
+          date: day.date, place: day.place,
+          activities: currentTrip.activities.filter((activity) => activity.dayId === day.id).map((activity) => ({ time: activity.time, title: activity.title, category: activity.category })),
+        })),
+      } : undefined,
     }),
   })
   const body = await response.json().catch(() => null) as { draft?: unknown; error?: string } | null

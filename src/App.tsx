@@ -12,6 +12,7 @@ import type { PlanTab } from './types'
 import { exportTripImage } from './utils/exportTripImage'
 import { useToastStore } from './components/toastStore'
 import { CalendarIcon, DownloadIcon, MapIcon, PinIcon } from './components/Icons'
+import AgentPlannerDialog from './components/AgentPlannerDialog'
 import { flushScheduledBackup, scheduleLocalBackup, type BackupData } from './utils/localBackup'
 
 const PLAN_TABS: { key: PlanTab; label: string; Icon: typeof CalendarIcon }[] = [
@@ -32,6 +33,7 @@ export default function App() {
   const [exportingImage, setExportingImage] = useState(false)
   const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [fullScreenMapDayId, setFullScreenMapDayId] = useState<string | null>(() => planTab === 'map' ? 'all' : null)
+  const [agentPlannerOpen, setAgentPlannerOpen] = useState(false)
 
   useEffect(() => {
     function onBeforeInstallPrompt(event: Event) {
@@ -117,7 +119,7 @@ export default function App() {
       <div className="flex h-full w-full overflow-hidden" aria-hidden={fullScreenMapDayId ? true : undefined} inert={fullScreenMapDayId ? true : undefined}>
       {view !== 'plan' && <Sidebar />}
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <MobileHeader onExport={downloadImage} exporting={exportingImage} />
+        <MobileHeader onExport={downloadImage} exporting={exportingImage} onOpenAgent={() => setAgentPlannerOpen(true)} />
         {view === 'plan' && (
           <>
             {/* 平板采用双栏编排与连续行程两个明确视图，避免标签切换后内容无变化。 */}
@@ -159,7 +161,7 @@ export default function App() {
               </div>
             </div>
             <div className="hidden min-h-0 min-w-0 flex-1 overflow-hidden lg:block">
-              <WorkspaceView onExport={downloadImage} exporting={exportingImage} onOpenFullMap={() => setFullScreenMapDayId('all')} />
+              <WorkspaceView onExport={downloadImage} exporting={exportingImage} onOpenFullMap={() => setFullScreenMapDayId('all')} onOpenAgent={() => setAgentPlannerOpen(true)} />
             </div>
             <div className="min-h-0 min-w-0 flex-1 overflow-hidden lg:hidden">
               {visiblePlanTab === 'timeline' && (
@@ -201,6 +203,7 @@ export default function App() {
           </div>
         </section>
       )}
+      {agentPlannerOpen && <AgentPlannerDialog onClose={() => setAgentPlannerOpen(false)} onOpenSettings={() => { setAgentPlannerOpen(false); useTripStore.getState().setView('settings') }} />}
       <ConfirmDialog />
       <Toast />
     </div>

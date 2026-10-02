@@ -11,7 +11,6 @@ import SettingsView from './SettingsView'
 import { useConfirmStore } from './confirmStore'
 import TripTrashDialog from './TripTrashDialog'
 import DataSafetyStatus from './DataSafetyStatus'
-import AgentPlannerDialog from './AgentPlannerDialog'
 
 const WISH_DRAG_TYPE = 'application/x-tripnote-wish-id'
 
@@ -187,7 +186,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   </aside>
 }
 
-export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { onExport: () => void; exporting: boolean; onOpenFullMap: () => void }) {
+export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOpenAgent }: { onExport: () => void; exporting: boolean; onOpenFullMap: () => void; onOpenAgent: () => void }) {
   const trip = useActiveTrip()
   const { trips, deletedTrips, activeTripId, switchTrip, createTrip, deleteTrip, setTripSearchRegion, scheduleWishPlace, activeDayId, setActiveDay } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
@@ -198,7 +197,6 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
   const [tripTrashOpen, setTripTrashOpen] = useState(false)
   const [editRegionOpen, setEditRegionOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [agentPlannerOpen, setAgentPlannerOpen] = useState(false)
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const [mapPickRequest, setMapPickRequest] = useState(0)
   const [isWishDropTarget, setIsWishDropTarget] = useState(false)
@@ -340,7 +338,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
       <button onClick={() => { setRegionDraft(displayedSearchRegion); setEditRegionOpen(true) }} className="hidden items-center gap-1 rounded-md px-2 py-1 text-[11.5px] text-text-faint transition-colors hover:bg-surface hover:text-text xl:inline-flex" title="编辑当前旅行的搜索区域"><MapIcon size={12} /> {displayedSearchRegion || '设置旅行区域'} <span className="text-[10px]">›</span></button>
       <span className="hidden text-[11.5px] text-text-faint 2xl:inline">{trip.days.length} 天 · {trip.days[0] ? `${displayDate(trip.days[0].date)} 起` : '待定日期'}</span>
       <div className="ml-auto flex items-center gap-1.5">
-        <button onClick={() => setAgentPlannerOpen(true)} className="hidden items-center gap-1 rounded-md bg-action-soft px-2.5 py-1.5 text-[11.5px] font-semibold text-accent-hover transition-colors hover:bg-action hover:text-white xl:flex">✦ 帮我规划</button>
+        <button onClick={onOpenAgent} className="hidden items-center gap-1 rounded-md bg-action-soft px-2.5 py-1.5 text-[11.5px] font-semibold text-accent-hover transition-colors hover:bg-action hover:text-white xl:flex">✦ 帮我规划</button>
         <button onClick={onOpenFullMap} className="hidden items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] text-text-muted hover:bg-surface lg:flex"><MapIcon size={13} /> 全程地图</button>
         <button onClick={() => setSettingsOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-surface" title="数据与设置"><SettingsIcon size={15} /></button>
         <button onClick={onExport} disabled={exporting} className="rounded-md border border-border bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-text-muted hover:border-accent/40 disabled:opacity-60">{exporting ? '生成中…' : '导出行程卡片'}</button>
@@ -357,7 +355,6 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap }: { 
       <aside className="min-w-[360px] shrink-0 overflow-hidden rounded-[18px] border border-border/70 bg-white" style={{ width: 'var(--workspace-map-width)' }}><MapView key={showAllDays ? 'all' : activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} workspaceMapScope={workspaceMapScope} followDayId={activeDayId} onWorkspaceMapScopeChange={setWorkspaceMapScope} /></aside>
     </div>
     {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
-    {agentPlannerOpen && <AgentPlannerDialog onClose={() => setAgentPlannerOpen(false)} onOpenSettings={() => { setAgentPlannerOpen(false); setSettingsOpen(true) }} />}
     {tripTrashOpen && <TripTrashDialog onClose={() => setTripTrashOpen(false)} />}
     {createTripOpen && <ModalShell title="创建新旅行" description="填一次旅行区域，之后地点搜索会自动优先匹配这里。" onClose={() => setCreateTripOpen(false)} size="md" footer={<><button onClick={() => setCreateTripOpen(false)} className="rounded-md px-3 py-2 text-[12px] text-text-muted hover:bg-surface">取消</button><button onClick={submitNewTrip} className="rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white hover:bg-action-hover">创建旅行</button></>}>
       <div className="grid gap-3"><label className="text-[12px] font-medium text-text-muted">旅行名称 <span className="font-normal text-text-faint">（可选）</span><input value={newTripName} onChange={(event) => setNewTripName(event.target.value)} placeholder="例如：日本关西之旅" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">旅行区域 <span className="font-normal text-text-faint">（用于智能搜索）</span><input value={newTripDestination} onChange={(event) => setNewTripDestination(event.target.value)} placeholder="例如：东北、关西、大阪" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><div className="grid grid-cols-2 gap-3"><label className="text-[12px] font-medium text-text-muted">出发日期<input type="date" value={newTripStart} onChange={(event) => { setNewTripStart(event.target.value); if (newTripEnd < event.target.value) setNewTripEnd(event.target.value) }} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">返程日期<input type="date" min={newTripStart} value={newTripEnd} onChange={(event) => setNewTripEnd(event.target.value)} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label></div></div>
