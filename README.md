@@ -145,6 +145,7 @@ CORS_ORIGIN=*
 cd agent-server
 cp .env.example .env
 # 编辑 .env，填入上面的 DeepSeek 配置
+set -a; source .env; set +a
 npm start
 ```
 
