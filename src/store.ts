@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Activity, Cost, DeletedTrip, Trip, TripDay, ViewKey, PlanTab, WishPlace } from './types'
+import type { Activity, AgentPlanDraft, Cost, DeletedTrip, Trip, TripDay, ViewKey, PlanTab, WishPlace } from './types'
 import type { ActivityFormValues } from './components/ActivityForm'
 import { seedTrip } from './data/seed'
 import type { BackupData } from './utils/localBackup'
@@ -30,11 +30,14 @@ interface TripState {
   mapDisplayProvider: 'amap' | 'osm' | 'maptiler-zh'
   placeSearchProvider: 'amap' | 'osm'
   mapRouteMode: 'direct' | 'walking'
+  // Agent 服务仅保存地址；模型密钥永远只配置在服务端。
+  agentServiceUrl: string
   setAmapKeys: (keys: { jsKey: string; webServiceKey: string }) => void
   setMaptilerKey: (key: string) => void
   setMapDisplayProvider: (provider: 'amap' | 'osm' | 'maptiler-zh') => void
   setPlaceSearchProvider: (provider: 'amap' | 'osm') => void
   setMapRouteMode: (mode: 'direct' | 'walking') => void
+  setAgentServiceUrl: (url: string) => void
   // 编辑表单草稿（切换天/视图/旅程时暂存，回来恢复，避免丢输入）
   activityDraft: { activityId: string; values: ActivityFormValues } | null
   saveActivityDraft: (draft: { activityId: string; values: ActivityFormValues } | null) => void
@@ -48,6 +51,7 @@ interface TripState {
   // 多旅程
   switchTrip: (tripId: string) => void
   createTrip: (input: string | TripCreateInput) => string
+  createTripFromAgentDraft: (draft: AgentPlanDraft) => string
   deleteTrip: (tripId: string) => void
   restoreDeletedTrip: (tripId: string) => void
   purgeDeletedTrip: (tripId: string) => void
@@ -295,6 +299,7 @@ export const useTripStore = create<TripState>()(
       mapDisplayProvider: 'amap',
       placeSearchProvider: 'amap',
       mapRouteMode: 'direct',
+      agentServiceUrl: '',
       setAmapKeys: ({ jsKey, webServiceKey }) => set({
         amapJsKey: jsKey.trim(),
         amapWebServiceKey: webServiceKey.trim(),
@@ -303,6 +308,7 @@ export const useTripStore = create<TripState>()(
       setMapDisplayProvider: (mapDisplayProvider) => set({ mapDisplayProvider }),
       setPlaceSearchProvider: (placeSearchProvider) => set({ placeSearchProvider }),
       setMapRouteMode: (mapRouteMode) => set({ mapRouteMode }),
+      setAgentServiceUrl: (agentServiceUrl) => set({ agentServiceUrl: agentServiceUrl.trim().replace(/\/$/, '') }),
       activityDraft: null,
       saveActivityDraft: (activityDraft) => set({ activityDraft }),
 
@@ -368,6 +374,57 @@ export const useTripStore = create<TripState>()(
           planTab: 'timeline',
         }))
         return trip.id
+      },
+
+      createTripFromAgentDraft: (draft) => {
+        const id = makeId('trip')
+        const days = draft.days.map((day, index) => ({
+          id: makeId('day'),
+          label: `第${index + 1}天`,
+          date: isDate(day.date) ? day.date : '待定',
+          place: day.place.trim() || '待定地点',
+        }))
+        const wishByTitle = new Map<string, WishPlace>()
+        const activities: Activity[] = draft.days.flatMap((day, dayIndex) => day.activities.map((activity) => {
+          const title = activity.title.trim() || '待补充安排'
+          const key = `${title}\u0000${activity.location ?? ''}`.toLocaleLowerCase()
+          const wish = wishByTitle.get(key) ?? {
+            id: makeId('wish'), title, category: activity.category, location: activity.location, note: activity.note, scheduledActivityIds: [],
+          }
+          const id = makeId('activity')
+          wish.scheduledActivityIds = [...wish.scheduledActivityIds!, id]
+          wishByTitle.set(key, wish)
+          return {
+            id,
+            dayId: days[dayIndex].id,
+            time: /^\d{2}:\d{2}$/.test(activity.time) ? activity.time : '09:00',
+            title,
+            category: activity.category,
+            location: activity.location,
+            duration: activity.duration,
+            durationMinutes: activity.durationMinutes,
+            note: activity.note,
+            travelMode: activity.travelMode,
+            sourceWishId: wish.id,
+            costs: activity.estimatedCost && activity.estimatedCost > 0 ? [{ id: makeId('cost'), amount: activity.estimatedCost }] : [],
+          }
+        }))
+        const trip: Trip = {
+          id,
+          name: draft.tripName.trim() || 'AI 旅行草案',
+          searchRegion: draft.searchRegion?.trim(),
+          daysCount: days.length,
+          days,
+          activities,
+          wishPlaces: [...wishByTitle.values()],
+          expenses: [],
+          totalBudget: Number.isFinite(draft.totalBudget) ? Math.max(0, draft.totalBudget!) : 0,
+        }
+        set((s) => ({
+          trips: [...s.trips, trip], activeTripId: id, activeDayId: days[0]?.id ?? '',
+          selectedActivityId: null, editingActivityId: null, view: 'plan', planTab: 'timeline',
+        }))
+        return id
       },
 
       deleteTrip: (tripId) => {
@@ -472,6 +529,7 @@ export const useTripStore = create<TripState>()(
           ...(typeof data.amapJsKey === 'string' ? { amapJsKey: data.amapJsKey } : {}),
           ...(typeof data.amapWebServiceKey === 'string' ? { amapWebServiceKey: data.amapWebServiceKey } : {}),
           ...(typeof data.maptilerKey === 'string' ? { maptilerKey: data.maptilerKey } : {}),
+          ...(typeof data.agentServiceUrl === 'string' ? { agentServiceUrl: data.agentServiceUrl } : {}),
           view: 'plan',
           planTab: 'timeline',
         })

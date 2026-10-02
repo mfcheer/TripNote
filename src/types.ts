@@ -72,6 +72,28 @@ export interface Trip {
   totalBudget: number
 }
 
+// Agent 只返回草案；在用户确认前不会写入本地旅行数据。
+export interface AgentDraftActivity {
+  time: string
+  title: string
+  category: ActivityCategory
+  location?: string
+  durationMinutes?: number
+  duration?: string
+  note?: string
+  estimatedCost?: number
+  travelMode?: TravelMode
+}
+
+export interface AgentPlanDraft {
+  tripName: string
+  searchRegion?: string
+  totalBudget?: number
+  days: Array<{ date?: string; place: string; activities: AgentDraftActivity[] }>
+  assumptions: string[]
+  warnings: string[]
+}
+
 // 已删除旅行会保留完整快照，便于在回收站中恢复。
 export interface DeletedTrip {
   trip: Trip

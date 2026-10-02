@@ -12,6 +12,8 @@ export interface BackupData {
   maptilerKey?: string
   mapDisplayProvider?: 'amap' | 'osm' | 'maptiler-zh'
   placeSearchProvider?: 'amap' | 'osm'
+  /** Agent 服务地址，不包含服务端模型密钥。 */
+  agentServiceUrl?: string
 }
 
 export interface NorthwardBackup {

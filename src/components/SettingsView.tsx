@@ -42,19 +42,22 @@ export default function SettingsView({
     setMapDisplayProvider,
     setPlaceSearchProvider,
     setMapRouteMode,
+    agentServiceUrl,
+    setAgentServiceUrl,
   } = useTripStore()
   const askConfirm = useConfirmStore((s) => s.ask)
   const info = useConfirmStore((s) => s.info)
   const [jsKey, setJsKey] = useState(amapJsKey)
   const [webServiceKey, setWebServiceKey] = useState(amapWebServiceKey)
   const [maptilerApiKey, setMaptilerApiKey] = useState(maptilerKey)
+  const [agentUrl, setAgentUrl] = useState(agentServiceUrl)
   const [copied, setCopied] = useState(false)
   const [backupStatus, setBackupStatus] = useState<LocalBackupStatus | null>(null)
   const [backupBusy, setBackupBusy] = useState(false)
   const [isIos] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent))
   const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
 
-  const backupData: BackupData = { trips, deletedTrips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider }
+  const backupData: BackupData = { trips, deletedTrips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider, agentServiceUrl }
 
   async function refreshBackupStatus() {
     setBackupStatus(await getLocalBackupStatus())
@@ -232,6 +235,13 @@ export default function SettingsView({
             </div>
           )}
           {isStandalone && <div className="mt-4 text-[12px] font-medium text-accent-hover">TripNote 已安装到此设备。</div>}
+        </section>
+
+        <section className="border-b border-border/80 py-6">
+          <div className="text-[15px] font-semibold">规划助手</div>
+          <p className="mt-1 max-w-[620px] text-[12.5px] leading-relaxed text-text-muted">规划助手是可选服务。旅行数据仍保存在本机；这里只保存服务地址，模型 API Key 仅应写在你部署的服务端。</p>
+          <div className="mt-4 flex flex-col gap-2 sm:flex-row"><input value={agentUrl} onChange={(event) => setAgentUrl(event.target.value)} placeholder="例如：https://agent.example.com 或 http://NAS-IP:8787" className="min-w-0 flex-1 rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] outline-none focus:border-accent" /><button onClick={() => { setAgentServiceUrl(agentUrl); useToastStore.getState().show(agentUrl.trim() ? '规划助手服务地址已保存' : '已关闭规划助手服务') }} className="rounded-md bg-action px-4 py-2 text-[12.5px] font-medium text-white hover:bg-action-hover">保存</button></div>
+          <p className="mt-2 text-[11px] text-text-faint">未配置时，TripNote 的手动创建、地图、导出和备份不受影响。</p>
         </section>
 
         {/* 数据管理 */}

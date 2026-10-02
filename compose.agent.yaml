@@ -1,0 +1,10 @@
+services:
+  tripnote-agent:
+    build:
+      context: ./agent-server
+    container_name: tripnote-agent
+    restart: unless-stopped
+    env_file:
+      - ./agent-server/.env
+    ports:
+      - "8787:8787"
