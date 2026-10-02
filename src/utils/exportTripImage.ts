@@ -15,8 +15,8 @@ const LINE = '#e2e4e8'
 const START = '#ef9b8a'
 const END = '#df6555'
 const ROUTE_OVERVIEW_Y = 308
-const ROUTE_OVERVIEW_HEIGHT = 224
-const ITINERARY_START_Y = 564
+const ROUTE_OVERVIEW_HEIGHT = 184
+const ITINERARY_START_Y = 332
 
 const CATEGORY = {
   traffic: { color: '#668698', soft: '#eaf1f4' },
@@ -108,181 +108,70 @@ function drawTransit(ctx: CanvasRenderingContext2D, from: Activity, to: Activity
   return 38
 }
 
-type RouteOverviewPoint = { lat: number; lng: number; dayIndex: number; title: string; place: string }
+type RouteStop = { dayIndex: number; label: string }
 
-function worldPoint(point: { lat: number; lng: number }, zoom: number) {
-  const scale = 256 * 2 ** zoom
-  const latitude = Math.max(-85.05112878, Math.min(85.05112878, point.lat))
-  const sin = Math.sin((latitude * Math.PI) / 180)
-  return {
-    x: ((point.lng + 180) / 360) * scale,
-    y: (0.5 - Math.log((1 + sin) / (1 - sin)) / (4 * Math.PI)) * scale,
-  }
-}
-
-function overviewZoom(points: RouteOverviewPoint[], width: number, height: number) {
-  for (let zoom = 14; zoom >= 1; zoom--) {
-    const world = points.map((point) => worldPoint(point, zoom))
-    const spanX = Math.max(...world.map((point) => point.x)) - Math.min(...world.map((point) => point.x))
-    const spanY = Math.max(...world.map((point) => point.y)) - Math.min(...world.map((point) => point.y))
-    if (spanX <= width - 40 && spanY <= height - 28) return zoom
-  }
-  return 1
-}
-
-function routeSpanMeters(points: RouteOverviewPoint[]) {
-  if (points.length < 2) return 0
-  return points.reduce((largest, point, index) =>
-    Math.max(largest, ...points.slice(index + 1).map((other) => straightLineDistanceMeters(point, other))),
-  0)
-}
-
-function overviewLabels(points: RouteOverviewPoint[], localRoute: boolean) {
-  if (localRoute) {
-    const first = points[0]
-    const last = points.at(-1)!
-    return [
-      { point: first, label: `起点 · ${first.title}` },
-      ...(last !== first ? [{ point: last, label: `终点 · ${last.title}` }] : []),
-    ]
-  }
-  const byPlace = points.filter((point, index) => !point.place || !points.slice(0, index).some((previous) => previous.place === point.place))
-  const source = byPlace.length >= 2 ? byPlace : points
-  const limit = Math.min(5, source.length)
-  return Array.from({ length: limit }, (_, index) => {
-    const point = source[Math.round((index * (source.length - 1)) / Math.max(1, limit - 1))]
-    return { point, label: point.place || `第${point.dayIndex + 1}天` }
+function routeStops(trip: Trip) {
+  const stops: RouteStop[] = []
+  trip.days.forEach((day, dayIndex) => {
+    const fallback = activitiesByDay(trip, day.id).find((activity) => activity.geo)?.title
+    const label = day.place?.trim() || fallback?.trim()
+    if (!label || stops.at(-1)?.label === label) return
+    stops.push({ dayIndex, label })
   })
+  return stops
 }
 
-function drawOverviewLabel(
-  ctx: CanvasRenderingContext2D,
-  label: string,
-  x: number,
-  y: number,
-  mapX: number,
-  mapY: number,
-  mapW: number,
-  mapH: number,
-) {
-  ctx.font = '600 13px "PingFang SC", sans-serif'
-  const width = Math.min(mapW - 18, ctx.measureText(label).width + 18)
-  const left = Math.max(mapX + 5, Math.min(mapX + mapW - width - 5, x - width / 2))
-  const top = Math.max(mapY + 5, Math.min(mapY + mapH - 26, y - 29))
-  ctx.fillStyle = 'rgba(255,255,255,.94)'
-  rounded(ctx, left, top, width, 22, 8)
-  ctx.fillStyle = '#4e5965'
-  ctx.fillText(clip(ctx, label, width - 14), left + 8, top + 15)
-}
-
-function loadMapTile(zoom: number, x: number, y: number) {
-  return new Promise<HTMLImageElement | null>((resolve) => {
-    const image = new Image()
-    const timer = window.setTimeout(() => resolve(null), 4500)
-    image.onload = () => {
-      window.clearTimeout(timer)
-      resolve(image)
-    }
-    image.onerror = () => {
-      window.clearTimeout(timer)
-      resolve(null)
-    }
-    image.crossOrigin = 'anonymous'
-    image.src = `https://tile.openstreetmap.org/${zoom}/${x}/${y}.png`
-  })
-}
-
-async function drawRouteOverview(ctx: CanvasRenderingContext2D, trip: Trip) {
+// 长图负责读懂旅行主线；真实底图与每个细碎地点留给应用内可交互地图。
+function drawRouteOverview(ctx: CanvasRenderingContext2D, trip: Trip) {
   const x = PADDING
   const y = ROUTE_OVERVIEW_Y
   const w = WIDTH - PADDING * 2
   const h = ROUTE_OVERVIEW_HEIGHT
-  const points = trip.days.flatMap((day, dayIndex) =>
-    activitiesByDay(trip, day.id)
-      .filter((activity) => activity.geo)
-      .map((activity) => ({ ...activity.geo!, dayIndex, title: activity.title, place: day.place })),
-  )
-  const localRoute = routeSpanMeters(points) <= 45_000
+  const stops = routeStops(trip)
+  if (stops.length < 2) return 0
+  const visibleStops = stops.length <= 6
+    ? stops
+    : Array.from({ length: 6 }, (_, index) => stops[Math.round(index * (stops.length - 1) / 5)])
+  const totalMovement = trip.days.reduce((sum, _, index) => sum + dayMovementMeters(trip, index), 0)
 
   ctx.fillStyle = '#fff'
   rounded(ctx, x, y, w, h, 18)
   ctx.fillStyle = '#59616c'
   ctx.font = '600 18px "PingFang SC", sans-serif'
-  ctx.fillText(localRoute ? '城区路线图' : '城市路线概览', x + 22, y + 32)
+  ctx.fillText('旅行路线总览', x + 22, y + 32)
   ctx.fillStyle = '#9299a3'
   ctx.font = '400 15px "PingFang SC", sans-serif'
-  ctx.fillText(points.length ? `${localRoute ? '同城活动 · 放大查看地点顺序' : '跨城行程 · 查看主要停留城市'} · 已定位 ${points.length} 个地点` : '为行程地点补充坐标后，这里会显示全程路线', x + 22, y + 57)
+  ctx.fillText(`${stops.length} 个主要停留地${totalMovement > 0 ? `  ·  总移动约 ${formatMovement(totalMovement)}` : ''}`, x + 22, y + 57)
 
-  const mapX = x + 22
-  const mapY = y + 70
-  const mapW = w - 44
-  const mapH = h - 88
-  ctx.fillStyle = '#f3f6f7'
-  rounded(ctx, mapX, mapY, mapW, mapH, 13)
-  if (points.length === 0) return
-
-  const zoom = overviewZoom(points, mapW, mapH)
-  const world = points.map((point) => worldPoint(point, zoom))
-  const centerX = (Math.min(...world.map((point) => point.x)) + Math.max(...world.map((point) => point.x))) / 2
-  const centerY = (Math.min(...world.map((point) => point.y)) + Math.max(...world.map((point) => point.y))) / 2
-  const startX = centerX - mapW / 2
-  const startY = centerY - mapH / 2
-  const tileStartX = Math.floor(startX / 256)
-  const tileEndX = Math.floor((startX + mapW) / 256)
-  const tileStartY = Math.floor(startY / 256)
-  const tileEndY = Math.floor((startY + mapH) / 256)
-  const tileCount = 2 ** zoom
-  const tileJobs: Array<Promise<{ image: HTMLImageElement | null; x: number; y: number }>> = []
-  for (let tileX = tileStartX; tileX <= tileEndX; tileX++) {
-    for (let tileY = tileStartY; tileY <= tileEndY; tileY++) {
-      if (tileY < 0 || tileY >= tileCount) continue
-      const normalizedX = ((tileX % tileCount) + tileCount) % tileCount
-      tileJobs.push(loadMapTile(zoom, normalizedX, tileY).then((image) => ({ image, x: tileX, y: tileY })))
-    }
-  }
-  const tiles = await Promise.all(tileJobs)
-  ctx.save()
+  const lineY = y + 114
+  const lineStart = x + 54
+  const lineEnd = x + w - 54
+  ctx.strokeStyle = '#e6e8ec'
+  ctx.lineWidth = 4
+  ctx.lineCap = 'round'
   ctx.beginPath()
-  ctx.roundRect(mapX, mapY, mapW, mapH, 13)
-  ctx.clip()
-  tiles.forEach(({ image, x: tileX, y: tileY }) => {
-    if (image) ctx.drawImage(image, mapX + tileX * 256 - startX, mapY + tileY * 256 - startY, 256, 256)
-  })
-  ctx.restore()
-
-  const toCanvasPoint = (point: { lat: number; lng: number }) => {
-    const position = worldPoint(point, zoom)
-    return { x: mapX + position.x - startX, y: mapY + position.y - startY }
-  }
-  const canvasPoints = points.map(toCanvasPoint)
-  if (canvasPoints.length > 1) {
+  ctx.moveTo(lineStart, lineY)
+  ctx.lineTo(lineEnd, lineY)
+  ctx.stroke()
+  visibleStops.forEach((stop, index) => {
+    const pointX = lineStart + (lineEnd - lineStart) * index / Math.max(1, visibleStops.length - 1)
+    ctx.fillStyle = dayColor(stop.dayIndex, trip.days.length)
     ctx.beginPath()
-    ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y)
-    canvasPoints.slice(1).forEach((point) => ctx.lineTo(point.x, point.y))
-    ctx.strokeStyle = '#e78a78'
-    ctx.lineWidth = 3
-    ctx.lineJoin = 'round'
-    ctx.lineCap = 'round'
-    ctx.stroke()
-  }
-  canvasPoints.forEach((point, index) => {
-    ctx.fillStyle = dayColor(points[index].dayIndex, trip.days.length)
-    ctx.beginPath()
-    ctx.arc(point.x, point.y, index === 0 || index === canvasPoints.length - 1 ? 6 : 4, 0, Math.PI * 2)
+    ctx.arc(pointX, lineY, index === 0 || index === visibleStops.length - 1 ? 9 : 7, 0, Math.PI * 2)
     ctx.fill()
     ctx.strokeStyle = '#fff'
-    ctx.lineWidth = 2
+    ctx.lineWidth = 3
     ctx.stroke()
+    ctx.fillStyle = '#59616c'
+    ctx.font = '600 15px "PingFang SC", sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText(clip(ctx, stop.label, 128), pointX, index % 2 === 0 ? lineY - 24 : lineY + 35)
+    ctx.fillStyle = '#9aa1ab'
+    ctx.font = '500 12px "PingFang SC", sans-serif'
+    ctx.fillText(`第${stop.dayIndex + 1}天`, pointX, index % 2 === 0 ? lineY - 43 : lineY + 53)
   })
-  overviewLabels(points, localRoute).forEach(({ point, label }) => {
-    const mapPoint = toCanvasPoint(point)
-    drawOverviewLabel(ctx, label, mapPoint.x, mapPoint.y, mapX, mapY, mapW, mapH)
-  })
-  ctx.fillStyle = 'rgba(255,255,255,.78)'
-  rounded(ctx, mapX + 4, mapY + mapH - 19, 92, 15, 7)
-  ctx.fillStyle = '#68727d'
-  ctx.font = '400 10px "PingFang SC", sans-serif'
-  ctx.fillText('© OpenStreetMap', mapX + 10, mapY + mapH - 8)
+  ctx.textAlign = 'left'
+  return h
 }
 
 function dayColor(index: number, total: number) {
@@ -350,9 +239,10 @@ export async function exportTripImage(trip: Trip) {
     const transitTotal = items.slice(1).reduce((total, item, index) => total + transitHeight(items[index], item), 0)
     return sum + 112 + (items.length ? items.reduce((itemSum, item) => itemSum + activityHeight(item) + 20, 0) + transitTotal : 76) + 18
   }, 0)
+  const routeOverviewHeight = routeStops(trip).length >= 2 ? ROUTE_OVERVIEW_HEIGHT + 32 : 0
   const canvas = document.createElement('canvas')
   canvas.width = WIDTH
-  canvas.height = ITINERARY_START_Y + itineraryHeight + 72
+  canvas.height = ITINERARY_START_Y + routeOverviewHeight + itineraryHeight + 72
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('浏览器不支持图片导出')
 
@@ -404,9 +294,9 @@ export async function exportTripImage(trip: Trip) {
   ctx.textAlign = 'right'
   ctx.fillText(`预算 ¥${trip.totalBudget.toLocaleString()}`, WIDTH - PADDING, 280)
   ctx.textAlign = 'left'
-  await drawRouteOverview(ctx, trip)
+  drawRouteOverview(ctx, trip)
 
-  let y = ITINERARY_START_Y
+  let y = ITINERARY_START_Y + routeOverviewHeight
   trip.days.forEach((day, index) => {
     const items = activitiesByDay(trip, day.id)
     const accent = dayColor(index, trip.days.length)
