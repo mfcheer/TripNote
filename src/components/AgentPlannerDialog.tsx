@@ -7,6 +7,16 @@ import { useToastStore } from './toastStore'
 
 const today = new Date().toISOString().slice(0, 10)
 
+function activityNames(values: Array<{ title: string }>) {
+  return values.map((item) => item.title.trim()).filter(Boolean)
+}
+
+function isDayChanged(before: { place: string; activities: Array<{ title: string }> } | undefined, after: { place: string; activities: Array<{ title: string }> }) {
+  if (!before) return true
+  return before.place.trim() !== after.place.trim()
+    || activityNames(before.activities).join('\u0000') !== activityNames(after.activities).join('\u0000')
+}
+
 export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClose: () => void; onOpenSettings: () => void }) {
   const trip = useActiveTrip()
   const { agentServiceUrl, createTripFromAgentDraft } = useTripStore()
@@ -42,10 +52,27 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
     onClose()
   }
 
+  const changedDays = draft && revising
+    ? draft.days.filter((day, index) => isDayChanged({
+      place: trip.days[index]?.place ?? '',
+      activities: trip.activities.filter((activity) => activity.dayId === trip.days[index]?.id),
+    }, day)).length
+    : 0
+
   if (draft) return <ModalShell title="确认旅行草案" description="确认后会创建一份新的旅行，不会修改当前行程。" onClose={onClose} size="lg" mobile="sheet" footer={<><button onClick={() => setDraft(null)} className={overlaySecondaryButtonClass}>返回修改</button><button onClick={applyDraft} className={overlayPrimaryButtonClass}>创建这份旅行</button></>}>
     <div className="space-y-4">
-      <div className="rounded-xl border border-action/15 bg-action-soft/35 px-4 py-3"><div className="text-[15px] font-semibold text-text">{draft.tripName}</div><div className="mt-1 text-[12px] text-text-muted">{draft.days.length} 天{draft.totalBudget ? ` · 预计 ¥${draft.totalBudget.toLocaleString()}` : ''}</div></div>
-      <div className="space-y-2.5">{draft.days.map((day, index) => <div key={`${day.date}-${index}`} className="rounded-lg border border-border/80 bg-white px-3.5 py-3"><div className="text-[12.5px] font-semibold text-text">第 {index + 1} 天 · {day.place}</div><div className="mt-1.5 space-y-1 text-[11.5px] text-text-muted">{day.activities.map((activity, activityIndex) => <div key={`${activity.time}-${activityIndex}`} className="flex gap-3"><span className="w-10 shrink-0 tabular-nums text-text-faint">{activity.time}</span><span>{activity.title}</span></div>)}</div></div>)}</div>
+      <div className="rounded-xl border border-action/15 bg-action-soft/35 px-4 py-3"><div className="text-[15px] font-semibold text-text">{draft.tripName}</div><div className="mt-1 text-[12px] text-text-muted">{draft.days.length} 天{draft.totalBudget ? ` · 预计 ¥${draft.totalBudget.toLocaleString()}` : ''}{revising ? ` · 调整 ${changedDays} 天` : ''}</div></div>
+      {revising && <div className="rounded-lg border border-border/80 bg-surface px-3 py-2.5 text-[11.5px] leading-relaxed text-text-muted">以下按天对比当前旅行与助手草案。原行程会完整保留，确认后只创建一份新的调整稿。</div>}
+      <div className="space-y-2.5">{draft.days.map((day, index) => {
+        const before = trip.days[index]
+        const beforeActivities = before ? trip.activities.filter((activity) => activity.dayId === before.id) : []
+        const changed = isDayChanged(before ? { place: before.place, activities: beforeActivities } : undefined, day)
+        return <div key={`${day.date}-${index}`} className={`rounded-lg border bg-white px-3.5 py-3 ${revising && changed ? 'border-action/35' : 'border-border/80'}`}>
+          <div className="flex items-center justify-between gap-3"><div className="truncate text-[12.5px] font-semibold text-text">第 {index + 1} 天 · {day.place}</div>{revising && <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${changed ? 'bg-action-soft text-accent-hover' : 'bg-surface-2 text-text-faint'}`}>{changed ? '有调整' : '基本不变'}</span>}</div>
+          {revising && changed && before && <div className="mt-2 rounded-md bg-surface px-2.5 py-2 text-[10.5px] leading-relaxed text-text-faint"><div>原：{before.place || '未定'} · {activityNames(beforeActivities).join('、') || '暂无安排'}</div><div className="mt-1 text-text-muted">调整后：{day.place} · {activityNames(day.activities).join('、') || '暂无安排'}</div></div>}
+          <div className="mt-1.5 space-y-1 text-[11.5px] text-text-muted">{day.activities.map((activity, activityIndex) => <div key={`${activity.time}-${activityIndex}`} className="flex gap-3"><span className="w-10 shrink-0 tabular-nums text-text-faint">{activity.time}</span><span>{activity.title}</span></div>)}</div>
+        </div>
+      })}</div>
       {draft.assumptions.length > 0 && <div className="rounded-lg bg-surface px-3 py-2.5 text-[11.5px] leading-relaxed text-text-muted">规划假设：{draft.assumptions.join('；')}</div>}
       {draft.warnings.length > 0 && <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-[11.5px] leading-relaxed text-amber-800">需要留意：{draft.warnings.join('；')}</div>}
     </div>
