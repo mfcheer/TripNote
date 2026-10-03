@@ -33,7 +33,7 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = fa
   const { activeDayId, setActiveDay, selectActivity } = useTripStore()
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const [wishSheetOpen, setWishSheetOpen] = useState(false)
-  const [mapHeight, setMapHeight] = useState(() => mapNarrativePreview ? 252 : readMobileMapHeight())
+  const [mapHeight, setMapHeight] = useState(() => mapNarrativePreview ? 224 : readMobileMapHeight())
   const [mapCollapsed, setMapCollapsed] = useState(() => mapNarrativePreview ? false : readMobileMapCollapsed())
   const railRef = useRef<HTMLDivElement>(null)
   const timelineScrollRef = useRef<HTMLDivElement>(null)
