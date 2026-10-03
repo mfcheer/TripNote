@@ -1,4 +1,4 @@
-import type { ActivityCategory, AgentPlanDraft, TravelMode, Trip } from '../types'
+import type { ActivityCategory, AgentPlanDraft, GeoPoint, TravelMode, Trip } from '../types'
 
 export interface AgentPlanInput {
   mode?: 'create' | 'revise'
@@ -15,6 +15,13 @@ function validCategory(value: unknown): ActivityCategory {
 
 function validTravelMode(value: unknown): TravelMode | undefined {
   return value === 'walk' || value === 'drive' || value === 'train' || value === 'flight' || value === 'charter' ? value : undefined
+}
+
+function validGeo(value: unknown): GeoPoint | undefined {
+  const geo = value as Partial<GeoPoint>
+  return typeof geo?.lat === 'number' && Number.isFinite(geo.lat) && typeof geo.lng === 'number' && Number.isFinite(geo.lng)
+    ? { lat: geo.lat, lng: geo.lng }
+    : undefined
 }
 
 // 服务端返回内容仍需在浏览器中收敛一次，避免模型偶发的自由文本直接污染本地行程。
@@ -42,18 +49,19 @@ function normalizeDraft(value: unknown): AgentPlanDraft {
           note: typeof activity.note === 'string' ? activity.note : undefined,
           estimatedCost: typeof activity.estimatedCost === 'number' && Number.isFinite(activity.estimatedCost) ? activity.estimatedCost : undefined,
           travelMode: validTravelMode(activity.travelMode),
+          geo: validGeo(activity.geo),
         })) : [],
       }
     }),
   }
 }
 
-export async function requestAgentPlan(serviceUrl: string, input: AgentPlanInput, currentTrip?: Trip, signal?: AbortSignal) {
+export async function requestAgentPlan(serviceUrl: string, input: AgentPlanInput, currentTrip?: Trip, signal?: AbortSignal, accessToken = '') {
   if (!serviceUrl.trim()) throw new Error('请先在设置中连接规划助手服务')
   const response = await fetch(`${serviceUrl.replace(/\/$/, '')}/v1/plan`, {
     method: 'POST',
     signal,
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', ...(accessToken.trim() ? { Authorization: `Bearer ${accessToken.trim()}` } : {}) },
     body: JSON.stringify({
       input,
       // 仅传递必要旅行摘要，不上传完整本地数据库。

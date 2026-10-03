@@ -30,14 +30,16 @@ interface TripState {
   mapDisplayProvider: 'amap' | 'osm' | 'maptiler-zh'
   placeSearchProvider: 'amap' | 'osm'
   mapRouteMode: 'direct' | 'walking'
-  // Agent 服务仅保存地址；模型密钥永远只配置在服务端。
+  // Agent 模型密钥永远只配置在服务端；访问口令只存本浏览器，不进入备份。
   agentServiceUrl: string
+  agentAccessToken: string
   setAmapKeys: (keys: { jsKey: string; webServiceKey: string }) => void
   setMaptilerKey: (key: string) => void
   setMapDisplayProvider: (provider: 'amap' | 'osm' | 'maptiler-zh') => void
   setPlaceSearchProvider: (provider: 'amap' | 'osm') => void
   setMapRouteMode: (mode: 'direct' | 'walking') => void
   setAgentServiceUrl: (url: string) => void
+  setAgentAccessToken: (token: string) => void
   // 编辑表单草稿（切换天/视图/旅程时暂存，回来恢复，避免丢输入）
   activityDraft: { activityId: string; values: ActivityFormValues } | null
   saveActivityDraft: (draft: { activityId: string; values: ActivityFormValues } | null) => void
@@ -153,7 +155,7 @@ function agentDraftTrip(draft: AgentPlanDraft, id: string, previous?: Trip): Tri
     const knownWish = previousWishes.get(key)
     const wish = wishByTitle.get(key) ?? {
       id: makeId('wish'), title, category: activity.category, location: activity.location, note: activity.note,
-      geo: knownActivity?.geo ?? knownWish?.geo, scheduledActivityIds: [],
+      geo: activity.geo ?? knownActivity?.geo ?? knownWish?.geo, scheduledActivityIds: [],
     }
     const activityId = makeId('activity')
     wish.scheduledActivityIds = [...wish.scheduledActivityIds!, activityId]
@@ -168,7 +170,7 @@ function agentDraftTrip(draft: AgentPlanDraft, id: string, previous?: Trip): Tri
       duration: activity.duration,
       durationMinutes: activity.durationMinutes,
       note: activity.note,
-      geo: knownActivity?.geo ?? knownWish?.geo,
+      geo: activity.geo ?? knownActivity?.geo ?? knownWish?.geo,
       travelMode: activity.travelMode,
       sourceWishId: wish.id,
       costs: activity.estimatedCost && activity.estimatedCost > 0 ? [{ id: makeId('cost'), amount: activity.estimatedCost }] : [],
@@ -349,6 +351,7 @@ export const useTripStore = create<TripState>()(
       placeSearchProvider: 'amap',
       mapRouteMode: 'direct',
       agentServiceUrl: '',
+      agentAccessToken: '',
       setAmapKeys: ({ jsKey, webServiceKey }) => set({
         amapJsKey: jsKey.trim(),
         amapWebServiceKey: webServiceKey.trim(),
@@ -358,6 +361,7 @@ export const useTripStore = create<TripState>()(
       setPlaceSearchProvider: (placeSearchProvider) => set({ placeSearchProvider }),
       setMapRouteMode: (mapRouteMode) => set({ mapRouteMode }),
       setAgentServiceUrl: (agentServiceUrl) => set({ agentServiceUrl: agentServiceUrl.trim().replace(/\/$/, '') }),
+      setAgentAccessToken: (agentAccessToken) => set({ agentAccessToken: agentAccessToken.trim() }),
       activityDraft: null,
       saveActivityDraft: (activityDraft) => set({ activityDraft }),
 
@@ -1007,7 +1011,7 @@ export const useTripStore = create<TripState>()(
     }),
     {
       name: 'tripnote-store',
-      version: 12,
+      version: 13,
       migrate: (persisted: unknown) => {
         const state = persisted as
           | { trips?: Trip[]; deletedTrips?: DeletedTrip[]; activeTripId?: string; trip?: unknown; theme?: unknown }
@@ -1047,6 +1051,8 @@ export const useTripStore = create<TripState>()(
         mapDisplayProvider: s.mapDisplayProvider,
         placeSearchProvider: s.placeSearchProvider,
         mapRouteMode: s.mapRouteMode,
+        agentServiceUrl: s.agentServiceUrl,
+        agentAccessToken: s.agentAccessToken,
       }),
     },
   ),

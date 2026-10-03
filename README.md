@@ -113,7 +113,7 @@ http://NAS_IP:8080
 
 ## 规划助手（可选）
 
-TripNote 的规划助手是一个独立服务，前端只保存服务地址，模型 API Key 不会写入浏览器、备份或仓库。生成草案时只会提交本次需求和少量地点名称；确认前不会改动任何本地旅行，确认后会创建一份新的旅行。
+TripNote 的规划助手是一个独立服务，模型 API Key 只保存在服务端，不会写入浏览器、备份或仓库。生成草案时会提交本次需求；在“调整当前旅行”模式下，也会提交当前旅行的地点与行程摘要，用于生成更贴合的调整建议。确认前不会改动本地旅行。
 
 服务端使用 OpenAI Chat Completions 兼容接口。复制配置示例并填写你自己的服务端密钥：
 
@@ -127,7 +127,7 @@ cp agent-server/.env.example agent-server/.env
 docker compose -f compose.agent.yaml up -d --build
 ```
 
-默认地址为 `http://NAS_IP:8787`。在 TripNote 的“设置 → 规划助手”填写这个地址，再从桌面行程页右上角点击“帮我规划”。若使用 GitHub Pages 或 HTTPS 域名，请将 Agent 服务也通过 HTTPS 反向代理暴露，并在 `agent-server/.env` 中将 `CORS_ORIGIN` 限制为你的 TripNote 域名。
+默认地址为 `http://NAS_IP:8787`。在 TripNote 的“设置 → 规划助手”填写这个地址，再从桌面行程页右上角点击“帮我规划”。若使用 GitHub Pages 或其他 HTTPS 页面，Agent 必须以 **HTTPS** 地址提供服务，浏览器会拦截页面访问 HTTP Agent。
 
 DeepSeek 可直接使用，无需改动服务代码。将 `agent-server/.env` 改为：
 
@@ -136,7 +136,8 @@ OPENAI_API_KEY=你的 DeepSeek API Key
 OPENAI_MODEL=deepseek-flash
 OPENAI_BASE_URL=https://api.deepseek.com
 PORT=8787
-CORS_ORIGIN=*
+AGENT_ACCESS_TOKEN=换成一段长随机口令
+CORS_ORIGIN=https://mfcheer.github.io
 ```
 
 也可直接在电脑本地启动，不需要 Docker：
@@ -149,7 +150,16 @@ set -a; source .env; set +a
 npm start
 ```
 
-随后在另一个终端于项目根目录运行 `npm run dev`，并在 TripNote 的“设置 → 规划助手”填写 `http://localhost:8787`。服务运行在你的电脑上，但规划请求会发送给 DeepSeek 的云端 API；API Key 始终只保存在本机的 `agent-server/.env`，不会写入浏览器备份或 Git 仓库。
+随后在另一个终端于项目根目录运行 `npm run dev`，并在 TripNote 的“设置 → 规划助手”填写 `http://localhost:8787`，以及相同的访问口令。本机开发时可将 `CORS_ORIGIN` 临时改为 `http://localhost:5173`（或你的实际前端端口）。服务运行在你的电脑上，但规划请求会发送给 DeepSeek 的云端 API；API Key 始终只保存在本机的 `agent-server/.env`，不会写入浏览器备份或 Git 仓库。
+
+### 极空间 NAS + Tailscale（推荐）
+
+1. 在极空间 Docker 中部署本仓库的 `compose.agent.yaml`；将 `agent-server/.env.example` 复制为 `agent-server/.env`，填写 DeepSeek Key、长随机 `AGENT_ACCESS_TOKEN`，并将 `CORS_ORIGIN` 改成你的 TripNote 网页来源（GitHub Pages 为 `https://mfcheer.github.io`）。
+2. 在极空间安装并登录 Tailscale。用 Tailscale 的 **Serve / HTTPS 服务** 将 NAS 本机 `http://127.0.0.1:8787` 代理为 NAS 的 `https://xxx.ts.net` 地址；不要将 8787 端口直接暴露到公网。
+3. 手机和电脑也登录同一个 Tailnet。TripNote 设置中填写该 `https://xxx.ts.net` 地址与同一访问口令。
+4. 服务只接受 `CORS_ORIGIN` 允许的网页来源；若需要本地开发，可用逗号追加 `http://localhost:5173`。不要使用 `*` 作为长期配置。
+
+服务端会在 90 秒超时范围内重试暂时失败的模型请求，并检查天数、每天安排与 JSON 结构；首次草案不合格会自动重新生成一次。生成后最多低频核验 6 个非交通地点并写入坐标，未匹配的地点仍会保留为可手动修正的安排。公开 Nominatim 只用于此有限的坐标补全；如需使用自建检索服务，可通过 `PLACE_SEARCH_URL` 替换。
 
 ## GitHub Pages 发布
 

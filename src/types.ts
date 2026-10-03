@@ -83,6 +83,8 @@ export interface AgentDraftActivity {
   note?: string
   estimatedCost?: number
   travelMode?: TravelMode
+  /** 由服务端地点检索确认后附带；缺失时仍可正常手动调整。 */
+  geo?: GeoPoint
 }
 
 export interface AgentPlanDraft {

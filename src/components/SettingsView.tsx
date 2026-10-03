@@ -44,6 +44,8 @@ export default function SettingsView({
     setMapRouteMode,
     agentServiceUrl,
     setAgentServiceUrl,
+    agentAccessToken,
+    setAgentAccessToken,
   } = useTripStore()
   const askConfirm = useConfirmStore((s) => s.ask)
   const info = useConfirmStore((s) => s.info)
@@ -51,6 +53,7 @@ export default function SettingsView({
   const [webServiceKey, setWebServiceKey] = useState(amapWebServiceKey)
   const [maptilerApiKey, setMaptilerApiKey] = useState(maptilerKey)
   const [agentUrl, setAgentUrl] = useState(agentServiceUrl)
+  const [agentToken, setAgentToken] = useState(agentAccessToken)
   const [copied, setCopied] = useState(false)
   const [backupStatus, setBackupStatus] = useState<LocalBackupStatus | null>(null)
   const [backupBusy, setBackupBusy] = useState(false)
@@ -239,9 +242,9 @@ export default function SettingsView({
 
         <section className="border-b border-border/80 py-6">
           <div className="text-[15px] font-semibold">规划助手</div>
-          <p className="mt-1 max-w-[620px] text-[12.5px] leading-relaxed text-text-muted">规划助手是可选服务。旅行数据仍保存在本机；这里只保存服务地址，模型 API Key 仅应写在你部署的服务端。</p>
-          <div className="mt-4 flex flex-col gap-2 sm:flex-row"><input value={agentUrl} onChange={(event) => setAgentUrl(event.target.value)} placeholder="例如：https://agent.example.com 或 http://NAS-IP:8787" className="min-w-0 flex-1 rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] outline-none focus:border-accent" /><button onClick={() => { setAgentServiceUrl(agentUrl); useToastStore.getState().show(agentUrl.trim() ? '规划助手服务地址已保存' : '已关闭规划助手服务') }} className="rounded-md bg-action px-4 py-2 text-[12.5px] font-medium text-white hover:bg-action-hover">保存</button></div>
-          <p className="mt-2 text-[11px] text-text-faint">未配置时，TripNote 的手动创建、地图、导出和备份不受影响。</p>
+          <p className="mt-1 max-w-[620px] text-[12.5px] leading-relaxed text-text-muted">规划助手是可选服务。旅行数据仍保存在本机；模型 API Key 只写在 NAS 服务端。若服务设置了访问口令，在此设备填写相同口令。</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]"><input value={agentUrl} onChange={(event) => setAgentUrl(event.target.value)} placeholder="例如：https://agent.example.ts.net" className="min-w-0 rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] outline-none focus:border-accent" /><input value={agentToken} type="password" onChange={(event) => setAgentToken(event.target.value)} placeholder="访问口令（可选）" className="min-w-0 rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] outline-none focus:border-accent" /><button onClick={() => { setAgentServiceUrl(agentUrl); setAgentAccessToken(agentToken); useToastStore.getState().show(agentUrl.trim() ? '规划助手连接已保存' : '已关闭规划助手服务') }} className="rounded-md bg-action px-4 py-2 text-[12.5px] font-medium text-white hover:bg-action-hover">保存</button></div>
+          <p className="mt-2 text-[11px] text-text-faint">访问口令仅保存在当前浏览器，不会导出到备份；未配置时，手动创建、地图、导出和备份不受影响。</p>
         </section>
 
         {/* 数据管理 */}

@@ -19,7 +19,7 @@ function isDayChanged(before: { place: string; activities: Array<{ title: string
 
 export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClose: () => void; onOpenSettings: () => void }) {
   const trip = useActiveTrip()
-  const { agentServiceUrl, createTripFromAgentDraft, applyAgentDraftToCurrent, restoreTrips, trips, activeTripId } = useTripStore()
+  const { agentServiceUrl, agentAccessToken, createTripFromAgentDraft, applyAgentDraftToCurrent, restoreTrips, trips, activeTripId } = useTripStore()
   const [input, setInput] = useState<AgentPlanInput>({
     mode: 'create',
     destination: trip.searchRegion || trip.days[0]?.place || '', days: Math.max(1, Math.min(14, trip.days.length || 3)),
@@ -36,7 +36,7 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
     setBusy(true)
     setError('')
     try {
-      setDraft(await requestAgentPlan(agentServiceUrl, input, trip))
+      setDraft(await requestAgentPlan(agentServiceUrl, input, trip, undefined, agentAccessToken))
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '生成草案失败，请稍后重试')
     } finally {
