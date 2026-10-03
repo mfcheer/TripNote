@@ -27,6 +27,8 @@ interface BeforeInstallPromptEvent extends Event {
 
 export default function App() {
   const { view, planTab, setPlanTab } = useTripStore()
+  // 仅供视觉确认的地图叙事预览，不写入设置也不影响正式页面。
+  const mapNarrativePreview = new URLSearchParams(window.location.search).get('preview') === 'map-story'
   const trip = useActiveTrip()
   // 兼容旧版遗留的 places / map / budget 标签：平板只保留行程与编排两个明确视图。
   const visiblePlanTab = planTab === 'arrange' ? 'arrange' : 'timeline'
@@ -161,12 +163,12 @@ export default function App() {
               </div>
             </div>
             <div className="hidden min-h-0 min-w-0 flex-1 overflow-hidden lg:block">
-              <WorkspaceView onExport={downloadImage} exporting={exportingImage} onOpenFullMap={() => setFullScreenMapDayId('all')} onOpenAgent={() => setAgentPlannerOpen(true)} />
+              <WorkspaceView onExport={downloadImage} exporting={exportingImage} onOpenFullMap={() => setFullScreenMapDayId('all')} onOpenAgent={() => setAgentPlannerOpen(true)} mapNarrativePreview={mapNarrativePreview} />
             </div>
             <div className="min-h-0 min-w-0 flex-1 overflow-hidden lg:hidden">
               {visiblePlanTab === 'timeline' && (
                 <div className="h-full overflow-y-auto">
-                  <MobilePlanView onOpenFullMap={() => setFullScreenMapDayId('all')} />
+                  <MobilePlanView onOpenFullMap={() => setFullScreenMapDayId('all')} mapNarrativePreview={mapNarrativePreview} />
                 </div>
               )}
               {visiblePlanTab === 'arrange' && <ArrangeView />}

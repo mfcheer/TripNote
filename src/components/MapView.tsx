@@ -167,6 +167,7 @@ export default function MapView({
   workspaceMapScope,
   followDayId,
   onWorkspaceMapScopeChange,
+  narrativePreview = false,
 }: {
   initialDayId?: string
   onOpenActivity?: (activityId: string) => void
@@ -177,6 +178,7 @@ export default function MapView({
   workspaceMapScope?: 'follow' | 'all'
   followDayId?: string
   onWorkspaceMapScopeChange?: (scope: 'follow' | 'all') => void
+  narrativePreview?: boolean
 }) {
   const { setActiveDay, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
@@ -208,9 +210,9 @@ export default function MapView({
     ...(highlightWishPlace?.geo ? [[highlightWishPlace.geo.lat, highlightWishPlace.geo.lng] as [number, number]] : []),
   ]
   const markerGroups = useMemo(() => groupNearbyMarkers(visibleDays.flatMap((day) => {
-    const color = routeColor(trip.days.indexOf(day), trip.days.length)
+    const color = colorForDay(day)
     return activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => ({ activity, day, color }))
-  })), [visibleDays, trip])
+  })), [visibleDays, trip, narrativePreview, workspaceMapScope, filter, followDayId])
 
   // 总览才展示跨日衔接。短距离不额外绘制，避免把相邻住宿/景点误读为一段路线。
   const crossDaySegments = useMemo(() => {
@@ -284,6 +286,17 @@ export default function MapView({
   const useAmap = mapDisplayProvider === 'amap' && !!amapJsKey && !amapUnavailable
   const useMapTilerChinese = mapDisplayProvider === 'maptiler-zh' && !!maptilerKey
   const followedDay = trip.days.find((day) => day.id === followDayId)
+  const narrativeDay = followedDay ?? visibleDays[0]
+  const narrativeItems = narrativeDay ? activitiesByDay(trip, narrativeDay.id).filter((activity) => activity.geo) : []
+  const narrativeDistance = narrativeItems.slice(1).reduce((total, activity, index) => total + straightLineDistanceMeters(narrativeItems[index].geo!, activity.geo!), 0)
+  const narrativeSummary = workspaceMapScope === 'all'
+    ? `${trip.daysCount} 天 · ${trip.activities.filter((activity) => activity.geo).length} 个已定位地点`
+    : `${narrativeDay?.label ?? '当天'} · ${narrativeDay?.place || '未定地点'} · ${narrativeItems.length} 个地点${narrativeDistance >= 1000 ? ` · ${(narrativeDistance / 1000).toFixed(1)} km` : ''}`
+  function colorForDay(day: TripDay) {
+    if (!narrativePreview) return routeColor(trip.days.indexOf(day), trip.days.length)
+    if (workspaceMapScope !== 'all' || filter !== 'all') return '#d65f58'
+    return day.id === followDayId ? '#d65f58' : '#aebfc8'
+  }
   const focusMapActivity = useCallback((activityId: string) => {
     useTripStore.getState().focusActivity(activityId)
     onOpenActivity?.(activityId)
@@ -296,7 +309,7 @@ export default function MapView({
         return {
           id: `day-${day.id}-${from.id}-${to.id}`,
           points: [from.geo!, to.geo!],
-          color: routeColor(trip.days.indexOf(day), trip.days.length),
+          color: colorForDay(day),
           route: mapRouteMode === 'walking' ? routeProfileForSegment(from.geo!, to.geo!, to.travelMode) ?? undefined : undefined,
           weight: routeProfileForSegment(from.geo!, to.geo!, to.travelMode) === 'driving' ? 4.5 : 4,
         }
@@ -309,20 +322,20 @@ export default function MapView({
       dashed: true,
       weight: 2.5,
     })),
-  ], [visibleDays, trip, crossDaySegments, mapRouteMode])
+  ], [visibleDays, trip, crossDaySegments, mapRouteMode, narrativePreview, workspaceMapScope, filter, followDayId])
   const amapMarkers = useMemo<AmapMarker[]>(() => [...(!wishOverview ? markerGroups : []).map((group) => {
     const single = group.items[0]
     return group.items.length === 1
       ? { id: single.activity.id, point: group.point, label: single.activity.title, color: single.color, simple: filter === 'all', wide: filter !== 'all', onClick: () => focusMapActivity(single.activity.id) }
       : { id: `cluster-${group.id}`, point: group.point, label: String(group.items.length), onClick: () => setOpenCluster(group) }
-  }), ...(!wishOverview && filter === 'all' ? trip.days.flatMap((day, index) => {
+  }), ...(!wishOverview && filter === 'all' ? trip.days.flatMap((day) => {
     const firstActivity = activitiesByDay(trip, day.id).find((activity) => activity.geo)
     if (!firstActivity?.geo) return []
     return [{
       id: `day-label-${day.id}`,
       point: firstActivity.geo,
       label: day.place ? `${day.label} · ${day.place}` : day.label,
-      color: routeColor(index, trip.days.length),
+      color: colorForDay(day),
       wide: true,
       onClick: () => focusMapActivity(firstActivity.id),
     }]
@@ -341,11 +354,19 @@ export default function MapView({
     color: '#af6959',
     wide: true,
     active: true,
-  }] : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, highlightWishPlace, markerGroups, pickedPoint, scheduledWishIds, trip, wishOverview, wishPlacesWithGeo])
+  }] : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, highlightWishPlace, markerGroups, pickedPoint, scheduledWishIds, trip, wishOverview, wishPlacesWithGeo, narrativePreview, workspaceMapScope, followDayId])
 
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
-      {onWorkspaceMapScopeChange && !wishOverview && (
+      {onWorkspaceMapScopeChange && !wishOverview && (narrativePreview ? (
+        <div className="map-story-context absolute top-3 left-3 right-3 z-[550] flex items-center justify-between gap-2 rounded-lg border border-white/75 bg-white/92 px-2.5 py-2 shadow-[0_5px_18px_rgba(32,40,46,0.10)] backdrop-blur-md">
+          <div className="min-w-0"><div className="truncate text-[11.5px] font-semibold text-text">{workspaceMapScope === 'all' ? '全程路线' : (narrativeDay?.place || narrativeDay?.label || '当前日期')}</div><div className="truncate text-[10px] text-text-faint">{narrativeSummary}</div></div>
+          <div className="flex shrink-0 rounded-md bg-surface-2/90 p-0.5">
+            <button onClick={() => onWorkspaceMapScopeChange('follow')} className={`rounded px-2 py-1 text-[10.5px] font-medium transition-colors ${workspaceMapScope !== 'all' ? 'bg-white text-accent-hover shadow-sm' : 'text-text-muted'}`}>跟随日期</button>
+            <button onClick={() => onWorkspaceMapScopeChange('all')} className={`rounded px-2 py-1 text-[10.5px] font-medium transition-colors ${workspaceMapScope === 'all' ? 'bg-white text-accent-hover shadow-sm' : 'text-text-muted'}`}>全程</button>
+          </div>
+        </div>
+      ) : (
         <div className="absolute top-3 left-16 z-[550] flex items-center rounded-lg border border-white/80 bg-white/94 p-1 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
           <button
             onClick={() => onWorkspaceMapScopeChange('follow')}
@@ -361,7 +382,7 @@ export default function MapView({
           </button>
           <span className="hidden border-l border-border/80 px-2 text-[10.5px] text-text-faint xl:inline">{workspaceMapScope === 'all' ? '完整路线' : (followedDay?.place || followedDay?.label || '当前日期')}</span>
         </div>
-      )}
+      ))}
       {/* 天数筛选 */}
       {!compact && <div className="absolute inset-x-3 top-3 z-[500] overflow-x-auto pb-1 md:inset-x-auto md:top-4 md:left-[64px]">
         <div className="mx-auto flex w-max items-center gap-1 rounded-lg border border-white/80 bg-white/94 p-1.5 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
@@ -433,7 +454,7 @@ export default function MapView({
               key={`${day.id}-${activities[index].id}-${to.id}`}
               from={activities[index]}
               to={to}
-              color={routeColor(trip.days.indexOf(day), trip.days.length)}
+              color={colorForDay(day)}
               routeMode={mapRouteMode}
               onRouteFallback={handleRouteFallback}
             />
@@ -450,14 +471,14 @@ export default function MapView({
             <Popup><div className="min-w-[180px]"><div className="mb-1.5 text-[12px] font-semibold">{group.items.length} 个重叠地点</div>{group.items.map(({ activity, day }) => <button key={activity.id} onClick={() => focusMapActivity(activity.id)} className="block w-full truncate rounded px-1 py-1 text-left text-[12px] hover:bg-surface">{day.label} · {activity.title}</button>)}</div></Popup>
           </Marker>
         ))}
-        {!wishOverview && filter === 'all' && trip.days.map((day, index) => {
+        {!wishOverview && filter === 'all' && trip.days.map((day) => {
           const firstActivity = activitiesByDay(trip, day.id).find((activity) => activity.geo)
           if (!firstActivity?.geo) return null
           const label = day.place ? `${day.label} · ${day.place}` : day.label
           return <Marker
             key={`day-label-${day.id}`}
             position={[firstActivity.geo.lat, firstActivity.geo.lng]}
-            icon={markerIcon(routeColor(index, trip.days.length), label)}
+            icon={markerIcon(colorForDay(day), label)}
             eventHandlers={{ click: () => focusMapActivity(firstActivity.id) }}
           />
         })}

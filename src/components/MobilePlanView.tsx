@@ -28,13 +28,13 @@ function readMobileMapCollapsed() {
 }
 
 // 手机端以“看路线 → 编排当天 → 补充地点”为单一连续任务，地图不再是需要跳转的独立页面。
-export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () => void }) {
+export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = false }: { onOpenFullMap: () => void; mapNarrativePreview?: boolean }) {
   const trip = useActiveTrip()
   const { activeDayId, setActiveDay, selectActivity } = useTripStore()
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const [wishSheetOpen, setWishSheetOpen] = useState(false)
   const [mapHeight, setMapHeight] = useState(readMobileMapHeight)
-  const [mapCollapsed, setMapCollapsed] = useState(readMobileMapCollapsed)
+  const [mapCollapsed, setMapCollapsed] = useState(() => mapNarrativePreview ? false : readMobileMapCollapsed())
   const railRef = useRef<HTMLDivElement>(null)
   const timelineScrollRef = useRef<HTMLDivElement>(null)
   const activeDay = trip.days.find((day) => day.id === activeDayId) ?? trip.days[0]
@@ -105,7 +105,7 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
   if (!activeDay) return null
 
   return (
-    <div className="mobile-plan-root flex h-full min-h-0 flex-col bg-bg">
+    <div className={`mobile-plan-root flex h-full min-h-0 flex-col bg-bg ${mapNarrativePreview ? 'map-narrative-preview' : ''}`}>
       <div ref={railRef} className="mobile-day-rail shrink-0 px-3 py-1.5">
         <div className="flex w-max min-w-full items-stretch gap-1">
           {trip.days.map((day) => {
@@ -127,9 +127,9 @@ export default function MobilePlanView({ onOpenFullMap }: { onOpenFullMap: () =>
 
       {!mapCollapsed ? <>
       <section className="relative shrink-0 overflow-hidden bg-surface" style={{ height: mapHeight }}>
-        <MapView key={activeDay.id} initialDayId={activeDay.id} compact />
+        <MapView key={activeDay.id} initialDayId={activeDay.id} compact narrativePreview={mapNarrativePreview} />
         <div className="pointer-events-none absolute top-3 left-3 z-[600] rounded-md bg-white/92 px-2.5 py-1.5 text-[11.5px] font-semibold text-text shadow-[0_2px_10px_rgba(32,40,46,0.10)] backdrop-blur">
-          {activeDay.place || '当天地图'} · {items.length} 个地点
+          {mapNarrativePreview ? `${activeDay.label} · ${activeDay.place || '当天地图'} · ${items.length} 个地点` : `${activeDay.place || '当天地图'} · ${items.length} 个地点`}
         </div>
       </section>
       <div className="mobile-map-actions shrink-0">

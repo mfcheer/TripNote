@@ -186,7 +186,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   </aside>
 }
 
-export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOpenAgent }: { onExport: () => void; exporting: boolean; onOpenFullMap: () => void; onOpenAgent: () => void }) {
+export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOpenAgent, mapNarrativePreview = false }: { onExport: () => void; exporting: boolean; onOpenFullMap: () => void; onOpenAgent: () => void; mapNarrativePreview?: boolean }) {
   const trip = useActiveTrip()
   const { trips, deletedTrips, activeTripId, switchTrip, createTrip, deleteTrip, setTripSearchRegion, scheduleWishPlace, activeDayId, setActiveDay } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
@@ -313,7 +313,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
     })
   }
 
-  return <div className="workspace-root flex h-full min-w-0 flex-col bg-bg" style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
+  return <div className={`workspace-root flex h-full min-w-0 flex-col bg-bg ${mapNarrativePreview ? 'map-narrative-preview' : ''}`} style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
     <header className="workspace-header relative z-[1000] flex h-[62px] shrink-0 items-center gap-3 border-b border-border/70 px-6">
       <LogoIcon size={28} className="shrink-0 shadow-[0_2px_7px_rgba(31,48,63,0.16)]" alt="TripNote" />
       <span className="shrink-0 text-[14px] font-semibold tracking-[-0.025em] text-text">TripNote</span>
@@ -352,7 +352,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
         <TimelineView workspace showAllDays={showAllDays} onShowAllDays={() => setShowAllDays(true)} onFocusDay={(dayId) => { setActiveDay(dayId); setShowAllDays(false) }} hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
       <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>
-      <aside className="min-w-[360px] shrink-0 overflow-hidden rounded-[18px] border border-border/70 bg-white" style={{ width: 'var(--workspace-map-width)' }}><MapView key={showAllDays ? 'all' : activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} workspaceMapScope={workspaceMapScope} followDayId={activeDayId} onWorkspaceMapScopeChange={setWorkspaceMapScope} /></aside>
+      <aside className="min-w-[360px] shrink-0 overflow-hidden rounded-[18px] border border-border/70 bg-white" style={{ width: 'var(--workspace-map-width)' }}><MapView key={showAllDays ? 'all' : activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} workspaceMapScope={workspaceMapScope} followDayId={activeDayId} onWorkspaceMapScopeChange={setWorkspaceMapScope} narrativePreview={mapNarrativePreview} /></aside>
     </div>
     {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     {tripTrashOpen && <TripTrashDialog onClose={() => setTripTrashOpen(false)} />}

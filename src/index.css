@@ -342,6 +342,18 @@ input:focus, textarea:focus, select:focus {
 .mobile-plan-dock__primary { box-shadow: 0 3px 10px rgba(40,120,212,.18); }
 .mobile-plan-root .mobile-timeline [data-activity-id] > div > div { border-radius: 8px; }
 .mobile-plan-root .mobile-timeline [data-activity-id] + [data-activity-id] { margin-top: 0; }
+
+/* 仅在 ?preview=map-story 下启用：不改变内容，只让真实地图成为当天行程的视觉线索。 */
+.map-narrative-preview.workspace-root > div:last-of-type { gap: 4px; padding: 4px; background: #f4f7f8; }
+.map-narrative-preview.workspace-root [data-workspace-scroll] { border-radius: 14px; }
+.map-narrative-preview.workspace-root > div:last-of-type > aside { border-radius: 14px; box-shadow: 0 10px 26px rgba(42, 71, 80, .07); }
+.map-narrative-preview .trip-map-view .leaflet-control-zoom { margin-top: 72px; }
+.map-narrative-preview .map-story-context { min-height: 48px; }
+.map-narrative-preview .trip-map-view .map-place-marker { box-shadow: 0 2px 10px rgba(30, 48, 56, .14); }
+.map-narrative-preview .trip-map-view .map-dot { box-shadow: 0 0 0 3px rgba(255,255,255,.92), 0 2px 7px rgba(30,48,56,.18); }
+.map-narrative-preview.mobile-plan-root .mobile-day-rail { background: #f8fafb; }
+.map-narrative-preview.mobile-plan-root .mobile-map-actions { background: rgba(248,251,252,.94); }
+.map-narrative-preview.mobile-plan-root .mobile-timeline { background: #fff; }
 .wishlist-view .wishlist-search-panel {
   border-color: rgba(29,29,31,.075);
   border-radius: 16px;
