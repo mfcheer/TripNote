@@ -5,6 +5,7 @@ import MapView from './MapView'
 import MobilePlanDock from './MobilePlanDock'
 import MobileWishSheet from './MobileWishSheet'
 import TimelineView, { BudgetDrawer } from './TimelineView'
+import { straightLineDistanceMeters } from '../api/route'
 
 function dayDate(day: { date: string }) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(day.date)) return day.date === '待定' ? '待定' : day.date
@@ -33,7 +34,7 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = fa
   const { activeDayId, setActiveDay, selectActivity } = useTripStore()
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const [wishSheetOpen, setWishSheetOpen] = useState(false)
-  const [mapHeight, setMapHeight] = useState(readMobileMapHeight)
+  const [mapHeight, setMapHeight] = useState(() => mapNarrativePreview ? 252 : readMobileMapHeight())
   const [mapCollapsed, setMapCollapsed] = useState(() => mapNarrativePreview ? false : readMobileMapCollapsed())
   const railRef = useRef<HTMLDivElement>(null)
   const timelineScrollRef = useRef<HTMLDivElement>(null)
@@ -43,6 +44,10 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = fa
     (sum, activity) => sum + activity.costs.reduce((costSum, cost) => costSum + cost.amount, 0),
     0,
   )
+  const dayDistance = useMemo(() => {
+    const geoItems = items.filter((item) => item.geo)
+    return geoItems.slice(1).reduce((sum, item, index) => sum + straightLineDistanceMeters(geoItems[index].geo!, item.geo!), 0)
+  }, [items])
 
   useEffect(() => {
     localStorage.setItem(MOBILE_MAP_HEIGHT_KEY, String(Math.round(mapHeight)))
@@ -126,11 +131,12 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = fa
       </div>
 
       {!mapCollapsed ? <>
-      <section className="relative shrink-0 overflow-hidden bg-surface" style={{ height: mapHeight }}>
+      <section className="mobile-map-stage relative shrink-0 overflow-hidden bg-surface" style={{ height: mapHeight }}>
         <MapView key={activeDay.id} initialDayId={activeDay.id} compact narrativePreview={mapNarrativePreview} />
         <div className="pointer-events-none absolute top-3 left-3 z-[600] rounded-md bg-white/92 px-2.5 py-1.5 text-[11.5px] font-semibold text-text shadow-[0_2px_10px_rgba(32,40,46,0.10)] backdrop-blur">
           {mapNarrativePreview ? `${activeDay.label} · ${activeDay.place || '当天地图'} · ${items.length} 个地点` : `${activeDay.place || '当天地图'} · ${items.length} 个地点`}
         </div>
+        {mapNarrativePreview && <div className="map-story-mobile-caption pointer-events-none absolute inset-x-3 bottom-3 z-[600] flex items-center justify-between gap-3 rounded-lg border border-white/80 bg-white/92 px-2.5 py-2 text-[10.5px] shadow-[0_3px_13px_rgba(32,40,46,0.12)] backdrop-blur"><span className="truncate font-medium text-text">当前路线 · {items.length} 个地点{dayDistance >= 1000 ? ` · ${(dayDistance / 1000).toFixed(1)} km` : ''}</span><span className="shrink-0 text-text-faint">可拖动地图</span></div>}
       </section>
       <div className="mobile-map-actions shrink-0">
         <button onClick={() => setBudgetDrawerOpen(true)} className="mobile-map-actions__button" title="查看并设置旅行总预算">
