@@ -4,24 +4,16 @@ const port = Number(process.env.PORT || 8787)
 const baseUrl = (process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/$/, '')
 const apiKey = process.env.OPENAI_API_KEY || ''
 const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini'
-// 使用逗号分隔多个网页来源；生产环境请填 TripNote 页面地址，不要保留 *。
-const allowedOrigins = (process.env.CORS_ORIGIN || '*').split(',').map((value) => value.trim()).filter(Boolean)
 const accessToken = process.env.AGENT_ACCESS_TOKEN || ''
 const placeSearchUrl = process.env.PLACE_SEARCH_URL || 'https://nominatim.openstreetmap.org/search'
 const placeCache = new Map()
 let lastPlaceSearchAt = 0
 
-function originFor(request) {
-  const origin = request.headers.origin
-  if (!origin) return undefined
-  if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) return allowedOrigins.includes('*') ? '*' : origin
-  return null
-}
-
-function reply(response, status, body, origin) {
+function reply(response, status, body) {
   response.writeHead(status, {
     'Content-Type': 'application/json; charset=utf-8',
-    ...(origin ? { 'Access-Control-Allow-Origin': origin, Vary: 'Origin' } : {}),
+    // 服务端访问口令是唯一访问控制；允许手机、桌面与本地页面直接连接同一 Agent。
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-TripNote-Agent-Token',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   })
@@ -147,18 +139,16 @@ async function generate(payload) {
 }
 
 http.createServer(async (request, response) => {
-  const origin = originFor(request)
-  if (request.headers.origin && origin === null) return reply(response, 403, { error: '当前网页来源未被允许访问规划助手' })
-  if (request.method === 'OPTIONS') return reply(response, 204, {}, origin)
-  if (request.method === 'GET' && request.url === '/health') return reply(response, 200, { ok: true, model: apiKey ? model : null, requiresAuth: Boolean(accessToken) }, origin)
-  if (request.method !== 'POST' || request.url !== '/v1/plan') return reply(response, 404, { error: 'Not found' }, origin)
-  if (!authorized(request)) return reply(response, 401, { error: '规划助手访问口令不正确' }, origin)
+  if (request.method === 'OPTIONS') return reply(response, 204, {})
+  if (request.method === 'GET' && request.url === '/health') return reply(response, 200, { ok: true, model: apiKey ? model : null, requiresAuth: Boolean(accessToken) })
+  if (request.method !== 'POST' || request.url !== '/v1/plan') return reply(response, 404, { error: 'Not found' })
+  if (!authorized(request)) return reply(response, 401, { error: '规划助手访问口令不正确' })
   try {
     const payload = await readBody(request)
-    if (!payload?.input?.destination || !payload?.input?.days) return reply(response, 400, { error: '请提供目的地和计划天数' }, origin)
+    if (!payload?.input?.destination || !payload?.input?.days) return reply(response, 400, { error: '请提供目的地和计划天数' })
     const draft = await generate(payload)
-    return reply(response, 200, { draft }, origin)
+    return reply(response, 200, { draft })
   } catch (error) {
-    return reply(response, 502, { error: error instanceof Error ? error.message : '规划服务暂时不可用' }, origin)
+    return reply(response, 502, { error: error instanceof Error ? error.message : '规划服务暂时不可用' })
   }
 }).listen(port, () => console.log(`TripNote Agent 服务已启动：http://0.0.0.0:${port}`))
