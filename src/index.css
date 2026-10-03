@@ -354,16 +354,8 @@ input:focus, textarea:focus, select:focus {
 .map-narrative-preview.mobile-plan-root .mobile-day-rail { background: #f8fafb; }
 .map-narrative-preview.mobile-plan-root .mobile-map-actions { background: rgba(248,251,252,.94); }
 .map-narrative-preview.mobile-plan-root .mobile-timeline { background: #fff; }
-/* 手机预览：地图先讲述当天路线，再进入日期章节与完整时间轴。 */
+/* 手机预览：保留原有日期条位置，仅加强真实地图的层次与路线表现。 */
 .map-narrative-preview.mobile-plan-root .mobile-map-stage { order: 1; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent); }
-.map-narrative-preview.mobile-plan-root .mobile-map-actions { order: 2; min-height: 34px; padding-inline: 10px; }
-.map-narrative-preview.mobile-plan-root [role="separator"] { order: 3; height: 8px; }
-.map-narrative-preview.mobile-plan-root .mobile-day-rail { order: 4; padding-block: 6px; border-top: 1px solid color-mix(in srgb, var(--color-border) 45%, transparent); }
-.map-narrative-preview.mobile-plan-root [data-mobile-timeline-scroll] { order: 5; }
-.map-narrative-preview.mobile-plan-root .mobile-plan-dock { order: 6; }
-.map-narrative-preview.mobile-plan-root .mobile-day-chip { min-width: 54px; border-radius: 8px; background: transparent; color: var(--color-text-muted); }
-.map-narrative-preview.mobile-plan-root .mobile-day-chip.is-active { background: color-mix(in srgb, var(--color-accent-soft) 70%, white); box-shadow: inset 0 -2px var(--color-accent); }
-.map-narrative-preview.mobile-plan-root .map-story-mobile-caption { border-color: rgba(255,255,255,.92); }
 .map-narrative-preview.mobile-plan-root .mobile-map-actions__button { min-height: 30px; font-size: 10.5px; }
 .wishlist-view .wishlist-search-panel {
   border-color: rgba(29,29,31,.075);
