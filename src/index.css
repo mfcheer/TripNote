@@ -343,7 +343,7 @@ input:focus, textarea:focus, select:focus {
 .mobile-plan-root .mobile-timeline [data-activity-id] > div > div { border-radius: 8px; }
 .mobile-plan-root .mobile-timeline [data-activity-id] + [data-activity-id] { margin-top: 0; }
 
-/* 仅在 ?preview=map-story 下启用：不改变内容，只让真实地图成为当天行程的视觉线索。 */
+/* 地图叙事层级：不改变内容，只让真实地图成为当天行程的视觉线索。 */
 .map-narrative-preview.workspace-root > div:last-of-type { gap: 4px; padding: 4px; background: #f4f7f8; }
 .map-narrative-preview.workspace-root [data-workspace-scroll] { border-radius: 14px; }
 .map-narrative-preview.workspace-root > div:last-of-type > aside { border-radius: 14px; box-shadow: 0 10px 26px rgba(42, 71, 80, .07); }

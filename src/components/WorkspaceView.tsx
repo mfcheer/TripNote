@@ -186,7 +186,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   </aside>
 }
 
-export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOpenAgent, mapNarrativePreview = false }: { onExport: () => void; exporting: boolean; onOpenFullMap: () => void; onOpenAgent: () => void; mapNarrativePreview?: boolean }) {
+export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOpenAgent, mapNarrativePreview = true }: { onExport: () => void; exporting: boolean; onOpenFullMap: () => void; onOpenAgent: () => void; mapNarrativePreview?: boolean }) {
   const trip = useActiveTrip()
   const { trips, deletedTrips, activeTripId, switchTrip, createTrip, deleteTrip, setTripSearchRegion, scheduleWishPlace, activeDayId, setActiveDay } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)

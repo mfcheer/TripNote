@@ -28,7 +28,7 @@ function readMobileMapCollapsed() {
 }
 
 // 手机端以“看路线 → 编排当天 → 补充地点”为单一连续任务，地图不再是需要跳转的独立页面。
-export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = false }: { onOpenFullMap: () => void; mapNarrativePreview?: boolean }) {
+export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = true }: { onOpenFullMap: () => void; mapNarrativePreview?: boolean }) {
   const trip = useActiveTrip()
   const { activeDayId, setActiveDay, selectActivity } = useTripStore()
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
