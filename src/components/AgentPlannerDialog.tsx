@@ -33,7 +33,7 @@ function guessedDays(text: string, fallback: number) {
 
 export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClose: () => void; onOpenSettings: () => void }) {
   const trip = useActiveTrip()
-  const { agentServiceUrl, agentAccessToken, createTripFromAgentDraft, applyAgentDraftToCurrent, restoreTrips, trips, activeTripId } = useTripStore()
+  const { agentServiceUrl, agentAccessToken, agentConversations, addAgentConversationTurn, clearAgentConversation, createTripFromAgentDraft, applyAgentDraftToCurrent, restoreTrips, trips, activeTripId } = useTripStore()
   const [intent, setIntent] = useState<AssistantIntent>('create')
   const [message, setMessage] = useState('')
   const [detailsOpen, setDetailsOpen] = useState(false)
@@ -47,6 +47,7 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
   const [error, setError] = useState('')
   const revising = intent !== 'create'
   const meta = intentMeta[intent]
+  const conversation = agentConversations[trip.id] ?? []
 
   const preparedInput = useMemo<AgentPlanInput>(() => ({
     ...input,
@@ -71,7 +72,13 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
     setBusy(true)
     setError('')
     try {
-      setDraft(await requestAgentPlan(agentServiceUrl, preparedInput, trip, undefined, agentAccessToken))
+      const nextDraft = await requestAgentPlan(agentServiceUrl, preparedInput, trip, undefined, agentAccessToken, conversation)
+      setDraft(nextDraft)
+      addAgentConversationTurn(trip.id, {
+        intent,
+        request: message.trim(),
+        responseSummary: `${nextDraft.tripName} · ${nextDraft.days.length} 天${nextDraft.warnings.length ? ` · ${nextDraft.warnings.length} 项待确认` : ''}`,
+      })
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : '生成建议失败，请稍后重试')
     } finally {
@@ -109,6 +116,7 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
         {draft.assumptions.length > 0 && <p className="mt-2.5 text-[11.5px] leading-relaxed text-text-muted">{draft.assumptions.slice(0, 2).join('；')}</p>}
       </section>
       {draft.warnings.length > 0 && <section className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-3.5 py-3 text-[11.5px] leading-relaxed text-amber-900"><div className="font-semibold">需要你确认</div><div className="mt-1">{draft.warnings.join('；')}</div></section>}
+      {(draft.checks?.length ?? 0) > 0 && <section className="rounded-xl border border-border/75 bg-surface/65 px-3.5 py-3"><div className="text-[12px] font-semibold text-text">我已经帮你核验</div><div className="mt-2 space-y-2">{draft.checks!.map((check, index) => <div key={`${check.kind}-${index}`} className="text-[11px] leading-relaxed text-text-muted"><span className={`mr-1.5 font-medium ${check.tone === 'warning' ? 'text-amber-700' : 'text-accent-hover'}`}>{check.tone === 'warning' ? '需留意' : '已完成'} · {check.title}</span>{check.detail}</div>)}</div></section>}
       <section className="space-y-2">{draft.days.map((day, index) => {
         const before = trip.days[index]
         const beforeActivities = before ? trip.activities.filter((activity) => activity.dayId === before.id) : []
@@ -129,6 +137,7 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
       <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-surface-2/80 p-1.5">
         {(Object.keys(intentMeta) as AssistantIntent[]).map((key) => <button key={key} onClick={() => changeIntent(key)} className={`rounded-[10px] px-2 py-2 text-[11.5px] font-medium transition-colors ${intent === key ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>{key === 'create' ? '规划旅行' : key === 'revise' ? '调整行程' : '检查行程'}</button>)}
       </div>
+      {conversation.length > 0 && <div className="flex items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2 text-[10.5px] text-text-faint"><span>已记住本次旅行最近 {conversation.length} 次助手建议（仅此浏览器）</span><button onClick={() => { clearAgentConversation(trip.id); useToastStore.getState().show('已清除本次旅行的助手对话记录', { tone: 'neutral' }) }} className="shrink-0 font-medium text-text-muted hover:text-text">清除</button></div>}
       <section className="rounded-xl border border-border/75 bg-white px-3.5 py-3"><div className="text-[13px] font-semibold text-text">{meta.title}</div><p className="mt-1 text-[11.5px] leading-relaxed text-text-muted">{meta.description}</p><textarea autoFocus value={message} onChange={(event) => setMessage(event.target.value)} placeholder={revising ? (intent === 'check' ? '例如：每天不要太赶，重点看看交通和步行距离。' : '例如：第 3 天改成轻松一点，长白山多住一晚。') : '例如：去东北吉林玩 3 天，自驾，自然风景优先，每天别太赶。'} className="mt-3 min-h-24 w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-faint" /></section>
       <div className="flex flex-wrap gap-2">{(revising ? ['第 3 天别太赶', '减少步行', '把长白山多留一天'] : ['东北吉林 3 天，轻松自驾', '济州岛 4 天，咖啡和海边', '关西 5 天，亲子慢游']).map((suggestion) => <button key={suggestion} onClick={() => setMessage(suggestion)} className="rounded-full border border-border bg-white px-2.5 py-1 text-[10.5px] text-text-muted transition-colors hover:border-accent/30 hover:text-accent">{suggestion}</button>)}</div>
       <button onClick={() => setDetailsOpen((value) => !value)} className="text-[11.5px] font-medium text-text-muted hover:text-text">{detailsOpen ? '收起旅行细节' : '补充日期、天数和交通方式（可选）'}</button>

@@ -6,7 +6,9 @@ const apiKey = process.env.OPENAI_API_KEY || ''
 const model = process.env.OPENAI_MODEL || 'gpt-4.1-mini'
 const accessToken = process.env.AGENT_ACCESS_TOKEN || ''
 const placeSearchUrl = process.env.PLACE_SEARCH_URL || 'https://nominatim.openstreetmap.org/search'
+const routeServiceUrl = process.env.ROUTE_SERVICE_URL || 'https://router.project-osrm.org/route/v1/driving'
 const placeCache = new Map()
+const routeCache = new Map()
 let lastPlaceSearchAt = 0
 
 function reply(response, status, body) {
@@ -44,7 +46,7 @@ function promptFor(payload, repairHint = '') {
   const { input = {}, context = {} } = payload
   return `你是 TripNote 的旅行规划助手。请按用户需求生成现实可执行的旅行草案。
 用户需求：目的地=${input.destination || ''}；天数=${input.days || ''}；出发日期=${input.startDate || '未定'}；出行方式=${input.transport || '未定'}；偏好=${input.preferences || '未提供'}。
-任务模式=${input.mode === 'revise' ? '调整现有旅行：保留合理安排，仅按用户调整要求生成完整的新副本' : '新建旅行'}。已有旅行上下文：名称=${context.name || '无'}；区域=${context.searchRegion || '无'}；已收藏地点=${Array.isArray(context.places) ? context.places.join('、') : '无'}；当前行程=${JSON.stringify(context.itinerary || [])}。
+任务模式=${input.mode === 'revise' ? '调整现有旅行：保留合理安排，仅按用户调整要求生成完整的新副本' : '新建旅行'}。已有旅行上下文：名称=${context.name || '无'}；区域=${context.searchRegion || '无'}；预算=${context.totalBudget || '未定'}；已收藏地点=${JSON.stringify(context.places || [])}；当前行程=${JSON.stringify(context.itinerary || [])}；最近对话=${JSON.stringify(context.conversation || [])}。
 严格只输出 JSON，不要 Markdown。使用如下结构：
 {"tripName":"","searchRegion":"","totalBudget":0,"assumptions":[""],"warnings":[""],"days":[{"date":"YYYY-MM-DD 或留空","place":"城市或区域","activities":[{"time":"HH:MM","title":"","category":"traffic|sight|food|stay|shop","location":"","durationMinutes":90,"duration":"1.5小时","note":"","estimatedCost":0,"travelMode":"walk|drive|train|flight|charter"}]}]}
 规则：必须恰好给出用户要求的天数；每天 2-5 项；交通段用 traffic；不要编造精确营业时间、价格或不存在的预约；不确定信息写入 assumptions 或 warnings；把较长跨城移动明确标注。${repairHint}`
@@ -124,6 +126,68 @@ async function enrichPlaces(draft, payload) {
   return draft
 }
 
+function directDistanceMeters(from, to) {
+  const radians = (value) => value * Math.PI / 180
+  const dLat = radians(to.lat - from.lat)
+  const dLng = radians(to.lng - from.lng)
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(radians(from.lat)) * Math.cos(radians(to.lat)) * Math.sin(dLng / 2) ** 2
+  return Math.round(6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)))
+}
+
+function timeToMinutes(value) {
+  const match = typeof value === 'string' && value.match(/^(\d{1,2}):(\d{2})$/)
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null
+}
+
+async function routeEstimate(from, to) {
+  const key = `${from.lat.toFixed(4)},${from.lng.toFixed(4)}:${to.lat.toFixed(4)},${to.lng.toFixed(4)}`
+  if (routeCache.has(key)) return routeCache.get(key)
+  const direct = directDistanceMeters(from, to)
+  try {
+    const url = `${routeServiceUrl}/${from.lng},${from.lat};${to.lng},${to.lat}?overview=false`
+    const response = await fetch(url, { signal: AbortSignal.timeout(12_000) })
+    const result = await response.json().catch(() => null)
+    const route = result?.routes?.[0]
+    const estimate = route && Number.isFinite(route.distance) ? {
+      distanceMeters: Math.round(route.distance), durationMinutes: Number.isFinite(route.duration) ? Math.max(1, Math.round(route.duration / 60)) : null, source: 'route',
+    } : { distanceMeters: direct, durationMinutes: null, source: 'direct' }
+    routeCache.set(key, estimate)
+    return estimate
+  } catch {
+    return { distanceMeters: direct, durationMinutes: null, source: 'direct' }
+  }
+}
+
+async function assessDraft(draft) {
+  const checks = []
+  const verified = draft.days.flatMap((day) => day.activities).filter((activity) => activity.geo).length
+  if (verified) checks.push({ kind: 'place', tone: 'info', title: `已核验 ${verified} 个地点`, detail: '这些地点已补齐地图坐标，可在行程地图中直接查看。' })
+  const pairs = []
+  draft.days.forEach((day, dayIndex) => day.activities.slice(1).forEach((to, index) => {
+    const from = day.activities[index]
+    if (from.geo && to.geo && from.category !== 'traffic' && to.category !== 'traffic') pairs.push({ from, to, dayIndex })
+  }))
+  const findings = await Promise.all(pairs.slice(0, 5).map(async ({ from, to, dayIndex }) => ({ from, to, dayIndex, route: await routeEstimate(from.geo, to.geo) })))
+  findings.forEach(({ from, to, dayIndex, route }) => {
+    const km = route.distanceMeters / 1000
+    const toMinutes = timeToMinutes(to.time)
+    const fromMinutes = timeToMinutes(from.time)
+    const gap = toMinutes !== null && fromMinutes !== null ? toMinutes - fromMinutes : null
+    const duration = Number(from.durationMinutes) || 0
+    const insufficient = route.durationMinutes && gap !== null && gap - duration < route.durationMinutes
+    if (km >= 15 || insufficient) {
+      const distance = km >= 10 ? `${km.toFixed(0)} km` : `${km.toFixed(1)} km`
+      const durationText = route.durationMinutes ? `，驾车约 ${route.durationMinutes} 分钟` : ''
+      const detail = `${from.title} → ${to.title} 约 ${distance}${durationText}。${insufficient ? '当前时间间隔可能不足，建议调整时间或补充交通安排。' : '建议确认交通方式与出发时间。'}`
+      checks.push({ kind: 'route', tone: 'warning', title: `第 ${dayIndex + 1} 天有一段较长移动`, detail })
+      draft.warnings = [...(draft.warnings || []), detail]
+    }
+  })
+  draft.checks = checks.slice(0, 6)
+  draft.warnings = [...new Set(draft.warnings || [])].slice(0, 6)
+  return draft
+}
+
 async function generate(payload) {
   if (!apiKey) throw new Error('服务端尚未配置 OPENAI_API_KEY')
   const expectedDays = Math.max(1, Math.min(30, Number(payload?.input?.days) || 0))
@@ -135,7 +199,7 @@ async function generate(payload) {
     issue = validateDraft(draft, expectedDays)
   }
   if (issue) throw new Error(`助手返回的草案不完整：${issue}，请重试`)
-  return enrichPlaces(draft, payload)
+  return assessDraft(await enrichPlaces(draft, payload))
 }
 
 http.createServer(async (request, response) => {

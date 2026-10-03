@@ -94,6 +94,24 @@ export interface AgentPlanDraft {
   days: Array<{ date?: string; place: string; activities: AgentDraftActivity[] }>
   assumptions: string[]
   warnings: string[]
+  checks?: AgentPlanCheck[]
+}
+
+/** Agent 服务执行地点、距离等核验后给出的可读结论。 */
+export interface AgentPlanCheck {
+  kind: 'place' | 'route' | 'schedule'
+  tone: 'info' | 'warning'
+  title: string
+  detail: string
+}
+
+/** 仅保存在当前浏览器，用于同一旅行内的连续追问。 */
+export interface AgentConversationTurn {
+  id: string
+  createdAt: string
+  intent: 'create' | 'revise' | 'check'
+  request: string
+  responseSummary: string
 }
 
 // 已删除旅行会保留完整快照，便于在回收站中恢复。

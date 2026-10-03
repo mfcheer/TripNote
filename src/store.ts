@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { Activity, AgentPlanDraft, Cost, DeletedTrip, Trip, TripDay, ViewKey, PlanTab, WishPlace } from './types'
+import type { Activity, AgentConversationTurn, AgentPlanDraft, Cost, DeletedTrip, Trip, TripDay, ViewKey, PlanTab, WishPlace } from './types'
 import type { ActivityFormValues } from './components/ActivityForm'
 import { seedTrip } from './data/seed'
 import type { BackupData } from './utils/localBackup'
@@ -33,6 +33,8 @@ interface TripState {
   // Agent 模型密钥永远只配置在服务端；访问口令只存本浏览器，不进入备份。
   agentServiceUrl: string
   agentAccessToken: string
+  /** 按旅行隔离的本机助手短会话；不进入备份，也不写入 NAS。 */
+  agentConversations: Record<string, AgentConversationTurn[]>
   setAmapKeys: (keys: { jsKey: string; webServiceKey: string }) => void
   setMaptilerKey: (key: string) => void
   setMapDisplayProvider: (provider: 'amap' | 'osm' | 'maptiler-zh') => void
@@ -40,6 +42,8 @@ interface TripState {
   setMapRouteMode: (mode: 'direct' | 'walking') => void
   setAgentServiceUrl: (url: string) => void
   setAgentAccessToken: (token: string) => void
+  addAgentConversationTurn: (tripId: string, turn: Omit<AgentConversationTurn, 'id' | 'createdAt'>) => void
+  clearAgentConversation: (tripId: string) => void
   // 编辑表单草稿（切换天/视图/旅程时暂存，回来恢复，避免丢输入）
   activityDraft: { activityId: string; values: ActivityFormValues } | null
   saveActivityDraft: (draft: { activityId: string; values: ActivityFormValues } | null) => void
@@ -352,6 +356,7 @@ export const useTripStore = create<TripState>()(
       mapRouteMode: 'direct',
       agentServiceUrl: '',
       agentAccessToken: '',
+      agentConversations: {},
       setAmapKeys: ({ jsKey, webServiceKey }) => set({
         amapJsKey: jsKey.trim(),
         amapWebServiceKey: webServiceKey.trim(),
@@ -362,6 +367,15 @@ export const useTripStore = create<TripState>()(
       setMapRouteMode: (mapRouteMode) => set({ mapRouteMode }),
       setAgentServiceUrl: (agentServiceUrl) => set({ agentServiceUrl: agentServiceUrl.trim().replace(/\/$/, '') }),
       setAgentAccessToken: (agentAccessToken) => set({ agentAccessToken: agentAccessToken.trim() }),
+      addAgentConversationTurn: (tripId, turn) => set((state) => {
+        const previous = state.agentConversations[tripId] ?? []
+        const next: AgentConversationTurn = { ...turn, id: makeId('agent-turn'), createdAt: new Date().toISOString() }
+        return { agentConversations: { ...state.agentConversations, [tripId]: [...previous, next].slice(-6) } }
+      }),
+      clearAgentConversation: (tripId) => set((state) => {
+        const { [tripId]: _removed, ...remaining } = state.agentConversations
+        return { agentConversations: remaining }
+      }),
       activityDraft: null,
       saveActivityDraft: (activityDraft) => set({ activityDraft }),
 
@@ -1053,6 +1067,7 @@ export const useTripStore = create<TripState>()(
         mapRouteMode: s.mapRouteMode,
         agentServiceUrl: s.agentServiceUrl,
         agentAccessToken: s.agentAccessToken,
+        agentConversations: s.agentConversations,
       }),
     },
   ),
