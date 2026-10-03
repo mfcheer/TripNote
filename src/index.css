@@ -355,7 +355,7 @@ input:focus, textarea:focus, select:focus {
 .map-narrative-preview.mobile-plan-root .mobile-map-actions { background: rgba(248,251,252,.94); }
 .map-narrative-preview.mobile-plan-root .mobile-timeline { background: #fff; }
 /* 手机预览：保留原有日期条位置，仅加强真实地图的层次与路线表现。 */
-.map-narrative-preview.mobile-plan-root .mobile-map-stage { order: 1; border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent); }
+.map-narrative-preview.mobile-plan-root .mobile-map-stage { border-bottom: 1px solid color-mix(in srgb, var(--color-border) 60%, transparent); }
 .map-narrative-preview.mobile-plan-root .mobile-map-actions__button { min-height: 30px; font-size: 10.5px; }
 .wishlist-view .wishlist-search-panel {
   border-color: rgba(29,29,31,.075);
