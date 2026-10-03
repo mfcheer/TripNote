@@ -1,12 +1,14 @@
-import type { ActivityCategory, AgentConversationTurn, AgentPlanCheck, AgentPlanDraft, GeoPoint, TravelMode, Trip } from '../types'
+import type { ActivityCategory, AgentConversationTurn, AgentDiagnosis, AgentDiagnosisIssue, AgentPlanCheck, AgentPlanDraft, GeoPoint, TravelMode, Trip } from '../types'
 
 export interface AgentPlanInput {
-  mode?: 'create' | 'revise'
+  mode?: 'create' | 'revise' | 'check'
   destination: string
   days: number
   startDate?: string
   transport: string
   preferences: string
+  /** 仅调整指定天；未指定时才允许给出整份旅行的调整草案。 */
+  targetDayIndex?: number
 }
 
 function validCategory(value: unknown): ActivityCategory {
@@ -75,27 +77,61 @@ export async function requestAgentPlan(serviceUrl: string, input: AgentPlanInput
     method: 'POST',
     signal,
     headers: { 'Content-Type': 'application/json', ...(accessToken.trim() ? { Authorization: `Bearer ${accessToken.trim()}` } : {}) },
-    body: JSON.stringify({
-      input,
-      // 按需传递当前旅行摘要与最近几轮本机对话，不上传完整本地数据库。
-      context: currentTrip ? {
-        name: currentTrip.name,
-        searchRegion: currentTrip.searchRegion,
-        places: currentTrip.wishPlaces.slice(0, 30).map((place) => ({ title: place.title, category: place.category, location: place.location, geo: place.geo })),
-        itinerary: currentTrip.days.slice(0, 30).map((day) => ({
-          date: day.date, place: day.place,
-          activities: currentTrip.activities.filter((activity) => activity.dayId === day.id).map((activity) => ({
-            time: activity.time, title: activity.title, category: activity.category, location: activity.location,
-            durationMinutes: activity.durationMinutes, duration: activity.duration, travelMode: activity.travelMode, geo: activity.geo,
-            cost: activity.costs.reduce((sum, cost) => sum + cost.amount, 0),
-          })),
-        })),
-        totalBudget: currentTrip.totalBudget,
-        conversation: conversation.slice(-4).map((turn) => ({ intent: turn.intent, request: turn.request, responseSummary: turn.responseSummary })),
-      } : undefined,
-    }),
+    body: JSON.stringify({ input, context: agentContext(currentTrip, conversation) }),
   })
   const body = await response.json().catch(() => null) as { draft?: unknown; error?: string } | null
   if (!response.ok) throw new Error(body?.error || `规划助手暂时不可用（${response.status}）`)
   return normalizeDraft(body?.draft)
+}
+
+function agentContext(currentTrip: Trip | undefined, conversation: AgentConversationTurn[]) {
+  if (!currentTrip) return undefined
+  // 按需传递当前旅行摘要与最近几轮本机对话，不上传完整本地数据库。
+  return {
+    name: currentTrip.name,
+    searchRegion: currentTrip.searchRegion,
+    places: currentTrip.wishPlaces.slice(0, 30).map((place) => ({ title: place.title, category: place.category, location: place.location, geo: place.geo })),
+    itinerary: currentTrip.days.slice(0, 30).map((day) => ({
+      date: day.date, place: day.place,
+      activities: currentTrip.activities.filter((activity) => activity.dayId === day.id).map((activity) => ({
+        time: activity.time, title: activity.title, category: activity.category, location: activity.location,
+        durationMinutes: activity.durationMinutes, duration: activity.duration, travelMode: activity.travelMode, geo: activity.geo,
+        cost: activity.costs.reduce((sum, cost) => sum + cost.amount, 0),
+      })),
+    })),
+    totalBudget: currentTrip.totalBudget,
+    conversation: conversation.slice(-4).map((turn) => ({ intent: turn.intent, request: turn.request, responseSummary: turn.responseSummary })),
+  }
+}
+
+function normalizeDiagnosis(value: unknown): AgentDiagnosis {
+  const raw = value as Partial<AgentDiagnosis>
+  const issues = Array.isArray(raw?.issues) ? raw.issues.slice(0, 6).flatMap((item, index) => {
+    const issue = item as Partial<AgentDiagnosisIssue>
+    if (typeof issue?.title !== 'string' || typeof issue.detail !== 'string') return []
+    return [{
+      id: typeof issue.id === 'string' && issue.id ? issue.id : `issue-${index}`,
+      dayIndex: typeof issue.dayIndex === 'number' && Number.isInteger(issue.dayIndex) && issue.dayIndex >= 0 ? issue.dayIndex : undefined,
+      severity: issue.severity === 'warning' ? 'warning' as const : 'info' as const,
+      title: issue.title,
+      detail: issue.detail,
+      suggestion: typeof issue.suggestion === 'string' ? issue.suggestion : '检查后按实际情况调整。',
+    }]
+  }) : []
+  return {
+    summary: typeof raw?.summary === 'string' && raw.summary.trim() ? raw.summary : (issues.length ? '发现几处可以再确认的安排。' : '当前行程节奏看起来不错。'),
+    issues,
+  }
+}
+
+export async function requestAgentCheck(serviceUrl: string, input: AgentPlanInput, currentTrip: Trip, signal?: AbortSignal, accessToken = '', conversation: AgentConversationTurn[] = []) {
+  if (!serviceUrl.trim()) throw new Error('请先在设置中连接规划助手服务')
+  const response = await fetch(`${serviceUrl.replace(/\/$/, '')}/v1/check`, {
+    method: 'POST', signal,
+    headers: { 'Content-Type': 'application/json', ...(accessToken.trim() ? { Authorization: `Bearer ${accessToken.trim()}` } : {}) },
+    body: JSON.stringify({ input: { ...input, mode: 'check' }, context: agentContext(currentTrip, conversation) }),
+  })
+  const body = await response.json().catch(() => null) as { diagnosis?: unknown; error?: string } | null
+  if (!response.ok) throw new Error(body?.error || `规划助手暂时不可用（${response.status}）`)
+  return normalizeDiagnosis(body?.diagnosis)
 }

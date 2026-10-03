@@ -46,10 +46,19 @@ function promptFor(payload, repairHint = '') {
   const { input = {}, context = {} } = payload
   return `你是 TripNote 的旅行规划助手。请按用户需求生成现实可执行的旅行草案。
 用户需求：目的地=${input.destination || ''}；天数=${input.days || ''}；出发日期=${input.startDate || '未定'}；出行方式=${input.transport || '未定'}；偏好=${input.preferences || '未提供'}。
-任务模式=${input.mode === 'revise' ? '调整现有旅行：保留合理安排，仅按用户调整要求生成完整的新副本' : '新建旅行'}。已有旅行上下文：名称=${context.name || '无'}；区域=${context.searchRegion || '无'}；预算=${context.totalBudget || '未定'}；已收藏地点=${JSON.stringify(context.places || [])}；当前行程=${JSON.stringify(context.itinerary || [])}；最近对话=${JSON.stringify(context.conversation || [])}。
+任务模式=${input.mode === 'revise' ? (Number.isInteger(input.targetDayIndex) ? `只调整第 ${input.targetDayIndex + 1} 天：其他日期必须与当前行程保持一致` : '调整现有旅行：保留合理安排，仅按用户调整要求生成完整的新副本') : '新建旅行'}。已有旅行上下文：名称=${context.name || '无'}；区域=${context.searchRegion || '无'}；预算=${context.totalBudget || '未定'}；已收藏地点=${JSON.stringify(context.places || [])}；当前行程=${JSON.stringify(context.itinerary || [])}；最近对话=${JSON.stringify(context.conversation || [])}。
 严格只输出 JSON，不要 Markdown。使用如下结构：
 {"tripName":"","searchRegion":"","totalBudget":0,"assumptions":[""],"warnings":[""],"days":[{"date":"YYYY-MM-DD 或留空","place":"城市或区域","activities":[{"time":"HH:MM","title":"","category":"traffic|sight|food|stay|shop","location":"","durationMinutes":90,"duration":"1.5小时","note":"","estimatedCost":0,"travelMode":"walk|drive|train|flight|charter"}]}]}
 规则：必须恰好给出用户要求的天数；每天 2-5 项；交通段用 traffic；不要编造精确营业时间、价格或不存在的预约；不确定信息写入 assumptions 或 warnings；把较长跨城移动明确标注。${repairHint}`
+}
+
+function checkPromptFor(payload, baselineIssues) {
+  const { input = {}, context = {} } = payload
+  return `你是 TripNote 的旅行行程检查助手。不要生成或改写行程，只诊断当前行程中最值得用户确认的问题。
+用户补充：${input.preferences || '无'}。已有旅行：名称=${context.name || '无'}；区域=${context.searchRegion || '无'}；当前行程=${JSON.stringify(context.itinerary || [])}；预检查发现=${JSON.stringify(baselineIssues)}；最近对话=${JSON.stringify(context.conversation || [])}。
+严格只输出 JSON，不要 Markdown：
+{"summary":"一句整体结论","issues":[{"id":"稳定英文短 id","dayIndex":0,"severity":"warning|info","title":"短标题","detail":"说明问题","suggestion":"可执行的单日调整建议"}]}
+规则：最多 5 项；没有明显问题可返回空数组；dayIndex 从 0 开始；不编造营业时间或票价；只聚焦时间冲突、距离/交通、地点待确认与节奏。`
 }
 
 function validateDraft(draft, expectedDays) {
@@ -62,7 +71,7 @@ function validateDraft(draft, expectedDays) {
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
-async function callModel(payload, repairHint = '') {
+async function callModel(payload, repairHint = '', mode = 'plan') {
   let lastError = ''
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const controller = new AbortController()
@@ -73,7 +82,7 @@ async function callModel(payload, repairHint = '') {
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model, temperature: 0.45, max_tokens: 8000, response_format: { type: 'json_object' },
-          messages: [{ role: 'system', content: '你只返回有效 JSON。' }, { role: 'user', content: promptFor(payload, repairHint) }],
+          messages: [{ role: 'system', content: '你只返回有效 JSON。' }, { role: 'user', content: mode === 'check' ? checkPromptFor(payload, repairHint) : promptFor(payload, repairHint) }],
         }),
       })
       const result = await upstream.json().catch(() => null)
@@ -91,6 +100,47 @@ async function callModel(payload, repairHint = '') {
     } finally { clearTimeout(timeout) }
   }
   throw new Error(lastError || '模型服务暂时不可用，请稍后重试')
+}
+
+function basicDiagnosis(context = {}) {
+  const issues = []
+  const itinerary = Array.isArray(context.itinerary) ? context.itinerary : []
+  itinerary.forEach((day, dayIndex) => {
+    const activities = Array.isArray(day.activities) ? day.activities : []
+    if (activities.length >= 6) issues.push({ id: `dense-${dayIndex}`, dayIndex, severity: 'warning', title: '当天安排偏多', detail: `第 ${dayIndex + 1} 天有 ${activities.length} 项安排，实际移动与排队时间可能不够。`, suggestion: '保留最想去的 3–4 项，把其余地点移到相邻日期或设为备选。' })
+    for (let index = 1; index < activities.length; index += 1) {
+      const previous = activities[index - 1]; const current = activities[index]
+      const previousTime = timeToMinutes(previous.time); const currentTime = timeToMinutes(current.time)
+      const duration = Number(previous.durationMinutes) || 0
+      if (previousTime !== null && currentTime !== null && currentTime - previousTime < duration) {
+        issues.push({ id: `time-${dayIndex}-${index}`, dayIndex, severity: 'warning', title: '时间可能重叠', detail: `${previous.title} 与 ${current.title} 的间隔短于已填写的停留时长。`, suggestion: `把「${current.title}」延后，或缩短/移走前一项安排。` })
+        break
+      }
+    }
+    if (activities.some((activity) => !activity.location && !activity.geo)) issues.push({ id: `location-${dayIndex}`, dayIndex, severity: 'info', title: '有地点尚未定位', detail: '部分安排缺少地址或地图坐标，路线与交通时间暂时无法可靠判断。', suggestion: '补充具体地点或在地图上选点后，再检查当天路线。' })
+  })
+  return issues.slice(0, 5)
+}
+
+function normalizeDiagnosis(value, fallback) {
+  const issues = Array.isArray(value?.issues) ? value.issues.slice(0, 5).flatMap((issue, index) => {
+    if (!issue || typeof issue.title !== 'string' || typeof issue.detail !== 'string') return []
+    return [{ id: typeof issue.id === 'string' ? issue.id : `check-${index}`, dayIndex: Number.isInteger(issue.dayIndex) && issue.dayIndex >= 0 ? issue.dayIndex : undefined, severity: issue.severity === 'warning' ? 'warning' : 'info', title: issue.title, detail: issue.detail, suggestion: typeof issue.suggestion === 'string' ? issue.suggestion : '按实际情况调整。' }]
+  }) : fallback
+  return { summary: typeof value?.summary === 'string' && value.summary.trim() ? value.summary : (issues.length ? '发现几处可以再确认的安排，建议从影响最大的地方开始调整。' : '当前行程没有发现明显冲突，出发前再核对预约与实时交通即可。'), issues }
+}
+
+async function diagnose(payload) {
+  if (!apiKey) throw new Error('服务端尚未配置 OPENAI_API_KEY')
+  if (!Array.isArray(payload?.context?.itinerary) || !payload.context.itinerary.length) throw new Error('当前旅行还没有可检查的行程')
+  const fallback = basicDiagnosis(payload.context)
+  try {
+    return normalizeDiagnosis(await callModel(payload, fallback, 'check'), fallback)
+  } catch (error) {
+    // 模型暂时不可用时仍给出本地规则检查结果，不让“检查行程”整个失效。
+    if (fallback.length) return normalizeDiagnosis(null, fallback)
+    throw error
+  }
 }
 
 async function resolvePlace(query) {
@@ -205,10 +255,14 @@ async function generate(payload) {
 http.createServer(async (request, response) => {
   if (request.method === 'OPTIONS') return reply(response, 204, {})
   if (request.method === 'GET' && request.url === '/health') return reply(response, 200, { ok: true, model: apiKey ? model : null, requiresAuth: Boolean(accessToken) })
-  if (request.method !== 'POST' || request.url !== '/v1/plan') return reply(response, 404, { error: 'Not found' })
+  if (request.method !== 'POST' || !['/v1/plan', '/v1/check'].includes(request.url)) return reply(response, 404, { error: 'Not found' })
   if (!authorized(request)) return reply(response, 401, { error: '规划助手访问口令不正确' })
   try {
     const payload = await readBody(request)
+    if (request.url === '/v1/check') {
+      const diagnosis = await diagnose(payload)
+      return reply(response, 200, { diagnosis })
+    }
     if (!payload?.input?.destination || !payload?.input?.days) return reply(response, 400, { error: '请提供目的地和计划天数' })
     const draft = await generate(payload)
     return reply(response, 200, { draft })

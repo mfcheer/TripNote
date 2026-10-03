@@ -58,7 +58,7 @@ interface TripState {
   switchTrip: (tripId: string) => void
   createTrip: (input: string | TripCreateInput) => string
   createTripFromAgentDraft: (draft: AgentPlanDraft) => string
-  applyAgentDraftToCurrent: (draft: AgentPlanDraft) => void
+  applyAgentDraftToCurrent: (draft: AgentPlanDraft, options?: { dayIndices?: number[] }) => void
   deleteTrip: (tripId: string) => void
   restoreDeletedTrip: (tripId: string) => void
   purgeDeletedTrip: (tripId: string) => void
@@ -453,10 +453,40 @@ export const useTripStore = create<TripState>()(
         return id
       },
 
-      applyAgentDraftToCurrent: (draft) => set((s) => {
+      applyAgentDraftToCurrent: (draft, options) => set((s) => {
         const current = s.trips.find((trip) => trip.id === s.activeTripId)
         if (!current) return s
         const next = agentDraftTrip(draft, current.id, current)
+        const targetDays = options?.dayIndices?.filter((index) => index >= 0 && index < current.days.length && index < next.days.length)
+        if (targetDays?.length) {
+          const selected = new Set(targetDays)
+          const days = current.days.map((day, index) => selected.has(index)
+            ? { ...day, date: next.days[index].date, place: next.days[index].place }
+            : day)
+          const existingByKey = new Map(current.activities.map((activity) => [`${activity.title}\u0000${activity.location ?? ''}`.toLocaleLowerCase(), activity]))
+          const untouchedActivities = current.activities.filter((activity) => !selected.has(current.days.findIndex((day) => day.id === activity.dayId)))
+          const replacementActivities = targetDays.flatMap((index) => next.activities
+            .filter((activity) => activity.dayId === next.days[index].id)
+            .map((activity) => {
+              const known = existingByKey.get(`${activity.title}\u0000${activity.location ?? ''}`.toLocaleLowerCase())
+              // 匹配到用户原有事项时保留其 id、备注、花费、手动定位和来源；新增事项才采用助手字段。
+              return known && known.dayId === current.days[index].id
+                ? { ...activity, id: known.id, dayId: current.days[index].id, note: known.note ?? activity.note, geo: known.geo ?? activity.geo, travelMode: known.travelMode ?? activity.travelMode, sourceWishId: known.sourceWishId, costs: known.costs.length ? known.costs : activity.costs }
+                : { ...activity, dayId: current.days[index].id, sourceWishId: undefined }
+            }))
+          const merged: Trip = {
+            ...current,
+            searchRegion: draft.searchRegion?.trim() || current.searchRegion,
+            days,
+            daysCount: days.length,
+            activities: [...untouchedActivities, ...replacementActivities],
+          }
+          return {
+            trips: s.trips.map((trip) => trip.id === current.id ? merged : trip),
+            activeDayId: days[targetDays[0]]?.id ?? s.activeDayId, selectedActivityId: null, editingActivityId: null,
+            view: 'plan', planTab: 'timeline',
+          }
+        }
         return {
           trips: s.trips.map((trip) => trip.id === current.id ? next : trip),
           activeDayId: next.days[0]?.id ?? '', selectedActivityId: null, editingActivityId: null,

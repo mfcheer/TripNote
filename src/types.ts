@@ -105,6 +105,21 @@ export interface AgentPlanCheck {
   detail: string
 }
 
+/** 只读的行程体检结果；必须由用户选择某一项后才会进入调整草案。 */
+export interface AgentDiagnosis {
+  summary: string
+  issues: AgentDiagnosisIssue[]
+}
+
+export interface AgentDiagnosisIssue {
+  id: string
+  dayIndex?: number
+  severity: 'info' | 'warning'
+  title: string
+  detail: string
+  suggestion: string
+}
+
 /** 仅保存在当前浏览器，用于同一旅行内的连续追问。 */
 export interface AgentConversationTurn {
   id: string

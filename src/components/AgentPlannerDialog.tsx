@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import { requestAgentPlan, type AgentPlanInput } from '../api/agent'
+import { requestAgentCheck, requestAgentPlan, type AgentPlanInput } from '../api/agent'
 import { useActiveTrip, useTripStore } from '../store'
-import type { AgentPlanDraft } from '../types'
+import type { AgentDiagnosis, AgentPlanDraft } from '../types'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 import { useToastStore } from './toastStore'
 
@@ -11,7 +11,7 @@ type AssistantIntent = 'create' | 'revise' | 'check'
 const intentMeta: Record<AssistantIntent, { title: string; description: string; action: string }> = {
   create: { title: '从一句话开始', description: '告诉我想去哪、玩几天、喜欢什么，我会先做一份可编辑草案。', action: '生成旅行草案' },
   revise: { title: '调整当前旅行', description: '说说想怎么改，我会保留合理安排并给出一份变更建议。', action: '生成调整建议' },
-  check: { title: '检查当前行程', description: '我会检查节奏、跨城移动与待确认地点，并给出一份更顺的建议。', action: '检查并给出建议' },
+  check: { title: '检查当前行程', description: '先只找出节奏、跨城移动与待确认项；不会直接改动你的旅行。', action: '开始检查' },
 }
 
 function activityNames(values: Array<{ title: string }>) {
@@ -43,35 +43,44 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
     transport: '方式不限', preferences: '',
   })
   const [draft, setDraft] = useState<AgentPlanDraft | null>(null)
+  const [diagnosis, setDiagnosis] = useState<AgentDiagnosis | null>(null)
+  const [targetDayIndex, setTargetDayIndex] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const revising = intent !== 'create'
+  const revising = intent === 'revise'
   const meta = intentMeta[intent]
   const conversation = agentConversations[trip.id] ?? []
 
   const preparedInput = useMemo<AgentPlanInput>(() => ({
     ...input,
-    mode: revising ? 'revise' : 'create',
+    mode: intent,
     // 新旅行时把自然语言需求交给模型理解，避免先填一排参数；调整时保留当前旅行区域。
-    destination: revising ? (trip.searchRegion || trip.days[0]?.place || trip.name) : message.trim(),
+    destination: intent === 'create' ? message.trim() : (trip.searchRegion || trip.days[0]?.place || trip.name),
     days: guessedDays(message, input.days),
-    preferences: intent === 'check'
-      ? `请检查当前旅行的时间安排、跨城移动、地点距离与待确认项，并给出更顺的完整建议。用户补充：${message.trim()}`
-      : message.trim(),
-  }), [input, intent, message, revising, trip])
+    preferences: message.trim(),
+    targetDayIndex: intent === 'revise' && targetDayIndex !== null ? targetDayIndex : undefined,
+  }), [input, intent, message, targetDayIndex, trip])
 
   function changeIntent(next: AssistantIntent) {
     setIntent(next)
+    setDraft(null)
+    setDiagnosis(null)
     setError('')
     setMessage(next === 'create' ? '' : next === 'check' ? '帮我检查一下行程是否太赶、交通是否合理。' : '')
   }
 
   async function generate() {
-    if (!message.trim()) return setError(revising ? '告诉我你希望怎么调整或检查' : '说说这次旅行想怎么安排')
+    if (!message.trim()) return setError(intent === 'create' ? '说说这次旅行想怎么安排' : '告诉我你希望怎么调整或检查')
     if (!agentServiceUrl) return setError('请先连接规划助手服务')
     setBusy(true)
     setError('')
     try {
+      if (intent === 'check') {
+        const nextDiagnosis = await requestAgentCheck(agentServiceUrl, preparedInput, trip, undefined, agentAccessToken, conversation)
+        setDiagnosis(nextDiagnosis)
+        addAgentConversationTurn(trip.id, { intent, request: message.trim(), responseSummary: nextDiagnosis.summary })
+        return
+      }
       const nextDraft = await requestAgentPlan(agentServiceUrl, preparedInput, trip, undefined, agentAccessToken, conversation)
       setDraft(nextDraft)
       addAgentConversationTurn(trip.id, {
@@ -97,8 +106,9 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
     if (!draft) return
     const snapshot = trips
     const previousActiveTripId = activeTripId
-    applyAgentDraftToCurrent({ ...draft, tripName: trip.name })
-    useToastStore.getState().show('已应用助手建议到当前旅行', {
+    const isLocal = targetDayIndex !== null
+    applyAgentDraftToCurrent({ ...draft, tripName: trip.name }, isLocal ? { dayIndices: [targetDayIndex] } : undefined)
+    useToastStore.getState().show(isLocal ? `已仅调整第 ${targetDayIndex + 1} 天，其余安排保持不变` : '已应用助手建议到当前旅行', {
       undo: () => { restoreTrips(snapshot, previousActiveTripId); useToastStore.getState().show('已恢复调整前的旅行', { tone: 'neutral' }) },
     })
     onClose()
@@ -109,7 +119,14 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
   }, day)).length : 0
   const locatedCount = draft?.days.flatMap((day) => day.activities).filter((activity) => activity.geo).length ?? 0
 
-  if (draft) return <ModalShell title={revising ? '这是我整理后的建议' : '这份旅行可以这样开始'} description={revising ? `相对当前行程，建议调整 ${changedDays} 天；应用前仍可继续提要求。` : '先看重点与每天的安排，确认后才会写入旅行。'} onClose={onClose} size="lg" mobile="sheet" footer={revising ? <><button onClick={() => setDraft(null)} className={overlaySecondaryButtonClass}>继续调整</button><button onClick={applyDraft} className={overlaySecondaryButtonClass}>另存为新旅行</button><button onClick={applyToCurrentTrip} className={overlayPrimaryButtonClass}>应用建议</button></> : <><button onClick={() => setDraft(null)} className={overlaySecondaryButtonClass}>继续完善</button><button onClick={applyDraft} className={overlayPrimaryButtonClass}>创建这份旅行</button></>}>
+  if (diagnosis) return <ModalShell title="行程检查结果" description="这里只展示问题与建议；你选择修复哪一项后，助手才会生成对应日期的调整草案。" onClose={onClose} size="md" mobile="sheet" footer={<button onClick={() => setDiagnosis(null)} className={overlayPrimaryButtonClass}>继续检查或调整</button>}>
+    <div className="space-y-3">
+      <section className="rounded-2xl border border-action/15 bg-[linear-gradient(135deg,rgba(238,247,253,.9),rgba(255,255,255,.96))] px-4 py-3.5 text-[13px] leading-relaxed text-text">{diagnosis.summary}</section>
+      {diagnosis.issues.length === 0 ? <div className="rounded-xl border border-border/75 bg-white px-3.5 py-4 text-[12px] text-text-muted">暂未发现明显冲突。出行前仍建议核对营业时间、预约与实时交通。</div> : diagnosis.issues.map((issue) => <article key={issue.id} className="rounded-xl border border-border/75 bg-white px-3.5 py-3"><div className="flex items-start gap-2"><span className={`mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-medium ${issue.severity === 'warning' ? 'bg-amber-50 text-amber-700' : 'bg-surface-2 text-text-muted'}`}>{issue.dayIndex === undefined ? '整体' : `第 ${issue.dayIndex + 1} 天`}</span><div className="min-w-0"><div className="text-[12.5px] font-semibold text-text">{issue.title}</div><p className="mt-1 text-[11.5px] leading-relaxed text-text-muted">{issue.detail}</p><p className="mt-1.5 text-[11.5px] leading-relaxed text-accent-hover">建议：{issue.suggestion}</p></div></div><div className="mt-3 flex justify-end gap-2"><button onClick={() => useToastStore.getState().show('已保留当前安排', { tone: 'neutral' })} className="text-[11px] text-text-muted hover:text-text">暂不调整</button><button onClick={() => { setDiagnosis(null); setIntent('revise'); setTargetDayIndex(issue.dayIndex ?? null); setMessage(issue.suggestion || issue.detail); setError('') }} className="rounded-lg bg-action-soft px-2.5 py-1.5 text-[11px] font-medium text-accent-hover">{issue.dayIndex === undefined ? '生成调整建议' : `只修复第 ${issue.dayIndex + 1} 天`}</button></div></article>)}
+    </div>
+  </ModalShell>
+
+  if (draft) return <ModalShell title={revising ? '这是我整理后的建议' : '这份旅行可以这样开始'} description={revising ? (targetDayIndex !== null ? `只会应用第 ${targetDayIndex + 1} 天，其余日期与手填内容不动。` : `相对当前行程，建议调整 ${changedDays} 天；应用前仍可继续提要求。`) : '先看重点与每天的安排，确认后才会写入旅行。'} onClose={onClose} size="lg" mobile="sheet" footer={revising ? <><button onClick={() => setDraft(null)} className={overlaySecondaryButtonClass}>继续调整</button><button onClick={applyDraft} className={overlaySecondaryButtonClass}>另存为新旅行</button><button onClick={applyToCurrentTrip} className={overlayPrimaryButtonClass}>{targetDayIndex !== null ? `应用第 ${targetDayIndex + 1} 天调整` : '应用建议'}</button></> : <><button onClick={() => setDraft(null)} className={overlaySecondaryButtonClass}>继续完善</button><button onClick={applyDraft} className={overlayPrimaryButtonClass}>创建这份旅行</button></>}>
     <div className="space-y-4">
       <section className="rounded-2xl border border-action/15 bg-[linear-gradient(135deg,rgba(238,247,253,.9),rgba(255,255,255,.96))] px-4 py-3.5">
         <div className="flex items-start justify-between gap-3"><div><div className="text-[15px] font-semibold text-text">{draft.tripName}</div><div className="mt-1 text-[12px] text-text-muted">{draft.days.length} 天{draft.totalBudget ? ` · 预计 ¥${draft.totalBudget.toLocaleString()}` : ''}{locatedCount ? ` · 已定位 ${locatedCount} 个地点` : ''}</div></div><span className="rounded-full bg-white/80 px-2.5 py-1 text-[10.5px] font-medium text-accent-hover">草案</span></div>
@@ -137,8 +154,9 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
       <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-surface-2/80 p-1.5">
         {(Object.keys(intentMeta) as AssistantIntent[]).map((key) => <button key={key} onClick={() => changeIntent(key)} className={`rounded-[10px] px-2 py-2 text-[11.5px] font-medium transition-colors ${intent === key ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>{key === 'create' ? '规划旅行' : key === 'revise' ? '调整行程' : '检查行程'}</button>)}
       </div>
-      {conversation.length > 0 && <div className="flex items-center justify-between gap-3 rounded-lg bg-surface px-3 py-2 text-[10.5px] text-text-faint"><span>已记住本次旅行最近 {conversation.length} 次助手建议（仅此浏览器）</span><button onClick={() => { clearAgentConversation(trip.id); useToastStore.getState().show('已清除本次旅行的助手对话记录', { tone: 'neutral' }) }} className="shrink-0 font-medium text-text-muted hover:text-text">清除</button></div>}
-      <section className="rounded-xl border border-border/75 bg-white px-3.5 py-3"><div className="text-[13px] font-semibold text-text">{meta.title}</div><p className="mt-1 text-[11.5px] leading-relaxed text-text-muted">{meta.description}</p><textarea autoFocus value={message} onChange={(event) => setMessage(event.target.value)} placeholder={revising ? (intent === 'check' ? '例如：每天不要太赶，重点看看交通和步行距离。' : '例如：第 3 天改成轻松一点，长白山多住一晚。') : '例如：去东北吉林玩 3 天，自驾，自然风景优先，每天别太赶。'} className="mt-3 min-h-24 w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-faint" /></section>
+      {conversation.length > 0 && <section className="rounded-xl border border-border/75 bg-surface px-3 py-2.5"><div className="flex items-center justify-between gap-3 text-[10.5px] text-text-faint"><span>本次旅行最近 {conversation.length} 次对话（仅此浏览器）</span><button onClick={() => { clearAgentConversation(trip.id); useToastStore.getState().show('已清除本次旅行的助手对话记录', { tone: 'neutral' }) }} className="shrink-0 font-medium text-text-muted hover:text-text">清除</button></div><div className="mt-2 space-y-2">{conversation.slice(-3).map((turn) => <div key={turn.id} className="rounded-lg bg-white/75 px-2.5 py-2 text-[10.5px] leading-relaxed"><div className="text-text-muted">你：{turn.request}</div><div className="mt-0.5 text-accent-hover">助手：{turn.responseSummary}</div></div>)}</div></section>}
+      <section className="rounded-xl border border-border/75 bg-white px-3.5 py-3"><div className="text-[13px] font-semibold text-text">{meta.title}</div><p className="mt-1 text-[11.5px] leading-relaxed text-text-muted">{meta.description}</p><textarea autoFocus value={message} onChange={(event) => setMessage(event.target.value)} placeholder={intent === 'check' ? '例如：每天不要太赶，重点看看交通和步行距离。' : revising ? '例如：第 3 天改成轻松一点，长白山多住一晚。' : '例如：去东北吉林玩 3 天，自驾，自然风景优先，每天别太赶。'} className="mt-3 min-h-24 w-full resize-none border-0 bg-transparent p-0 text-[14px] leading-relaxed text-text outline-none placeholder:text-text-faint" /></section>
+      {intent === 'revise' && <div className="rounded-xl border border-border/75 bg-surface px-3 py-2.5"><div className="text-[11px] font-medium text-text-muted">调整范围</div><div className="mt-2 flex flex-wrap gap-1.5"><button onClick={() => setTargetDayIndex(null)} className={`rounded-lg px-2.5 py-1.5 text-[11px] ${targetDayIndex === null ? 'bg-white font-medium text-text shadow-sm' : 'text-text-muted'}`}>整个旅行</button>{trip.days.map((day, index) => <button key={day.id} onClick={() => setTargetDayIndex(index)} className={`rounded-lg px-2.5 py-1.5 text-[11px] ${targetDayIndex === index ? 'bg-white font-medium text-text shadow-sm' : 'text-text-muted'}`}>第 {index + 1} 天</button>)}</div><p className="mt-1.5 text-[10.5px] text-text-faint">{targetDayIndex === null ? '适合调整路线结构；应用前会展示各天变化。' : `只重写第 ${targetDayIndex + 1} 天，其他日期、备注与已有花费保持不变。`}</p></div>}
       <div className="flex flex-wrap gap-2">{(revising ? ['第 3 天别太赶', '减少步行', '把长白山多留一天'] : ['东北吉林 3 天，轻松自驾', '济州岛 4 天，咖啡和海边', '关西 5 天，亲子慢游']).map((suggestion) => <button key={suggestion} onClick={() => setMessage(suggestion)} className="rounded-full border border-border bg-white px-2.5 py-1 text-[10.5px] text-text-muted transition-colors hover:border-accent/30 hover:text-accent">{suggestion}</button>)}</div>
       <button onClick={() => setDetailsOpen((value) => !value)} className="text-[11.5px] font-medium text-text-muted hover:text-text">{detailsOpen ? '收起旅行细节' : '补充日期、天数和交通方式（可选）'}</button>
       {detailsOpen && <div className="grid grid-cols-2 gap-3 rounded-xl bg-surface p-3"><label className="text-[11px] font-medium text-text-muted">出发日期<input type="date" value={input.startDate} onChange={(event) => setInput({ ...input, startDate: event.target.value })} className="mt-1.5 w-full rounded-md border border-border bg-white px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label><label className="text-[11px] font-medium text-text-muted">计划天数<input type="number" min="1" max="30" value={input.days} onChange={(event) => setInput({ ...input, days: Math.max(1, Math.min(30, Number(event.target.value) || 1)) })} className="mt-1.5 w-full rounded-md border border-border bg-white px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label><label className="col-span-2 text-[11px] font-medium text-text-muted">出行方式<input value={input.transport} onChange={(event) => setInput({ ...input, transport: event.target.value })} placeholder="例如：自驾、公共交通" className="mt-1.5 w-full rounded-md border border-border bg-white px-2.5 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label></div>}
