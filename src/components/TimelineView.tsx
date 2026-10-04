@@ -688,6 +688,7 @@ function EditActivityForm({ activity, onDone }: { activity: Activity; onDone: ()
             geo: v.geo,
             costs,
           })
+          useToastStore.getState().show(`已保存「${v.title.trim() || activity.title}」`, { duration: 2200 })
           saveDraft(null)
           onDone()
         }}
@@ -799,7 +800,7 @@ function SortableActivity({
   compact?: boolean
   introduced?: boolean
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging, isOver } = useSortable({
     id: activity.id,
     data: { type: 'activity', dayId: activity.dayId },
   })
@@ -807,7 +808,7 @@ function SortableActivity({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={`min-w-0 ${isDragging ? 'opacity-40' : ''}`}
+      className={`relative min-w-0 ${isDragging ? 'opacity-40' : ''} ${isOver && !isDragging ? 'activity-drop-anchor' : ''}`}
       {...attributes}
       {...listeners}
     >
@@ -857,9 +858,7 @@ function DayHeaderInfo({ day, mobilePresentation = false }: { day: { id: string;
       date: date.trim() || '待定',
       place: place.trim(),
     })
-    if (dateChanged) {
-      useToastStore.getState().show('日期已更新，后续日期已自动顺延')
-    }
+    useToastStore.getState().show(dateChanged ? '日期已更新，后续日期已自动顺延' : '已保存当天信息', { duration: 2200 })
     setEditing(false)
   }
 
@@ -1263,8 +1262,16 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
 function WorkspaceDayNavigator({ showAllDays, onShowAllDays, onFocusDay }: { showAllDays: boolean; onShowAllDays: () => void; onFocusDay: (dayId: string) => void }) {
   const trip = useActiveTrip()
   const activeDayId = useTripStore((state) => state.activeDayId)
+  const [justSelectedDayId, setJustSelectedDayId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!justSelectedDayId) return
+    const timer = window.setTimeout(() => setJustSelectedDayId(null), 520)
+    return () => window.clearTimeout(timer)
+  }, [justSelectedDayId])
 
   function jumpToDay(dayId: string) {
+    setJustSelectedDayId(dayId)
     useTripStore.getState().setActiveDay(dayId)
     document.getElementById(`workspace-day-${dayId}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
@@ -1276,7 +1283,7 @@ function WorkspaceDayNavigator({ showAllDays, onShowAllDays, onFocusDay }: { sho
         <span className="h-4 w-px shrink-0 bg-border" />
         {trip.days.map((day) => {
           const active = activeDayId === day.id
-          return <button key={day.id} onClick={() => showAllDays ? jumpToDay(day.id) : onFocusDay(day.id)} className={`shrink-0 rounded-md px-2 py-1.5 text-[11px] transition-colors ${!showAllDays && active ? 'bg-action-soft text-accent-hover' : 'text-text-muted hover:bg-surface hover:text-text'}`} title={`${day.label}${day.place ? ` · ${day.place}` : ''}`}>
+          return <button key={day.id} onClick={() => { setJustSelectedDayId(day.id); showAllDays ? jumpToDay(day.id) : onFocusDay(day.id) }} className={`shrink-0 rounded-md px-2 py-1.5 text-[11px] transition-colors ${!showAllDays && active ? 'bg-action-soft text-accent-hover' : 'text-text-muted hover:bg-surface hover:text-text'} ${justSelectedDayId === day.id ? 'day-switch-flash' : ''}`} title={`${day.label}${day.place ? ` · ${day.place}` : ''}`}>
             {day.label}<span className="ml-1 text-text-faint">{day.place || displayDate(day.date).split(' ')[0]}</span>
           </button>
         })}
@@ -1287,7 +1294,7 @@ function WorkspaceDayNavigator({ showAllDays, onShowAllDays, onFocusDay }: { sho
 
 export default function TimelineView({ onOpenFullMap, onOpenBudget, onOpenWish, workspace = false, showAllDays = false, onShowAllDays, onFocusDay, hideQuickAdd = false, introducedActivityId = null, mobilePresentation = false, quickAddRequest = 0 }: { onOpenFullMap: () => void; onOpenBudget?: () => void; onOpenWish?: () => void; workspace?: boolean; showAllDays?: boolean; onShowAllDays?: () => void; onFocusDay?: (dayId: string) => void; hideQuickAdd?: boolean; introducedActivityId?: string | null; mobilePresentation?: boolean; quickAddRequest?: number }) {
   const trip = useActiveTrip()
-  const { selectedActivityId, editingActivityId, activeDayId, addDay, reorderActivity, scheduleWishPlace, setActiveDay, setPlanTab } = useTripStore()
+  const { selectedActivityId, editingActivityId, activeDayId, addDay, reorderActivity, scheduleWishPlace, setActiveDay, setPlanTab, trips, activeTripId, restoreTrips } = useTripStore()
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [quickAddKey, setQuickAddKey] = useState(0)
   const [mobileQuickAddOpen, setMobileQuickAddOpen] = useState(false)
@@ -1323,11 +1330,14 @@ export default function TimelineView({ onOpenFullMap, onOpenBudget, onOpenWish, 
     if (railDayId) {
       const activity = trip.activities.find((item) => item.id === active.id)
       if (activity && activity.dayId !== railDayId) {
+        const snapshot = trips
         reorderActivity(activity.id, railDayId, activitiesByDay(trip, railDayId).length)
         setActiveDay(railDayId)
         setRecentlyDroppedDayId(railDayId)
         const targetDay = trip.days.find((day) => day.id === railDayId)
-        useToastStore.getState().show(`已将「${activity.title}」移到 ${targetDay?.label ?? '目标日期'}`)
+        useToastStore.getState().show(`已将「${activity.title}」移到 ${targetDay?.label ?? '目标日期'}`, {
+          undo: () => restoreTrips(snapshot, activeTripId),
+        })
       }
       return
     }
@@ -1339,8 +1349,17 @@ export default function TimelineView({ onOpenFullMap, onOpenBudget, onOpenWish, 
     const insertIndex = overData?.type === 'activity'
       ? targetItems.findIndex((activity) => activity.id === over.id)
       : targetItems.length
+    const movedActivity = trip.activities.find((activity) => activity.id === active.id)
+    if (!movedActivity) return
+    const sourceDayId = movedActivity.dayId
+    const snapshot = trips
     reorderActivity(String(active.id), targetDayId, insertIndex < 0 ? targetItems.length : insertIndex)
-    if (trip.activities.find((activity) => activity.id === active.id)?.dayId !== targetDayId) setRecentlyDroppedDayId(targetDayId)
+    setRecentlyDroppedDayId(targetDayId)
+    const targetDay = trip.days.find((day) => day.id === targetDayId)
+    const message = sourceDayId === targetDayId
+      ? `已调整「${movedActivity.title}」的顺序`
+      : `已将「${movedActivity.title}」移到 ${targetDay?.label ?? '目标日期'}`
+    useToastStore.getState().show(message, { undo: () => restoreTrips(snapshot, activeTripId) })
   }
 
   useEffect(() => {
@@ -1356,10 +1375,11 @@ export default function TimelineView({ onOpenFullMap, onOpenBudget, onOpenWish, 
     const place = trip.wishPlaces.find((item) => item.id === placeId)
     const day = trip.days.find((item) => item.id === dayId)
     if (!place || !day) return
+    const snapshot = trips
     const id = scheduleWishPlace(place.id, day.id, { time: nextActivityTime(trip, day.id), title: place.title, category: place.category, location: place.location, note: place.note, geo: place.geo })
     if (!id) return
     setActiveDay(day.id)
-    useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`)
+    useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`, { undo: () => restoreTrips(snapshot, activeTripId) })
   }
 
   function focusQuickAdd() {

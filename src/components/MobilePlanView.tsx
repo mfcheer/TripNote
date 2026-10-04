@@ -35,6 +35,8 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = tr
   const [wishSheetOpen, setWishSheetOpen] = useState(false)
   const [mapHeight, setMapHeight] = useState(() => mapNarrativePreview ? 224 : readMobileMapHeight())
   const [mapCollapsed, setMapCollapsed] = useState(() => mapNarrativePreview ? false : readMobileMapCollapsed())
+  const [mapDayId, setMapDayId] = useState(activeDayId)
+  const [justSelectedDayId, setJustSelectedDayId] = useState<string | null>(null)
   const railRef = useRef<HTMLDivElement>(null)
   const timelineScrollRef = useRef<HTMLDivElement>(null)
   const activeDay = trip.days.find((day) => day.id === activeDayId) ?? trip.days[0]
@@ -62,7 +64,21 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = tr
     })
   }, [activeDay?.id])
 
+  // 连续阅读时日期会跟随滚动更新；地图等用户停留后才更新，避免频繁缩放和重绘。
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMapDayId(activeDayId), 420)
+    return () => window.clearTimeout(timer)
+  }, [activeDayId])
+
+  useEffect(() => {
+    if (!justSelectedDayId) return
+    const timer = window.setTimeout(() => setJustSelectedDayId(null), 520)
+    return () => window.clearTimeout(timer)
+  }, [justSelectedDayId])
+
   function selectDay(id: string) {
+    setJustSelectedDayId(id)
+    setMapDayId(id)
     setActiveDay(id)
     selectActivity(null)
     requestAnimationFrame(() => {
@@ -115,7 +131,7 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = tr
                 key={day.id}
                 data-day-id={day.id}
                 onClick={() => selectDay(day.id)}
-                className={`mobile-day-chip ${active ? 'is-active' : ''}`}
+                className={`mobile-day-chip ${active ? 'is-active' : ''} ${justSelectedDayId === day.id ? 'day-switch-flash' : ''}`}
                 aria-label={`${day.label} ${dayDate(day)}`}
               >
                 <span>{dayDate(day)}</span>
@@ -127,7 +143,7 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = tr
 
       {!mapCollapsed ? <>
       <section className="mobile-map-stage relative shrink-0 overflow-hidden bg-surface" style={{ height: mapHeight }}>
-        <MapView key={activeDay.id} initialDayId={activeDay.id} compact narrativePreview={mapNarrativePreview} />
+        <MapView initialDayId={mapDayId} compact narrativePreview={mapNarrativePreview} />
         <div className="pointer-events-none absolute top-3 left-3 z-[600] rounded-md bg-white/92 px-2.5 py-1.5 text-[11.5px] font-semibold text-text shadow-[0_2px_10px_rgba(32,40,46,0.10)] backdrop-blur">
           {mapNarrativePreview ? `${activeDay.label} · ${activeDay.place || '当天地图'} · ${items.length} 个地点` : `${activeDay.place || '当天地图'} · ${items.length} 个地点`}
         </div>

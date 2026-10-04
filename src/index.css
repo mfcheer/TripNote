@@ -195,8 +195,30 @@ input:focus, textarea:focus, select:focus {
 .itinerary-day-header-drop-target { animation: itinerary-day-header-target 1.05s ease-in-out infinite; }
 .itinerary-day-header-drop-confirmed { animation: itinerary-day-header-confirmed .62s cubic-bezier(.2,.7,.2,1) both; }
 .itinerary-day-drop-label { animation: activity-drop-in .22s ease-out both; }
+/* 事项排序用一条柔和插入线表达落点；比整块矩形高亮更准确，也不会遮住内容。 */
+.activity-drop-anchor::before {
+  position: absolute;
+  z-index: 4;
+  top: -5px;
+  right: 8px;
+  left: 8px;
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, var(--color-accent) 12%, var(--color-accent) 88%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent-soft) 78%, transparent);
+  content: '';
+  animation: activity-insert-guide .18s ease-out both;
+}
+@keyframes activity-insert-guide { from { opacity: .1; transform: scaleX(.72); } to { opacity: 1; transform: scaleX(1); } }
+/* 手动切换日期时给一个短暂、不会占空间的确认脉冲。 */
+.day-switch-flash { animation: day-switch-flash .52s cubic-bezier(.2,.7,.2,1) both; }
+@keyframes day-switch-flash {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 28%, transparent); }
+  46% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-accent) 12%, transparent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
 @media (prefers-reduced-motion: reduce) {
-  .activity-drop-in, .wish-place-complete, .itinerary-day-header-drop-target, .itinerary-day-header-drop-confirmed, .itinerary-day-drop-label { animation: none; }
+  .activity-drop-in, .wish-place-complete, .itinerary-day-header-drop-target, .itinerary-day-header-drop-confirmed, .itinerary-day-drop-label, .activity-drop-anchor::before, .day-switch-flash { animation: none; }
 }
 
 .ui-empty-state {

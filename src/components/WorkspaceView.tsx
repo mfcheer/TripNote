@@ -98,6 +98,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   function schedule(place: WishPlace) {
     const day = trip.days.find((item) => item.id === activeDayId)
     if (!day) return
+    const { trips, activeTripId } = useTripStore.getState()
     const id = scheduleWishPlace(place.id, day.id, {
       time: nextActivityTime(trip, day.id),
       title: place.title,
@@ -108,7 +109,9 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     })
     if (id) {
       onScheduleSuccess(id, place.id)
-      useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`)
+      useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`, {
+        undo: () => useTripStore.getState().restoreTrips(trips, activeTripId),
+      })
     }
   }
 
@@ -205,6 +208,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
   const [selectedWishPlaceId, setSelectedWishPlaceId] = useState<string | null>(null)
   const [showAllDays, setShowAllDays] = useState(true)
   const [workspaceMapScope, setWorkspaceMapScope] = useState<'follow' | 'all'>('follow')
+  const [mapFollowDayId, setMapFollowDayId] = useState(activeDayId)
   const today = new Date().toISOString().slice(0, 10)
   const [newTripName, setNewTripName] = useState('')
   const [newTripDestination, setNewTripDestination] = useState('')
@@ -226,6 +230,11 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
   useEffect(() => localStorage.setItem('tripnote-workspace-map-width-v2', String(Math.round(mapWidth))), [mapWidth])
   useEffect(() => setWorkspaceMapScope('follow'), [activeTripId])
   useEffect(() => setSelectedWishPlaceId(null), [activeDayId])
+  // 全部日程连续滚动时，地图只在阅读停留后跟随，避免每跨过一张卡片就重新缩放。
+  useEffect(() => {
+    const timer = window.setTimeout(() => setMapFollowDayId(activeDayId), 360)
+    return () => window.clearTimeout(timer)
+  }, [activeDayId])
   useEffect(() => {
     if (!introducedActivityId && !recentlyScheduledPlaceId) return
     const timer = window.setTimeout(() => {
@@ -265,11 +274,14 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
     const place = trip.wishPlaces.find((item) => item.id === placeId)
     const day = trip.days.find((item) => item.id === activeDayId)
     if (!place || !day) return
+    const { trips, activeTripId } = useTripStore.getState()
     const id = scheduleWishPlace(place.id, day.id, { time: nextActivityTime(trip, day.id), title: place.title, category: place.category, location: place.location, note: place.note, geo: place.geo })
     if (id) {
       setIntroducedActivityId(id)
       setRecentlyScheduledPlaceId(place.id)
-      useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`)
+      useToastStore.getState().show(`已安排「${place.title}」到 ${day.label}`, {
+        undo: () => useTripStore.getState().restoreTrips(trips, activeTripId),
+      })
     }
   }
 
@@ -352,7 +364,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
         <TimelineView workspace showAllDays={showAllDays} onShowAllDays={() => setShowAllDays(true)} onFocusDay={(dayId) => { setActiveDay(dayId); setShowAllDays(false) }} hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
       <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>
-      <aside className="min-w-[360px] shrink-0 overflow-hidden rounded-[18px] border border-border/70 bg-white" style={{ width: 'var(--workspace-map-width)' }}><MapView key={showAllDays ? 'all' : activeDayId} initialDayId={activeDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} workspaceMapScope={workspaceMapScope} followDayId={activeDayId} onWorkspaceMapScopeChange={setWorkspaceMapScope} narrativePreview={mapNarrativePreview} /></aside>
+      <aside className="min-w-[360px] shrink-0 overflow-hidden rounded-[18px] border border-border/70 bg-white" style={{ width: 'var(--workspace-map-width)' }}><MapView initialDayId={mapFollowDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} workspaceMapScope={workspaceMapScope} followDayId={mapFollowDayId} onWorkspaceMapScopeChange={setWorkspaceMapScope} narrativePreview={mapNarrativePreview} /></aside>
     </div>
     {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     {tripTrashOpen && <TripTrashDialog onClose={() => setTripTrashOpen(false)} />}
