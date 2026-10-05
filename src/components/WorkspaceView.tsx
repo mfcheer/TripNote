@@ -11,6 +11,7 @@ import SettingsView from './SettingsView'
 import { useConfirmStore } from './confirmStore'
 import TripTrashDialog from './TripTrashDialog'
 import DataSafetyStatus from './DataSafetyStatus'
+import { tripDateRange, tripPlanningProgress, tripTagline } from '../utils/tripPresentation'
 
 const WISH_DRAG_TYPE = 'application/x-tripnote-wish-id'
 
@@ -326,13 +327,13 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
   }
 
   return <div className={`workspace-root flex h-full min-w-0 flex-col bg-bg ${mapNarrativePreview ? 'map-narrative-preview' : ''}`} style={{ '--workspace-library-width': `${libraryWidth}px`, '--workspace-map-width': `${mapWidth}px` } as CSSProperties}>
-    <header className="workspace-header relative z-[1000] flex h-[62px] shrink-0 items-center gap-3 border-b border-border/70 px-6">
+    <header className="workspace-header trip-identity-header relative z-[1000] flex h-[68px] shrink-0 items-center gap-3 border-b border-border/70 px-6">
       <LogoIcon size={28} className="shrink-0 shadow-[0_2px_7px_rgba(31,48,63,0.16)]" alt="TripNote" />
       <span className="shrink-0 text-[14px] font-semibold tracking-[-0.025em] text-text">TripNote</span>
       <span className="h-4 w-px shrink-0 bg-border/80" aria-hidden="true" />
       <div className="relative min-w-0">
-        <button onClick={() => setTripMenuOpen((open) => !open)} className="flex max-w-[300px] items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-surface">
-          <span className="truncate text-[14px] font-semibold">{trip.name}</span><span className="text-[10px] text-text-faint">⌄</span>
+        <button onClick={() => setTripMenuOpen((open) => !open)} className="flex max-w-[380px] items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-surface">
+          <span className="min-w-0"><span className="block truncate text-[14px] font-semibold">{trip.name}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{tripTagline(trip)} · {tripDateRange(trip)} · 已规划 {tripPlanningProgress(trip)}%</span></span><span className="text-[10px] text-text-faint">⌄</span>
         </button>
         {tripMenuOpen && <div className="absolute top-[calc(100%+7px)] left-0 z-[1100] w-[280px] overflow-hidden rounded-lg border border-border bg-white py-1.5 shadow-[0_14px_34px_rgba(32,40,46,0.16)]">
           <div className="px-3 pb-1.5 text-[10.5px] font-semibold tracking-[0.12em] text-text-faint">我的旅行</div>

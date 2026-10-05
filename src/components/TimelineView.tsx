@@ -88,6 +88,16 @@ function scheduleWarnings(items: Activity[]) {
   return warnings
 }
 
+function dayChapterTheme(items: Activity[], place: string) {
+  if (!items.length) return `${place && place !== '待定' ? place : '这一天'}，留给临时起意`
+  const categories = new Set(items.map((item) => item.category))
+  if (categories.has('traffic') && items.length <= 2) return '抵达、安顿，再慢慢出发'
+  if (categories.has('food') && categories.has('sight')) return '在风景与当地味道之间漫游'
+  if (categories.has('sight')) return '沿着今天的风景慢慢走'
+  if (categories.has('food')) return '跟着当地味道安排一天'
+  return '把想去的地方串成今天的故事'
+}
+
 function formatMinutes(minutes: number) {
   if (minutes < 60) return `${minutes} 分钟`
   const rest = minutes % 60
@@ -936,6 +946,12 @@ function DaySection({
   const trip = useActiveTrip()
   const day = trip.days.find((d) => d.id === dayId)!
   const items = activitiesByDay(trip, dayId)
+  const dayIndex = trip.days.findIndex((item) => item.id === dayId)
+  const previousDay = dayIndex > 0 ? trip.days[dayIndex - 1] : undefined
+  const hasPlace = (value?: string) => Boolean(value && value !== '待定')
+  const isCrossCity = Boolean(previousDay && hasPlace(previousDay.place) && hasPlace(day.place) && previousDay.place !== day.place)
+  const stayActivity = [...items].reverse().find((item) => item.category === 'stay')
+  const StayIcon = CATEGORY_ICONS.stay
   const warnings = scheduleWarnings(items)
   const { setNodeRef, isOver } = useDroppable({ id: dayId, data: { type: 'day', dayId } })
   const [nativeWishOver, setNativeWishOver] = useState(false)
@@ -983,6 +999,7 @@ function DaySection({
         <header className={`${compact ? mobilePresentation ? 'mb-1.5 gap-x-2' : 'mb-2 gap-x-2' : 'mb-3 gap-x-3 gap-y-2'} ${isOver || nativeWishOver || activityDropTarget ? 'itinerary-day-header-drop-target -mx-2 rounded-xl bg-white/92 px-2.5 py-2 shadow-[0_7px_18px_rgba(47,72,91,0.10)]' : ''} ${confirmedDrop || nativeDropConfirmed ? 'itinerary-day-header-drop-confirmed' : ''} flex flex-wrap items-center px-0.5 transition-[padding,background-color,box-shadow,transform]`}>
           <h2 className={`${compact ? 'text-[17px]' : 'text-[19px]'} font-semibold tracking-[-0.02em]`}>{day.label}</h2>
           <DayHeaderInfo day={day} mobilePresentation={mobilePresentation} />
+          {isCrossCity && <span className="day-route-chip"><span>{previousDay!.place}</span><span aria-hidden="true">→</span><strong>{day.place}</strong></span>}
           {(isOver || nativeWishOver || activityDropTarget) && <span className="itinerary-day-drop-label rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-medium text-accent-hover">{activityDropTarget ? `移到${day.label}` : `安排到${day.label}`}</span>}
           {forceExpanded && onFocusDay && <button onClick={() => onFocusDay(dayId)} className="rounded-md px-2 py-1 text-[11px] font-medium text-text-faint transition-colors hover:bg-white hover:text-accent" title={`只查看${day.label}`}>聚焦</button>}
           <details className="relative ml-auto">
@@ -1061,6 +1078,11 @@ function DaySection({
           </details>
         </header>
 
+        <div className={`day-chapter-intro ${compact ? 'mb-2' : 'mb-3'}`}>
+          <span className="day-chapter-kicker">DAY {String(dayIndex + 1).padStart(2, '0')}</span>
+          <span>{dayChapterTheme(items, day.place)}</span>
+        </div>
+
         <DayOverview items={items} scheduleWarningCount={warnings.size} compact={compact} onOpenBudget={onOpenBudget} />
 
         {/* 时间轴 */}
@@ -1111,6 +1133,14 @@ function DaySection({
               </button>}
           </div>
         </SortableContext>
+        {stayActivity && (
+          <div className="day-stay-ending">
+            <span className="day-stay-ending__icon"><StayIcon size={14} /></span>
+            <span className="day-stay-ending__label">今晚住在</span>
+            <strong>{stayActivity.title}</strong>
+            {stayActivity.location && stayActivity.location !== stayActivity.title && <span className="day-stay-ending__location">· {stayActivity.location}</span>}
+          </div>
+        )}
       </section>
   )
 }

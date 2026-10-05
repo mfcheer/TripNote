@@ -2,7 +2,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import { MapContainer, Marker, Polyline, TileLayer, Popup, useMap, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
+import { activitiesByDay, displayDate, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS, MapIcon, PlusIcon } from './Icons'
 import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint, type TripDay, type WishPlace } from '../types'
 import { fetchRouteInfo, routeProfileForSegment, straightLineDistanceMeters } from '../api/route'
@@ -186,6 +186,7 @@ export default function MapView({
   const [amapUnavailable, setAmapUnavailable] = useState(false)
   const [routeFallback, setRouteFallback] = useState(false)
   const [openCluster, setOpenCluster] = useState<MapMarkerGroup | null>(null)
+  const [openDaySummaryId, setOpenDaySummaryId] = useState<string | null>(null)
   const [isPicking, setIsPicking] = useState(false)
   const [pickedPoint, setPickedPoint] = useState<GeoPoint | null>(null)
   const [pickedName, setPickedName] = useState('')
@@ -209,7 +210,7 @@ export default function MapView({
     ),
     ...(highlightWishPlace?.geo ? [[highlightWishPlace.geo.lat, highlightWishPlace.geo.lng] as [number, number]] : []),
   ]
-  const markerGroups = useMemo(() => groupNearbyMarkers(visibleDays.flatMap((day) => {
+  const markerGroups = useMemo(() => groupNearbyMarkers((filter === 'all' ? [] : visibleDays).flatMap((day) => {
     const color = colorForDay(day)
     return activitiesByDay(trip, day.id).filter((activity) => activity.geo).map((activity) => ({ activity, day, color }))
   })), [visibleDays, trip, narrativePreview, workspaceMapScope, filter, followDayId])
@@ -226,13 +227,14 @@ export default function MapView({
       if (!from?.geo || !to?.geo) return []
       const distanceMeters = straightLineDistanceMeters(from.geo, to.geo)
       if (distanceMeters < 1000) return []
-      return [{ from, to, dayIndex: index, distanceMeters }]
+      return [{ from, to, dayIndex: index, distanceMeters, mode: to.travelMode }]
     })
   }, [filter, trip])
 
   useEffect(() => setAmapUnavailable(false), [amapJsKey, mapDisplayProvider])
   useEffect(() => setRouteFallback(false), [mapRouteMode, routeRequestKey])
   useEffect(() => setOpenCluster(null), [filter])
+  useEffect(() => setOpenDaySummaryId(null), [filter])
   useEffect(() => {
     if (wishOverview || workspaceMapScope === 'all') {
       setFilter('all')
@@ -292,6 +294,9 @@ export default function MapView({
   const narrativeSummary = workspaceMapScope === 'all'
     ? `${trip.daysCount} 天 · ${trip.activities.filter((activity) => activity.geo).length} 个已定位地点`
     : `${narrativeDay?.label ?? '当天'} · ${narrativeDay?.place || '未定地点'} · ${narrativeItems.length} 个地点${narrativeDistance >= 1000 ? ` · ${(narrativeDistance / 1000).toFixed(1)} km` : ''}`
+  const openDaySummary = openDaySummaryId ? trip.days.find((day) => day.id === openDaySummaryId) : undefined
+  const openDayItems = openDaySummary ? activitiesByDay(trip, openDaySummary.id).filter((activity) => activity.geo) : []
+  const openDayDistance = openDayItems.slice(1).reduce((total, activity, index) => total + straightLineDistanceMeters(openDayItems[index].geo!, activity.geo!), 0)
   function colorForDay(day: TripDay) {
     if (!narrativePreview) return routeColor(trip.days.indexOf(day), trip.days.length)
     if (workspaceMapScope !== 'all' || filter !== 'all') return '#d65f58'
@@ -315,12 +320,12 @@ export default function MapView({
         }
       })
     }),
-    ...crossDaySegments.map(({ from, to }) => ({
+    ...crossDaySegments.map(({ from, to, mode }) => ({
       id: `cross-${from.id}-${to.id}`,
       points: [from.geo!, to.geo!],
-      color: '#8b9ca6',
+      color: mode === 'flight' ? '#8294a0' : mode === 'train' ? '#6f8794' : '#8b9ca6',
       dashed: true,
-      weight: 2.5,
+      weight: mode === 'train' ? 3.2 : 2.5,
     })),
   ], [visibleDays, trip, crossDaySegments, mapRouteMode, narrativePreview, workspaceMapScope, filter, followDayId])
   const amapMarkers = useMemo<AmapMarker[]>(() => [...(!wishOverview ? markerGroups : []).map((group) => {
@@ -337,7 +342,10 @@ export default function MapView({
       label: day.place ? `${day.label} · ${day.place}` : day.label,
       color: colorForDay(day),
       wide: true,
-      onClick: () => focusMapActivity(firstActivity.id),
+      onClick: () => {
+        setActiveDay(day.id)
+        setOpenDaySummaryId(day.id)
+      },
     }]
   }) : []), ...(wishOverview ? wishPlacesWithGeo.map((place) => ({
     id: `wish-overview-${place.id}`,
@@ -354,7 +362,7 @@ export default function MapView({
     color: '#af6959',
     wide: true,
     active: true,
-  }] : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, highlightWishPlace, markerGroups, pickedPoint, scheduledWishIds, trip, wishOverview, wishPlacesWithGeo, narrativePreview, workspaceMapScope, followDayId])
+  }] : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, highlightWishPlace, markerGroups, pickedPoint, scheduledWishIds, setActiveDay, trip, wishOverview, wishPlacesWithGeo, narrativePreview, workspaceMapScope, followDayId])
 
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
@@ -439,11 +447,13 @@ export default function MapView({
         <FitBounds points={allPoints} />
         <MapPickHandler enabled={isPicking} onPick={handleMapPick} />
 
-        {crossDaySegments.map(({ from, to }) => {
+        {crossDaySegments.map(({ from, to, mode }) => {
           const positions = [[from.geo!.lat, from.geo!.lng], [to.geo!.lat, to.geo!.lng]] as [number, number][]
+          const lineColor = mode === 'flight' ? '#8294a0' : mode === 'train' ? '#6f8794' : '#8b9ca6'
+          const dashArray = mode === 'flight' ? '3 9' : mode === 'train' ? '11 7' : '7 8'
           return <Fragment key={`${from.id}-${to.id}`}>
-            <Polyline positions={positions} pathOptions={{ color: '#fffdf9', weight: 6, opacity: 0.72, dashArray: '7 8' }} />
-            <Polyline positions={positions} pathOptions={{ color: '#8b9ca6', weight: 2.5, opacity: 0.82, dashArray: '7 8' }} />
+            <Polyline positions={positions} pathOptions={{ color: '#fffdf9', weight: mode === 'train' ? 7 : 6, opacity: 0.72, dashArray }} />
+            <Polyline positions={positions} pathOptions={{ color: lineColor, weight: mode === 'train' ? 3.2 : 2.5, opacity: 0.86, dashArray }} />
           </Fragment>
         })}
 
@@ -479,7 +489,7 @@ export default function MapView({
             key={`day-label-${day.id}`}
             position={[firstActivity.geo.lat, firstActivity.geo.lng]}
             icon={markerIcon(colorForDay(day), label)}
-            eventHandlers={{ click: () => focusMapActivity(firstActivity.id) }}
+            eventHandlers={{ click: () => { setActiveDay(day.id); setOpenDaySummaryId(day.id) } }}
           />
         })}
         {wishOverview && wishPlacesWithGeo.map((place) => {
@@ -527,6 +537,19 @@ export default function MapView({
         <div className="absolute top-16 left-4 z-[600] w-[230px] rounded-lg border border-border bg-white p-2 shadow-[0_4px_16px_rgba(0,0,0,0.14)]">
           <div className="mb-1 flex items-center justify-between px-1"><span className="text-[12px] font-semibold">{openCluster.items.length} 个重叠地点</span><button onClick={() => setOpenCluster(null)} className="text-[16px] leading-none text-text-faint">×</button></div>
           {openCluster.items.map(({ activity, day }) => <button key={activity.id} onClick={() => focusMapActivity(activity.id)} className="block w-full truncate rounded px-1.5 py-1.5 text-left text-[12px] hover:bg-surface"><span className="mr-1 text-text-faint">{day.label}</span>{activity.title}</button>)}
+        </div>
+      )}
+
+      {openDaySummary && (
+        <div className="map-day-story-card absolute bottom-4 left-3 z-[600] w-[min(280px,calc(100%-24px))] rounded-xl border border-white/80 bg-white/94 p-3 shadow-[0_8px_26px_rgba(33,49,59,0.14)] backdrop-blur-md md:bottom-6 md:left-4">
+          <div className="flex items-start gap-3">
+            <span className="map-day-story-card__index">{String(trip.days.indexOf(openDaySummary) + 1).padStart(2, '0')}</span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[13px] font-semibold text-text">{openDaySummary.place || openDaySummary.label}</div>
+              <div className="mt-0.5 truncate text-[10.5px] text-text-faint">{displayDate(openDaySummary.date)} · {openDayItems.length} 个地点{openDayDistance > 0 ? ` · 移动约 ${(openDayDistance / 1000).toFixed(1)} km` : ''}</div>
+            </div>
+            <button onClick={() => setOpenDaySummaryId(null)} className="rounded-md px-1.5 text-[17px] leading-5 text-text-faint hover:bg-surface hover:text-text" aria-label="关闭当天摘要">×</button>
+          </div>
         </div>
       )}
 

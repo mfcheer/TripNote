@@ -9,6 +9,7 @@ import { useToastStore } from './toastStore'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 import TripTrashDialog from './TripTrashDialog'
 import DataSafetyStatus from './DataSafetyStatus'
+import { tripDateRange, tripPlanningProgress } from '../utils/tripPresentation'
 
 const NAV_ITEMS: { key: ViewKey; label: string; Icon: (p: { size?: number }) => ReactElement }[] = [
   { key: 'plan', label: '行程规划', Icon: CalendarIcon },
@@ -204,7 +205,7 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
       >
         <div className="min-w-0 flex-1">
           <div className="truncate text-[13px] font-semibold">{trip.name}</div>
-          <div className={`${compact ? 'text-[10.5px]' : 'mt-0.5 text-[12px]'} text-text-muted`}>{trip.days.length} 天</div>
+          <div className={`${compact ? 'text-[10.5px]' : 'mt-0.5 text-[12px]'} truncate text-text-muted`}>{compact ? `${tripDateRange(trip)} · ${trip.days.length} 天` : `${trip.days.length} 天 · 已规划 ${tripPlanningProgress(trip)}%`}</div>
         </div>
         <ChevronDownIcon size={14} />
       </button>

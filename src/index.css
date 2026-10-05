@@ -690,3 +690,127 @@ input:focus, textarea:focus, select:focus {
   }
   .apple-modal-surface { border-radius: 20px 20px 0 0 !important; }
 }
+
+/* 第一阶段旅行叙事：只强化旅行身份与章节关系，不增加新的大卡片。 */
+.trip-identity-header {
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    linear-gradient(100deg, rgba(255,255,255,.94) 0%, rgba(247,250,251,.92) 64%, rgba(231,240,244,.58) 100%);
+}
+.trip-identity-header::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 10px;
+  right: 13%;
+  width: 150px;
+  height: 42px;
+  border-top: 1px solid rgba(78, 119, 140, .18);
+  border-radius: 50%;
+  transform: rotate(-7deg);
+  pointer-events: none;
+}
+.trip-identity-header::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: 14px;
+  right: calc(13% + 114px);
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(88, 132, 154, .30);
+  box-shadow: 124px 15px 0 rgba(188, 111, 88, .22);
+  pointer-events: none;
+}
+
+.day-route-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(78, 119, 140, .13);
+  border-radius: 999px;
+  background: rgba(232, 240, 244, .72);
+  padding: 3px 8px;
+  color: var(--color-text-muted);
+  font-size: 10.5px;
+  line-height: 1.2;
+}
+.day-route-chip strong { color: var(--color-accent-hover); font-weight: 600; }
+.day-chapter-intro {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+  padding-inline: 2px;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+  letter-spacing: .005em;
+}
+.day-chapter-kicker {
+  color: #a36c5d;
+  font-size: 9.5px;
+  font-weight: 650;
+  letter-spacing: .1em;
+}
+.day-chapter-kicker::after {
+  content: '';
+  display: inline-block;
+  width: 20px;
+  margin-left: 7px;
+  border-top: 1px solid rgba(163,108,93,.24);
+  vertical-align: middle;
+}
+.day-stay-ending {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  margin: 10px 0 0 50px;
+  border-top: 1px solid rgba(78, 119, 140, .09);
+  padding: 9px 4px 0;
+  color: var(--color-text-muted);
+  font-size: 11.5px;
+}
+.day-stay-ending__icon {
+  display: inline-flex;
+  color: #a36c5d;
+}
+.day-stay-ending__label { color: var(--color-text-faint); }
+.day-stay-ending strong {
+  overflow: hidden;
+  color: var(--color-text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.day-stay-ending__location {
+  overflow: hidden;
+  color: var(--color-text-faint);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.map-day-story-card__index {
+  display: grid;
+  width: 31px;
+  height: 31px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  background: #e7f0f4;
+  color: #426c83;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .05em;
+}
+
+@media (max-width: 767px) {
+  .trip-identity-header::after,
+  .trip-identity-header::before { display: none; }
+  .day-chapter-intro { font-size: 11px; }
+  .day-stay-ending {
+    margin-left: 42px;
+    padding-top: 8px;
+  }
+}
