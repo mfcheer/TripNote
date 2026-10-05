@@ -353,9 +353,10 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
       <div className="ml-auto flex items-center gap-1.5">
         <button onClick={onOpenAgent} className="hidden items-center gap-1 rounded-md bg-action-soft px-2.5 py-1.5 text-[11.5px] font-semibold text-accent-hover transition-colors hover:bg-action hover:text-white xl:flex">✦ 帮我规划</button>
         <button onClick={onOpenFullMap} className="hidden items-center gap-1 rounded-md px-2.5 py-1.5 text-[11.5px] text-text-muted hover:bg-surface lg:flex"><MapIcon size={13} /> 全程地图</button>
-        <button onClick={() => setSettingsOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-surface" title="数据与设置"><SettingsIcon size={15} /></button>
-        <button onClick={onExport} disabled={exporting} className="rounded-md border border-border bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-text-muted hover:border-accent/40 disabled:opacity-60">{exporting ? '生成中…' : '导出行程卡片'}</button>
         <button onClick={() => setBudgetDrawerOpen(true)} className="inline-flex rounded-md bg-surface px-2 py-1 text-[10.5px] text-text-faint transition-colors hover:bg-accent-soft hover:text-accent-hover" title="查看并设置旅行总预算">预算 ¥{totalCost.toLocaleString()}{trip.totalBudget ? ` / ¥${trip.totalBudget.toLocaleString()}` : ''}</button>
+        <span className="mx-1 hidden h-4 w-px bg-border/80 lg:block" aria-hidden="true" />
+        <button onClick={onExport} disabled={exporting} className="rounded-md border border-border bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-text-muted hover:border-accent/40 disabled:opacity-60">{exporting ? '生成中…' : '导出行程卡片'}</button>
+        <button onClick={() => setSettingsOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-surface" title="数据与设置" aria-label="数据与设置"><SettingsIcon size={15} /></button>
       </div>
     </header>
     <div className="flex min-h-0 flex-1 gap-2 bg-bg px-2 pb-2">
