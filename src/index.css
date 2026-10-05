@@ -738,30 +738,6 @@ input:focus, textarea:focus, select:focus {
   line-height: 1.2;
 }
 .day-route-chip strong { color: var(--color-accent-hover); font-weight: 600; }
-.day-chapter-intro {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 18px;
-  padding-inline: 2px;
-  color: var(--color-text-muted);
-  font-size: 11.5px;
-  letter-spacing: .005em;
-}
-.day-chapter-kicker {
-  color: #a36c5d;
-  font-size: 9.5px;
-  font-weight: 650;
-  letter-spacing: .1em;
-}
-.day-chapter-kicker::after {
-  content: '';
-  display: inline-block;
-  width: 20px;
-  margin-left: 7px;
-  border-top: 1px solid rgba(163,108,93,.24);
-  vertical-align: middle;
-}
 .day-stay-ending {
   display: flex;
   min-width: 0;
@@ -808,7 +784,6 @@ input:focus, textarea:focus, select:focus {
 @media (max-width: 767px) {
   .trip-identity-header::after,
   .trip-identity-header::before { display: none; }
-  .day-chapter-intro { font-size: 11px; }
   .day-stay-ending {
     margin-left: 42px;
     padding-top: 8px;

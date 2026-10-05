@@ -88,16 +88,6 @@ function scheduleWarnings(items: Activity[]) {
   return warnings
 }
 
-function dayChapterTheme(items: Activity[], place: string) {
-  if (!items.length) return `${place && place !== '待定' ? place : '这一天'}，留给临时起意`
-  const categories = new Set(items.map((item) => item.category))
-  if (categories.has('traffic') && items.length <= 2) return '抵达、安顿，再慢慢出发'
-  if (categories.has('food') && categories.has('sight')) return '在风景与当地味道之间漫游'
-  if (categories.has('sight')) return '沿着今天的风景慢慢走'
-  if (categories.has('food')) return '跟着当地味道安排一天'
-  return '把想去的地方串成今天的故事'
-}
-
 function formatMinutes(minutes: number) {
   if (minutes < 60) return `${minutes} 分钟`
   const rest = minutes % 60
@@ -1077,11 +1067,6 @@ function DaySection({
             </div>
           </details>
         </header>
-
-        <div className={`day-chapter-intro ${compact ? 'mb-2' : 'mb-3'}`}>
-          <span className="day-chapter-kicker">DAY {String(dayIndex + 1).padStart(2, '0')}</span>
-          <span>{dayChapterTheme(items, day.place)}</span>
-        </div>
 
         <DayOverview items={items} scheduleWarningCount={warnings.size} compact={compact} onOpenBudget={onOpenBudget} />
 
