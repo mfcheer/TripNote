@@ -29,12 +29,19 @@ interface DirectoryHandle {
   requestPermission?: (options?: { mode: 'readwrite' }) => Promise<PermissionState>
   getDirectoryHandle: (name: string, options?: { create?: boolean }) => Promise<DirectoryHandle>
   getFileHandle: (name: string, options?: { create?: boolean }) => Promise<FileHandle>
-  entries?: () => AsyncIterableIterator<[string, { kind: 'file' | 'directory' }]>
+  entries?: () => AsyncIterableIterator<[string, FileHandle | DirectoryHandleWithKind]>
   removeEntry?: (name: string) => Promise<void>
 }
 
 interface FileHandle {
+  kind?: 'file'
+  name?: string
+  getFile: () => Promise<File>
   createWritable: () => Promise<{ write: (data: string) => Promise<void>; close: () => Promise<void> }>
+}
+
+interface DirectoryHandleWithKind extends DirectoryHandle {
+  kind: 'directory'
 }
 
 declare global {
@@ -48,6 +55,8 @@ const DB_VERSION = 1
 const STORE_NAME = 'settings'
 const DIRECTORY_KEY = 'directory-handle'
 const LAST_BACKUP_KEY = 'northward-local-backup-last-at'
+const LAST_PORTABLE_BACKUP_KEY = 'northward-portable-backup-last-at'
+const BACKUP_STATUS_EVENT = 'tripnote-backup-status-changed'
 const BACKUP_FOLDER = 'TripNote备份'
 const LATEST_FILE = 'TripNote-最新备份.json'
 const MAX_HISTORY_FILES = 100
@@ -56,6 +65,13 @@ export type LocalBackupStatus =
   | { supported: false; configured: false; permission: 'unsupported' }
   | { supported: true; configured: false; permission: 'none' }
   | { supported: true; configured: true; permission: PermissionState; directoryName: string; lastBackupAt?: string }
+
+export interface BackupFolderCandidate {
+  handle: DirectoryHandle
+  directoryName: string
+  fileName: string
+  backup: NorthwardBackup
+}
 
 function openDatabase() {
   return new Promise<IDBDatabase>((resolve, reject) => {
@@ -91,6 +107,19 @@ async function saveDirectoryHandle(handle: DirectoryHandle) {
   db.close()
 }
 
+function notifyBackupStatusChanged() {
+  window.dispatchEvent(new Event(BACKUP_STATUS_EVENT))
+}
+
+export function listenForBackupStatusChanges(listener: () => void) {
+  window.addEventListener(BACKUP_STATUS_EVENT, listener)
+  return () => window.removeEventListener(BACKUP_STATUS_EVENT, listener)
+}
+
+export function getLastPortableBackupAt() {
+  return localStorage.getItem(LAST_PORTABLE_BACKUP_KEY) ?? undefined
+}
+
 export function isFolderBackupSupported() {
   return typeof window !== 'undefined' && typeof window.showDirectoryPicker === 'function' && window.isSecureContext
 }
@@ -113,6 +142,7 @@ export async function chooseLocalBackupDirectory() {
   const permission = await handle.requestPermission?.({ mode: 'readwrite' }) ?? 'granted'
   if (permission !== 'granted') throw new Error('未获得备份文件夹的写入权限')
   await saveDirectoryHandle(handle)
+  notifyBackupStatusChanged()
   return getLocalBackupStatus()
 }
 
@@ -148,6 +178,97 @@ export function backupFileName(date = new Date()) {
   return `TripNote-完整备份-${stamp}.json`
 }
 
+function backupJsonFile(data: BackupData) {
+  const backup = buildBackup(data)
+  const name = backupFileName(new Date(backup.exportedAt))
+  return { backup, file: new File([JSON.stringify(backup, null, 2)], name, { type: 'application/json' }) }
+}
+
+/**
+ * 手机优先唤起系统分享面板，用户可选择“存储到文件”；不支持文件分享时回退浏览器下载。
+ * 必须由用户点击直接触发，避免浏览器拦截分享面板。
+ */
+export async function savePortableBackup(data: BackupData): Promise<'shared' | 'downloaded'> {
+  const { backup, file } = backupJsonFile(data)
+  const shareNavigator = navigator as Navigator & {
+    canShare?: (data?: ShareData) => boolean
+    share?: (data?: ShareData) => Promise<void>
+  }
+  if (shareNavigator.share && shareNavigator.canShare?.({ files: [file] })) {
+    await shareNavigator.share({ files: [file], title: 'TripNote 完整备份', text: '保存 TripNote 完整备份文件' })
+    localStorage.setItem(LAST_PORTABLE_BACKUP_KEY, backup.exportedAt)
+    notifyBackupStatusChanged()
+    return 'shared'
+  }
+
+  const url = URL.createObjectURL(file)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = file.name
+  anchor.click()
+  window.setTimeout(() => URL.revokeObjectURL(url), 1_000)
+  localStorage.setItem(LAST_PORTABLE_BACKUP_KEY, backup.exportedAt)
+  notifyBackupStatusChanged()
+  return 'downloaded'
+}
+
+async function resolveBackupFolder(handle: DirectoryHandle, create = false) {
+  if (handle.name === BACKUP_FOLDER) return handle
+  return handle.getDirectoryHandle(BACKUP_FOLDER, { create })
+}
+
+async function readBackupFile(handle: FileHandle) {
+  const file = await handle.getFile()
+  const parsed = JSON.parse(await file.text()) as unknown
+  if (!isNorthwardBackup(parsed)) throw new Error('文件夹中的备份格式不正确')
+  return parsed
+}
+
+/** 选择一个已有备份文件夹并读取最新备份；确认恢复前不会改变当前自动备份目标。 */
+export async function chooseBackupFolderForRestore(): Promise<BackupFolderCandidate> {
+  if (!isFolderBackupSupported() || !window.showDirectoryPicker) throw new Error('当前浏览器不支持从文件夹恢复并自动同步')
+  const handle = await window.showDirectoryPicker({ id: 'northward-backups', mode: 'readwrite', startIn: 'documents' })
+  const permission = await handle.requestPermission?.({ mode: 'readwrite' }) ?? 'granted'
+  if (permission !== 'granted') throw new Error('未获得备份文件夹的读写权限')
+
+  let folder: DirectoryHandle
+  try {
+    folder = await resolveBackupFolder(handle)
+  } catch {
+    throw new Error(`未找到“${BACKUP_FOLDER}”目录，请选择此前用于 TripNote 自动备份的文件夹`)
+  }
+
+  let fileName = LATEST_FILE
+  let fileHandle: FileHandle | null = null
+  try {
+    fileHandle = await folder.getFileHandle(LATEST_FILE)
+  } catch {
+    if (folder.entries) {
+      const names: string[] = []
+      for await (const [name, entry] of folder.entries()) {
+        if (entry.kind === 'file' && /^(?:TripNote|北向)-完整备份-.*\.json$/.test(name)) names.push(name)
+      }
+      names.sort((a, b) => b.localeCompare(a))
+      if (names[0]) {
+        fileName = names[0]
+        fileHandle = await folder.getFileHandle(fileName)
+      }
+    }
+  }
+  if (!fileHandle) throw new Error('这个文件夹里没有找到 TripNote 完整备份')
+
+  return { handle, directoryName: handle.name, fileName, backup: await readBackupFile(fileHandle) }
+}
+
+/** 用户确认恢复后，将刚选择的目录正式设为后续自动备份目标。 */
+export async function connectLocalBackupDirectory(handle: DirectoryHandle) {
+  const permission = await handle.requestPermission?.({ mode: 'readwrite' }) ?? 'granted'
+  if (permission !== 'granted') throw new Error('未获得备份文件夹的写入权限')
+  await saveDirectoryHandle(handle)
+  notifyBackupStatusChanged()
+  return getLocalBackupStatus()
+}
+
 async function writeJson(directory: DirectoryHandle, name: string, value: NorthwardBackup) {
   const file = await directory.getFileHandle(name, { create: true })
   const writer = await file.createWritable()
@@ -170,12 +291,13 @@ export async function writeLocalBackup(data: BackupData) {
   if (!handle) throw new Error('请先选择备份文件夹')
   const permission = await handle.queryPermission?.({ mode: 'readwrite' }) ?? 'prompt'
   if (permission !== 'granted') throw new Error('备份文件夹需要重新授权')
-  const folder = await handle.getDirectoryHandle(BACKUP_FOLDER, { create: true })
+  const folder = await resolveBackupFolder(handle, true)
   const backup = buildBackup(data)
   await writeJson(folder, LATEST_FILE, backup)
   await writeJson(folder, backupFileName(new Date(backup.exportedAt)), backup)
   await cleanupHistory(folder)
   localStorage.setItem(LAST_BACKUP_KEY, backup.exportedAt)
+  notifyBackupStatusChanged()
   return { directoryName: handle.name, exportedAt: backup.exportedAt }
 }
 

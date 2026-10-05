@@ -3,12 +3,15 @@ import { useTripStore } from '../store'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import {
-  backupFileName,
-  buildBackup,
+  chooseBackupFolderForRestore,
   chooseLocalBackupDirectory,
+  connectLocalBackupDirectory,
+  getLastPortableBackupAt,
   getLocalBackupStatus,
   isNorthwardBackup,
+  listenForBackupStatusChanges,
   reauthorizeLocalBackupDirectory,
+  savePortableBackup,
   type BackupData,
   type LocalBackupStatus,
   writeLocalBackup,
@@ -57,6 +60,7 @@ export default function SettingsView({
   const [copied, setCopied] = useState(false)
   const [backupStatus, setBackupStatus] = useState<LocalBackupStatus | null>(null)
   const [backupBusy, setBackupBusy] = useState(false)
+  const [portableBackupAt, setPortableBackupAt] = useState(() => getLastPortableBackupAt())
   const [isIos] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent))
   const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
 
@@ -68,8 +72,15 @@ export default function SettingsView({
 
   useEffect(() => {
     void refreshBackupStatus()
+    const stopListening = listenForBackupStatusChanges(() => {
+      void refreshBackupStatus()
+      setPortableBackupAt(getLastPortableBackupAt())
+    })
     window.addEventListener('focus', refreshBackupStatus)
-    return () => window.removeEventListener('focus', refreshBackupStatus)
+    return () => {
+      stopListening()
+      window.removeEventListener('focus', refreshBackupStatus)
+    }
   }, [])
 
   async function copyAccessLink() {
@@ -82,15 +93,67 @@ export default function SettingsView({
     }
   }
 
-  function downloadBackup() {
-    const backup = buildBackup(backupData)
-    const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = backupFileName(new Date(backup.exportedAt))
-    a.click()
-    URL.revokeObjectURL(url)
+  async function saveBackupFile() {
+    try {
+      const result = await savePortableBackup(backupData)
+      setPortableBackupAt(getLastPortableBackupAt())
+      useToastStore.getState().show(result === 'shared' ? '请选择“存储到文件”保存这份备份' : '完整备份已开始下载')
+    } catch (error) {
+      if ((error as DOMException)?.name !== 'AbortError') {
+        info({ title: '无法保存备份', message: error instanceof Error ? error.message : '请稍后再试。' })
+      }
+    }
+  }
+
+  function currentBackupData(): BackupData {
+    const state = useTripStore.getState()
+    return {
+      trips: state.trips,
+      deletedTrips: state.deletedTrips,
+      activeTripId: state.activeTripId,
+      mapRouteMode: state.mapRouteMode,
+      amapJsKey: state.amapJsKey,
+      amapWebServiceKey: state.amapWebServiceKey,
+      maptilerKey: state.maptilerKey,
+      mapDisplayProvider: state.mapDisplayProvider,
+      placeSearchProvider: state.placeSearchProvider,
+      agentServiceUrl: state.agentServiceUrl,
+    }
+  }
+
+  async function restoreAndConnectBackupFolder() {
+    setBackupBusy(true)
+    try {
+      const candidate = await chooseBackupFolderForRestore()
+      const count = candidate.backup.data.trips.length
+      const exportedAt = new Date(candidate.backup.exportedAt).toLocaleString('zh-CN', { hour12: false })
+      askConfirm({
+        title: '恢复并连接这个备份文件夹？',
+        message: `找到 ${exportedAt} 的备份，共 ${count} 个旅行。恢复后将替换当前旅行与地图配置，并把“${candidate.directoryName}”设为自动备份文件夹；此后应用打开期间的修改会自动写入这里。`,
+        onConfirm: () => {
+          void (async () => {
+            setBackupBusy(true)
+            try {
+              if (!restoreBackup(candidate.backup.data)) throw new Error('备份中的旅行数据不完整')
+              await connectLocalBackupDirectory(candidate.handle)
+              await writeLocalBackup(currentBackupData())
+              setBackupStatus(await getLocalBackupStatus())
+              useToastStore.getState().show(`已恢复 ${count} 个旅行，并连接自动备份文件夹`)
+            } catch (error) {
+              info({ title: '恢复失败', message: error instanceof Error ? error.message : '请重新选择备份文件夹。' })
+            } finally {
+              setBackupBusy(false)
+            }
+          })()
+        },
+      })
+    } catch (error) {
+      if ((error as DOMException)?.name !== 'AbortError') {
+        info({ title: '无法从文件夹恢复', message: error instanceof Error ? error.message : '请选择此前用于 TripNote 自动备份的文件夹。' })
+      }
+    } finally {
+      setBackupBusy(false)
+    }
   }
 
   async function selectBackupFolder() {
@@ -145,9 +208,10 @@ export default function SettingsView({
         const data = JSON.parse(String(reader.result))
         if (isNorthwardBackup(data)) {
           const count = data.data.trips.length
+          const exportedAt = new Date(data.exportedAt).toLocaleString('zh-CN', { hour12: false })
           askConfirm({
             title: '恢复完整备份？',
-            message: `将用这份备份中的 ${count} 个旅行替换当前全部旅行，并同步恢复高德 Key 和地图连线配置。恢复前建议先下载一份当前完整备份。`,
+            message: `这份备份生成于 ${exportedAt}，包含 ${count} 个旅行。恢复后将替换当前全部旅行，并同步恢复地图服务 Key、地图来源和连线配置。恢复前建议先保存一份当前备份。`,
             onConfirm: () => {
               if (!restoreBackup(data.data)) {
                 info({ title: '恢复失败', message: '备份中的旅行数据不完整。' })
@@ -251,14 +315,14 @@ export default function SettingsView({
         <section className="border-b border-border/80 py-6">
           <div className="mb-1 text-[15px] font-semibold">数据管理</div>
           <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">
-            数据仍保存在当前浏览器。完整备份包含全部旅行、当前旅行、地图服务 Key 与地图连线方式；可下载保存，也可在桌面 Chrome / Edge 自动归档到电脑文件夹。备份含密钥，请勿外发。
+            数据仍保存在当前浏览器。完整备份包含全部旅行、当前旅行、地图服务 Key 与地图连线方式；手机可保存到“文件”，支持文件夹访问的浏览器还可自动归档。备份含密钥，请勿外发。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
-              onClick={downloadBackup}
+              onClick={saveBackupFile}
               className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover"
             >
-              下载完整备份
+              保存完整备份
             </button>
             <label className="cursor-pointer rounded-md bg-surface-2 px-4 py-2 text-center text-[13px] font-medium text-text-muted transition-colors hover:text-text">
               恢复备份 / 导入旅程
@@ -266,7 +330,10 @@ export default function SettingsView({
                 type="file"
                 accept="application/json"
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && importFromFile(e.target.files[0])}
+                onChange={(e) => {
+                  if (e.target.files?.[0]) importFromFile(e.target.files[0])
+                  e.target.value = ''
+                }}
               />
             </label>
             <button
@@ -282,10 +349,15 @@ export default function SettingsView({
               重置数据
             </button>
           </div>
+          <p className="mt-2 text-[11.5px] text-text-faint">
+            {portableBackupAt
+              ? `最近生成备份：${new Date(portableBackupAt).toLocaleString('zh-CN', { hour12: false })}`
+              : '尚未保存过独立备份文件；建议在重要修改后保存一份。'}
+          </p>
           <div className="mt-5 rounded-lg border border-border/80 bg-surface/75 p-4 sm:p-4.5">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
               <div>
-                <div className="text-[13px] font-semibold text-text">自动备份到电脑文件夹</div>
+                <div className="text-[13px] font-semibold text-text">自动备份到指定文件夹</div>
                 {backupStatus?.supported ? (
                   <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">
                     {backupStatus.configured
@@ -295,7 +367,7 @@ export default function SettingsView({
                       : '选择一个本机文件夹后，TripNote 会在应用打开期间自动创建完整备份（含当前高德 Key 和地图连线配置）。'}
                   </p>
                 ) : (
-                  <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">当前浏览器不支持直接写入指定文件夹。可继续使用上方“下载完整备份”；桌面 Chrome、Edge 在 HTTPS 页面中可开启自动归档。</p>
+                  <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">当前浏览器不支持持续写入指定文件夹。请使用上方“保存完整备份”，在系统面板中选择“存储到文件”；桌面 Chrome、Edge 及部分 Android 浏览器可开启自动归档。</p>
                 )}
               </div>
               {backupStatus?.supported && (
@@ -307,6 +379,9 @@ export default function SettingsView({
                   )}
                   <button onClick={selectBackupFolder} disabled={backupBusy} className="rounded-md bg-surface-2 px-3 py-2 text-[12px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50">
                     {backupStatus.configured ? '更换文件夹' : '选择文件夹'}
+                  </button>
+                  <button onClick={restoreAndConnectBackupFolder} disabled={backupBusy} className="rounded-md bg-surface-2 px-3 py-2 text-[12px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50">
+                    从文件夹恢复
                   </button>
                   {backupStatus.configured && (
                     <button onClick={backupToFolderNow} disabled={backupBusy || backupStatus.permission !== 'granted'} className="rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50">
