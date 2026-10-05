@@ -59,6 +59,7 @@ const LAST_PORTABLE_BACKUP_KEY = 'northward-portable-backup-last-at'
 const BACKUP_STATUS_EVENT = 'tripnote-backup-status-changed'
 const BACKUP_FOLDER = 'TripNote备份'
 const LATEST_FILE = 'TripNote-最新备份.json'
+const PORTABLE_FILE = 'TripNote-完整备份.json'
 const MAX_HISTORY_FILES = 100
 
 export type LocalBackupStatus =
@@ -180,8 +181,7 @@ export function backupFileName(date = new Date()) {
 
 function backupJsonFile(data: BackupData) {
   const backup = buildBackup(data)
-  const name = backupFileName(new Date(backup.exportedAt))
-  return { backup, file: new File([JSON.stringify(backup, null, 2)], name, { type: 'application/json' }) }
+  return { backup, file: new File([JSON.stringify(backup, null, 2)], PORTABLE_FILE, { type: 'application/json' }) }
 }
 
 /**

@@ -97,7 +97,7 @@ export default function SettingsView({
     try {
       const result = await savePortableBackup(backupData)
       setPortableBackupAt(getLastPortableBackupAt())
-      useToastStore.getState().show(result === 'shared' ? '请选择“存储到文件”保存这份备份' : '完整备份已开始下载')
+      useToastStore.getState().show(result === 'shared' ? '请选择“存储到文件”；已有同名备份时选择“替换”' : '完整备份已开始下载')
     } catch (error) {
       if ((error as DOMException)?.name !== 'AbortError') {
         info({ title: '无法保存备份', message: error instanceof Error ? error.message : '请稍后再试。' })
@@ -353,6 +353,7 @@ export default function SettingsView({
             {portableBackupAt
               ? `最近生成备份：${new Date(portableBackupAt).toLocaleString('zh-CN', { hour12: false })}`
               : '尚未保存过独立备份文件；建议在重要修改后保存一份。'}
+            {' '}再次保存到同一文件夹时，请在系统面板中选择“替换”，即可更新原备份。
           </p>
           <div className="mt-5 rounded-lg border border-border/80 bg-surface/75 p-4 sm:p-4.5">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
