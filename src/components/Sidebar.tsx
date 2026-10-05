@@ -3,13 +3,14 @@ import type { DragEvent, PointerEvent as ReactPointerEvent, ReactElement } from 
 import { activitiesByDay, useActiveTrip, useTripStore, displayDate, nextActivityTime } from '../store'
 import { straightLineDistanceMeters } from '../api/route'
 import type { TripDay, ViewKey } from '../types'
-import { CalendarIcon, ChevronDownIcon, DownloadIcon, EditIcon, LogoIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
+import { CalendarIcon, ChevronDownIcon, DownloadIcon, EditIcon, LogoIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 import TripTrashDialog from './TripTrashDialog'
 import DataSafetyStatus from './DataSafetyStatus'
 import { tripDateRange, tripPlanningProgress } from '../utils/tripPresentation'
+import TripRegionDialog, { tripRegionLabel } from './TripRegionDialog'
 
 const NAV_ITEMS: { key: ViewKey; label: string; Icon: (p: { size?: number }) => ReactElement }[] = [
   { key: 'plan', label: '行程规划', Icon: CalendarIcon },
@@ -173,6 +174,7 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
   const [open, setOpen] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [tripTrashOpen, setTripTrashOpen] = useState(false)
+  const [tripRegionOpen, setTripRegionOpen] = useState(false)
   const [renamingId, setRenamingId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
   const askConfirm = useConfirmStore((s) => s.ask)
@@ -282,6 +284,18 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
               </div>
             )
           })}
+          <button
+            onClick={() => {
+              setOpen(false)
+              setTripRegionOpen(true)
+            }}
+            className="mt-1 flex w-full items-center gap-2 border-t border-border px-3.5 py-2.5 text-left transition-colors hover:bg-surface"
+          >
+            <MapIcon size={14} className="text-accent" />
+            <span className="text-[12px] text-text-muted">旅行区域</span>
+            <span className="ml-auto max-w-[150px] truncate text-[12px] font-medium text-text">{tripRegionLabel(trip.searchRegion)}</span>
+            <span className="text-[11px] text-text-faint">修改</span>
+          </button>
           <div className="mt-1 border-t border-border pt-1">
             <button
               onClick={() => {
@@ -307,6 +321,7 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
       )}
       {showCreateDialog && <CreateTripDialog onClose={() => setShowCreateDialog(false)} />}
       {tripTrashOpen && <TripTrashDialog onClose={() => setTripTrashOpen(false)} />}
+      {tripRegionOpen && <TripRegionDialog onClose={() => setTripRegionOpen(false)} />}
     </div>
   )
 }

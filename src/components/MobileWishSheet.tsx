@@ -7,6 +7,7 @@ import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import { CustomMapWishDialog } from './WishlistView'
 import { CATEGORY_META, type ActivityCategory, type WishPlace } from '../types'
+import TripRegionDialog from './TripRegionDialog'
 
 function scheduledIds(place: WishPlace) {
   return [...(place.scheduledActivityIds ?? []), ...(place.scheduledActivityId ? [place.scheduledActivityId] : [])]
@@ -38,6 +39,7 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'empty' | 'results'>('idle')
   const [category, setCategory] = useState<ActivityCategory>('sight')
   const [showCustomMap, setShowCustomMap] = useState(false)
+  const [showRegionDialog, setShowRegionDialog] = useState(false)
 
   const scheduledItemsFor = (place: WishPlace) => Array.from(new Set(scheduledIds(place)))
     .map((id) => trip.activities.find((activity) => activity.id === id))
@@ -174,6 +176,10 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
             <select value={category} onChange={(event) => setCategory(event.target.value as ActivityCategory)} className="min-w-0 flex-1 rounded-lg border border-border bg-white px-2.5 py-1.5 text-[11.5px] text-text-muted outline-none focus:border-accent">{(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => <option key={value} value={value}>{CATEGORY_META[value].label}</option>)}</select>
             <button type="button" onClick={() => setShowCustomMap(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-text-muted hover:border-accent hover:text-accent"><MapIcon size={13} /> 地图选点</button>
           </div>
+          <div className="mt-2 flex items-center gap-1.5 border-t border-border/70 pt-2 text-[10.5px] text-text-faint">
+            <button type="button" onClick={() => setShowRegionDialog(true)} className="inline-flex min-w-0 items-center gap-1 rounded-md px-1.5 py-1 font-medium text-accent active:bg-accent-soft"><MapIcon size={11} /><span className="truncate">{trip.searchRegion ? `${trip.searchRegion}优先` : '智能判断区域'}</span><span>· 修改</span></button>
+            <span className="truncate">搜不到时自动扩大范围</span>
+          </div>
           {searchStatus === 'loading' && <div className="mt-2 text-[11px] text-text-faint">正在搜索…</div>}
           {results.length > 0 && <div className="mt-2 overflow-hidden rounded-lg border border-border bg-white">
             {groupedResults.trip.length > 0 && <div className="border-b border-border/70 bg-surface px-3 py-1.5 text-[10.5px] font-medium text-text-muted">旅行范围内</div>}
@@ -212,6 +218,7 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
         </div>}
       </ModalShell>
       {showCustomMap && <CustomMapWishDialog initialName={query.trim()} initialCategory={category} onSaved={(id) => { setSelectedPlaceId(id); clearAdd(); setShowCustomMap(false) }} onClose={() => setShowCustomMap(false)} />}
+      {showRegionDialog && <TripRegionDialog onClose={() => setShowRegionDialog(false)} />}
     </>
   )
 }
