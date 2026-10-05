@@ -21,7 +21,7 @@ function plannedIds(place: WishPlace) {
 }
 
 
-function PlaceLibrary({ onStartMapPick, onEditRegion, recentlyScheduledPlaceId, selectedWishPlaceId, onSelectWishPlace, onScheduleSuccess }: { onStartMapPick: () => void; onEditRegion: () => void; recentlyScheduledPlaceId: string | null; selectedWishPlaceId: string | null; onSelectWishPlace: (placeId: string | null) => void; onScheduleSuccess: (activityId: string, placeId: string) => void }) {
+function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPlaceId, onSelectWishPlace, onScheduleSuccess }: { onStartMapPick: () => void; recentlyScheduledPlaceId: string | null; selectedWishPlaceId: string | null; onSelectWishPlace: (placeId: string | null) => void; onScheduleSuccess: (activityId: string, placeId: string) => void }) {
   const trip = useActiveTrip()
   const { addWishPlace, removeWishPlace, scheduleWishPlace, amapWebServiceKey, placeSearchProvider } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
@@ -177,10 +177,6 @@ function PlaceLibrary({ onStartMapPick, onEditRegion, recentlyScheduledPlaceId, 
         {searchFinished && results.length === 0 && <button onClick={addPlainPlace} className="mt-1.5 text-left text-[10.5px] leading-relaxed text-accent hover:text-accent-hover">未找到「{query.trim()}」· 直接收藏这个名称</button>}
         </div>
         <button onClick={onStartMapPick} className="h-[34px] shrink-0 self-start rounded-md border border-border bg-white px-2.5 text-[11px] font-medium text-text-muted hover:border-accent/40 hover:text-accent" title="在右侧地图选择地点"><MapIcon size={14} /></button>
-      </div>
-      <div className="mt-2 flex min-w-0 items-center gap-1.5 text-[10.5px] text-text-faint">
-        <button onClick={onEditRegion} className="inline-flex min-w-0 items-center gap-1 rounded-md px-1.5 py-1 font-medium text-accent transition-colors hover:bg-accent-soft hover:text-accent-hover" title="修改当前旅行的搜索区域"><MapIcon size={11} /><span className="truncate">{trip.searchRegion ? `${trip.searchRegion}优先` : '智能判断区域'}</span><span>· 修改</span></button>
-        <span className="truncate">搜不到时自动扩大范围</span>
       </div>
     </div>
     <div className="min-h-0 flex-1 overflow-y-auto">
@@ -368,7 +364,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
       </div>
     </header>
     <div className="flex min-h-0 flex-1 gap-2 bg-bg px-2 pb-2">
-      <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} onEditRegion={() => setEditRegionOpen(true)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} selectedWishPlaceId={selectedWishPlaceId} onSelectWishPlace={setSelectedWishPlaceId} onScheduleSuccess={handleScheduleSuccess} />
+      <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} selectedWishPlaceId={selectedWishPlaceId} onSelectWishPlace={setSelectedWishPlaceId} onScheduleSuccess={handleScheduleSuccess} />
       <div role="separator" aria-label="调整想去宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>
       <main data-workspace-scroll onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto rounded-[18px] border border-border/70 bg-white transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
         <TimelineView workspace showAllDays={showAllDays} onShowAllDays={() => setShowAllDays(true)} onFocusDay={(dayId) => { setActiveDay(dayId); setShowAllDays(false) }} hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
