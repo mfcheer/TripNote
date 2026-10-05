@@ -11,21 +11,9 @@ import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
 import MapTilerChineseLayer from './MapTilerLayer'
 import { useToastStore } from './toastStore'
 import { EmptyState } from './FeedbackState'
+import { MAP_ROUTE_ACTIVE, MAP_ROUTE_INACTIVE, ROUTE_PROGRESS_COLORS, WISH_PENDING, WISH_PENDING_TEXT, WISH_SCHEDULED, WISH_SCHEDULED_TEXT, routeProgressColor } from '../utils/mapPalette'
 
 // 高对比暖色阶：金橙至酒红表达行程推进，配合白色底描边确保在不同地图底色上清晰可见。
-const ROUTE_COLORS = ['#E9A668', '#EA795A', '#D9534F', '#B63E44', '#7F344A']
-
-function routeColor(dayIndex: number, totalDays: number) {
-  if (totalDays <= 1) return ROUTE_COLORS.at(-1)!
-  const position = (dayIndex / (totalDays - 1)) * (ROUTE_COLORS.length - 1)
-  const lowerIndex = Math.floor(position)
-  const upperIndex = Math.min(lowerIndex + 1, ROUTE_COLORS.length - 1)
-  const ratio = position - lowerIndex
-  const lower = ROUTE_COLORS[lowerIndex].match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
-  const upper = ROUTE_COLORS[upperIndex].match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
-  const channel = (index: number) => Math.round(lower[index] + (upper[index] - lower[index]) * ratio).toString(16).padStart(2, '0')
-  return `#${channel(0)}${channel(1)}${channel(2)}`
-}
 
 function markerIcon(color: string, label: string) {
   return L.divIcon({
@@ -48,7 +36,7 @@ function dotMarkerIcon(color: string) {
 function selectedWishIcon(label: string) {
   return L.divIcon({
     className: '',
-    html: `<div class="map-place-marker map-selected-wish-marker" style="border-color:#af6959;color:#8d4e42">${escapeHtml(label)}</div>`,
+    html: `<div class="map-place-marker map-selected-wish-marker" style="border-color:${WISH_PENDING};color:${WISH_PENDING_TEXT}">${escapeHtml(label)}</div>`,
     iconSize: [160, 28],
     iconAnchor: [80, 14],
   })
@@ -298,9 +286,9 @@ export default function MapView({
   const openDayItems = openDaySummary ? activitiesByDay(trip, openDaySummary.id).filter((activity) => activity.geo) : []
   const openDayDistance = openDayItems.slice(1).reduce((total, activity, index) => total + straightLineDistanceMeters(openDayItems[index].geo!, activity.geo!), 0)
   function colorForDay(day: TripDay) {
-    if (!narrativePreview) return routeColor(trip.days.indexOf(day), trip.days.length)
-    if (workspaceMapScope !== 'all' || filter !== 'all') return '#d65f58'
-    return day.id === followDayId ? '#d65f58' : '#aebfc8'
+    if (!narrativePreview) return routeProgressColor(trip.days.indexOf(day), trip.days.length)
+    if (workspaceMapScope !== 'all' || filter !== 'all') return MAP_ROUTE_ACTIVE
+    return day.id === followDayId ? MAP_ROUTE_ACTIVE : MAP_ROUTE_INACTIVE
   }
   const focusMapActivity = useCallback((activityId: string) => {
     useTripStore.getState().focusActivity(activityId)
@@ -350,7 +338,7 @@ export default function MapView({
   }) : []), ...(wishOverview ? wishPlacesWithGeo.map((place) => ({
     id: `wish-overview-${place.id}`,
     point: place.geo!,
-    color: scheduledWishIds.has(place.id) ? '#597988' : '#af6959',
+    color: scheduledWishIds.has(place.id) ? WISH_SCHEDULED : WISH_PENDING,
     simple: place.id !== highlightWishPlace?.id,
     wide: place.id === highlightWishPlace?.id,
     active: place.id === highlightWishPlace?.id,
@@ -359,10 +347,10 @@ export default function MapView({
     id: `selected-wish-${highlightWishPlace.id}`,
     point: highlightWishPlace.geo,
     label: highlightWishPlace.title,
-    color: '#af6959',
+    color: WISH_PENDING,
     wide: true,
     active: true,
-  }] : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: '#c55e4e', active: true }] : [])], [filter, focusMapActivity, highlightWishPlace, markerGroups, pickedPoint, scheduledWishIds, setActiveDay, trip, wishOverview, wishPlacesWithGeo, narrativePreview, workspaceMapScope, followDayId])
+  }] : []), ...(pickedPoint ? [{ id: 'picked-wish-place', point: pickedPoint, label: '+', color: MAP_ROUTE_ACTIVE, active: true }] : [])], [filter, focusMapActivity, highlightWishPlace, markerGroups, pickedPoint, scheduledWishIds, setActiveDay, trip, wishOverview, wishPlacesWithGeo, narrativePreview, workspaceMapScope, followDayId])
 
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
@@ -495,15 +483,15 @@ export default function MapView({
         {wishOverview && wishPlacesWithGeo.map((place) => {
           const scheduled = scheduledWishIds.has(place.id)
           const selected = place.id === highlightWishPlace?.id
-          return <Marker key={`wish-overview-${place.id}`} position={[place.geo!.lat, place.geo!.lng]} icon={selected ? selectedWishIcon(place.title) : dotMarkerIcon(scheduled ? '#597988' : '#af6959')} zIndexOffset={selected ? 1000 : 0}>
-            <Popup><div className="min-w-[150px]"><div className="font-medium" style={{ color: scheduled ? '#405f6d' : '#8d4e42' }}>{scheduled ? '已安排' : '待安排'} · {place.title}</div><div className="mt-1 text-[12px] text-text-muted">{place.location || '未补充位置'}</div></div></Popup>
+          return <Marker key={`wish-overview-${place.id}`} position={[place.geo!.lat, place.geo!.lng]} icon={selected ? selectedWishIcon(place.title) : dotMarkerIcon(scheduled ? WISH_SCHEDULED : WISH_PENDING)} zIndexOffset={selected ? 1000 : 0}>
+            <Popup><div className="min-w-[150px]"><div className="font-medium" style={{ color: scheduled ? WISH_SCHEDULED_TEXT : WISH_PENDING_TEXT }}>{scheduled ? '已安排' : '待安排'} · {place.title}</div><div className="mt-1 text-[12px] text-text-muted">{place.location || '未补充位置'}</div></div></Popup>
           </Marker>
         })}
         {!wishOverview && highlightWishPlace?.geo && <Marker
           position={[highlightWishPlace.geo.lat, highlightWishPlace.geo.lng]}
           icon={selectedWishIcon(highlightWishPlace.title)}
           zIndexOffset={1000}
-        ><Popup><div className="min-w-[150px]"><div className="font-medium text-[#8d4e42]">待安排 · {highlightWishPlace.title}</div><div className="mt-1 text-[12px] text-text-muted">{highlightWishPlace.location || '未补充位置'}</div></div></Popup></Marker>}
+        ><Popup><div className="min-w-[150px]"><div className="font-medium" style={{ color: WISH_PENDING_TEXT }}>待安排 · {highlightWishPlace.title}</div><div className="mt-1 text-[12px] text-text-muted">{highlightWishPlace.location || '未补充位置'}</div></div></Popup></Marker>}
         {pickedPoint && <Marker position={[pickedPoint.lat, pickedPoint.lng]} icon={pickedPointIcon} interactive={false} />}
       </MapContainer>
       )}
@@ -563,7 +551,7 @@ export default function MapView({
         <div className="border-t border-border px-3.5 py-2.5">
         <div className="mb-2 flex items-center gap-1 text-[10.5px] text-text-faint">
           <span>第 1 天</span>
-          <span className="h-1 flex-1 rounded-full" style={{ background: `linear-gradient(90deg, ${ROUTE_COLORS.join(', ')})` }} />
+          <span className="h-1 flex-1 rounded-full" style={{ background: `linear-gradient(90deg, ${ROUTE_PROGRESS_COLORS.join(', ')})` }} />
           <span>最后一天</span>
         </div>
         {trip.days.map((d, i) => (
@@ -577,7 +565,7 @@ export default function MapView({
               filter === d.id ? 'font-medium' : 'text-text-muted'
             }`}
           >
-            <span className="h-2 w-2 rounded-full" style={{ background: routeColor(i, trip.days.length) }} />
+            <span className="h-2 w-2 rounded-full" style={{ background: routeProgressColor(i, trip.days.length) }} />
             {d.label} · {d.place}
           </button>
         ))}

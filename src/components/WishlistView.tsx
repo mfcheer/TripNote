@@ -15,21 +15,9 @@ import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
 import MapTilerChineseLayer from './MapTilerLayer'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 import { EmptyState, InlineStatus } from './FeedbackState'
+import { routeProgressColor } from '../utils/mapPalette'
 
 const WISHLIST_MAP_WIDTH_KEY = 'tripnote-wishlist-map-width-v1'
-const ROUTE_COLORS = ['#E9A668', '#EA795A', '#D9534F', '#B63E44', '#7F344A']
-
-function routeColor(dayIndex: number, totalDays: number) {
-  if (totalDays <= 1) return ROUTE_COLORS.at(-1)!
-  const position = (dayIndex / (totalDays - 1)) * (ROUTE_COLORS.length - 1)
-  const lowerIndex = Math.floor(position)
-  const upperIndex = Math.min(lowerIndex + 1, ROUTE_COLORS.length - 1)
-  const ratio = position - lowerIndex
-  const lower = ROUTE_COLORS[lowerIndex].match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
-  const upper = ROUTE_COLORS[upperIndex].match(/[a-f\d]{2}/gi)!.map((value) => Number.parseInt(value, 16))
-  const channel = (index: number) => Math.round(lower[index] + (upper[index] - lower[index]) * ratio).toString(16).padStart(2, '0')
-  return `#${channel(0)}${channel(1)}${channel(2)}`
-}
 
 function readMapPanelWidth() {
   const saved = Number(localStorage.getItem(WISHLIST_MAP_WIDTH_KEY))
@@ -513,7 +501,7 @@ export default function WishlistView() {
       return {
         id: `wish-day-${day.id}-${from.id}-${to.id}`,
         points: [from.geo!, to.geo!],
-        color: routeColor(dayIndex, trip.days.length),
+        color: routeProgressColor(dayIndex, trip.days.length),
         route: mapRouteMode === 'walking' ? profile ?? undefined : undefined,
         weight: profile === 'driving' ? 4.5 : 4,
       }
@@ -524,7 +512,7 @@ export default function WishlistView() {
     const previous = activitiesByDay(trip, trip.days[dayIndex - 1].id).filter((activity) => activity.geo).at(-1)
     const current = activitiesByDay(trip, day.id).filter((activity) => activity.geo)[0]
     return previous?.geo && current?.geo
-      ? [{ id: `wish-cross-${previous.id}-${current.id}`, points: [previous.geo, current.geo], color: routeColor(dayIndex, trip.days.length), dashed: true, weight: 3 }]
+      ? [{ id: `wish-cross-${previous.id}-${current.id}`, points: [previous.geo, current.geo], color: routeProgressColor(dayIndex, trip.days.length), dashed: true, weight: 3 }]
       : []
   }), [trip])
   const itineraryPoints = trip.activities.filter((activity) => activity.geo).map((activity) => [activity.geo!.lat, activity.geo!.lng] as [number, number])

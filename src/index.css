@@ -93,21 +93,25 @@
   --color-bg: #f4f6f7;
   --color-surface: #ffffff;
   --color-surface-2: #edf1f3;
-  --color-border: #dce3e7;
+  --color-border: #d5dee3;
   --color-text: #202a31;
-  --color-text-muted: #6d7b85;
-  --color-text-faint: #97a3ab;
+  --color-text-muted: #63717b;
+  --color-text-faint: #7f8c94;
   --color-accent: #5a849f;
   --color-accent-soft: #e7f0f4;
   --color-accent-hover: #3f6b86;
-  --color-action: #5a849f;
-  --color-action-soft: #e7f0f4;
-  --color-action-hover: #3f6b86;
+  --color-action: #4f7892;
+  --color-action-soft: #e4edf2;
+  --color-action-hover: #365f78;
+  --color-travel: #b26f5e;
+  --color-travel-soft: #f7ece8;
+  --color-route: #d65f58;
+  --color-danger: #c54d4d;
 
   --color-cat-traffic: #66899a;
   --color-cat-traffic-soft: #e9f1f4;
-  --color-cat-sight: #b97966;
-  --color-cat-sight-soft: #f8edeb;
+  --color-cat-sight: var(--color-travel);
+  --color-cat-sight-soft: var(--color-travel-soft);
   --color-cat-food: #9b8056;
   --color-cat-food-soft: #f7f1e8;
   --color-cat-stay: #788198;
@@ -126,7 +130,7 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   color: var(--color-text);
-  background: #f4f6f7;
+  background: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
@@ -323,12 +327,12 @@ input:focus, textarea:focus, select:focus {
 .settings-view details > div,
 .settings-view section > div.rounded-lg {
   border-color: rgba(29,29,31,.09) !important;
-  background: #f7f8fa !important;
+  background: color-mix(in srgb, var(--color-surface-2) 55%, white) !important;
 }
 .settings-view section { position: relative; }
 .settings-view section > div.rounded-lg { border-radius: 14px !important; }
 .settings-view details summary { border-radius: 10px; transition: background-color .16s ease; }
-.settings-view details summary:hover { background: #f7f8fa; }
+.settings-view details summary:hover { background: color-mix(in srgb, var(--color-surface-2) 55%, white); }
 .settings-view details[open] summary { margin: -8px -10px 0; padding: 8px 10px; }
 .apple-modal-backdrop {
   background: rgba(30,34,40,.22) !important;
@@ -358,19 +362,19 @@ input:focus, textarea:focus, select:focus {
   color: var(--color-accent-hover);
   box-shadow: none;
 }
-.mobile-plan-dock__primary { box-shadow: 0 3px 10px rgba(40,120,212,.18); }
+.mobile-plan-dock__primary { box-shadow: 0 3px 10px color-mix(in srgb, var(--color-action) 20%, transparent); }
 .mobile-plan-root .mobile-timeline [data-activity-id] > div > div { border-radius: 8px; }
 .mobile-plan-root .mobile-timeline [data-activity-id] + [data-activity-id] { margin-top: 0; }
 
 /* 地图叙事层级：不改变内容，只让真实地图成为当天行程的视觉线索。 */
-.map-narrative-preview.workspace-root > div:last-of-type { gap: 4px; padding: 4px; background: #f4f7f8; }
+.map-narrative-preview.workspace-root > div:last-of-type { gap: 4px; padding: 4px; background: color-mix(in srgb, var(--color-surface-2) 58%, white); }
 .map-narrative-preview.workspace-root [data-workspace-scroll] { border-radius: 14px; }
 .map-narrative-preview.workspace-root > div:last-of-type > aside { border-radius: 14px; box-shadow: 0 10px 26px rgba(42, 71, 80, .07); }
 .map-narrative-preview .trip-map-view .leaflet-control-zoom { margin-top: 72px; }
 .map-narrative-preview .map-story-context { min-height: 48px; }
 .map-narrative-preview .trip-map-view .map-place-marker { box-shadow: 0 2px 10px rgba(30, 48, 56, .14); }
 .map-narrative-preview .trip-map-view .map-dot { box-shadow: 0 0 0 3px rgba(255,255,255,.92), 0 2px 7px rgba(30,48,56,.18); }
-.map-narrative-preview.mobile-plan-root .mobile-day-rail { background: #f8fafb; }
+.map-narrative-preview.mobile-plan-root .mobile-day-rail { background: color-mix(in srgb, var(--color-surface-2) 42%, white); }
 .map-narrative-preview.mobile-plan-root .mobile-map-actions { background: rgba(248,251,252,.94); }
 .map-narrative-preview.mobile-plan-root .mobile-timeline { background: #fff; }
 /* 手机预览：保留原有日期条位置，仅加强真实地图的层次与路线表现。 */
@@ -449,11 +453,11 @@ input:focus, textarea:focus, select:focus {
 }
 .leaflet-control-zoom a { background: rgba(255,255,255,.9) !important; }
 .map-place-marker {
-  border-color: #fa6e58;
+  border-color: var(--color-route);
   border-radius: 9px;
   background: rgba(255,255,255,.93);
   box-shadow: 0 3px 10px rgba(33,43,53,.14);
-  color: #e75e4d;
+  color: var(--color-route);
 }
 
 /* 细滚动条 */
@@ -521,12 +525,12 @@ input:focus, textarea:focus, select:focus {
 .map-picked-marker {
   width: 30px;
   height: 30px;
-  border-color: #c55e4e;
+  border-color: var(--color-route);
   background: #fff;
-  color: #c55e4e;
+  color: var(--color-route);
   font-size: 20px;
   line-height: 1;
-  box-shadow: 0 0 0 4px rgba(197, 94, 78, 0.16), 0 2px 7px rgba(88, 43, 40, 0.28);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-route) 16%, transparent), 0 2px 7px rgba(88, 43, 40, 0.28);
 }
 
 /* 行程地图直接展示安排名称，名称过长时截断，避免遮住相邻路线与地点。 */
@@ -578,7 +582,7 @@ input:focus, textarea:focus, select:focus {
 .workspace-root > div:last-of-type {
   gap: 6px;
   padding: 6px;
-  background: #eef2f3;
+  background: var(--color-surface-2);
 }
 .workspace-root .workspace-library,
 .workspace-root [data-workspace-scroll],
@@ -657,7 +661,7 @@ input:focus, textarea:focus, select:focus {
 
 /* 手机保持一条连续日程线：降低大块白卡和底部栏的对比，只让可执行入口突出。 */
 @media (max-width: 767px) {
-  .mobile-plan-root { background: #f4f6f7; }
+  .mobile-plan-root { background: var(--color-bg); }
   .mobile-plan-root .mobile-day-rail {
     background: rgba(255,255,255,.76);
     box-shadow: inset 0 -1px 0 rgba(73,96,109,.07);
@@ -685,7 +689,7 @@ input:focus, textarea:focus, select:focus {
   }
   .mobile-plan-dock__trigger {
     min-height: 36px;
-    background: #5a849f;
+    background: var(--color-action);
     box-shadow: 0 3px 10px rgba(49,82,101,.16);
   }
   .apple-modal-surface { border-radius: 20px 20px 0 0 !important; }
@@ -720,8 +724,8 @@ input:focus, textarea:focus, select:focus {
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: rgba(88, 132, 154, .30);
-  box-shadow: 124px 15px 0 rgba(188, 111, 88, .22);
+  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  box-shadow: 124px 15px 0 color-mix(in srgb, var(--color-travel) 22%, transparent);
   pointer-events: none;
 }
 
@@ -751,7 +755,7 @@ input:focus, textarea:focus, select:focus {
 }
 .day-stay-ending__icon {
   display: inline-flex;
-  color: #a36c5d;
+  color: var(--color-travel);
 }
 .day-stay-ending__label { color: var(--color-text-faint); }
 .day-stay-ending strong {

@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
 import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 import MapTilerChineseLayer from './MapTilerLayer'
+import { MAP_ROUTE_ACTIVE } from '../utils/mapPalette'
 
 function pointIcon(label: string, selected: boolean, highlighted: boolean, showLabels: boolean) {
   const color = selected ? '#3f4953' : '#59636e'
@@ -74,14 +75,14 @@ export default function DayMapPreview({
   return (
     <div className="h-[240px] overflow-hidden rounded-lg border border-border">
       {mapDisplayProvider === 'amap' && amapJsKey ? (
-        <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={points.length > 1 ? [{ id: dayId, points: items.map((activity) => activity.geo!), color: '#c55e4e', weight: 3 }] : []} className="h-full w-full" zoom={13} />
+        <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={points.length > 1 ? [{ id: dayId, points: items.map((activity) => activity.geo!), color: MAP_ROUTE_ACTIVE, weight: 3 }] : []} className="h-full w-full" zoom={13} />
       ) : (
       <MapContainer center={points[0]} zoom={13} className="h-full w-full" zoomControl={false} attributionControl={false}>
         {mapDisplayProvider === 'maptiler-zh' && maptilerKey ? (
           <MapTilerChineseLayer apiKey={maptilerKey} />
         ) : <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />}
         <FitPreview points={points} />
-        {points.length > 1 && <Polyline positions={points} pathOptions={{ color: '#c55e4e', weight: 3, opacity: 0.7 }} />}
+        {points.length > 1 && <Polyline positions={points} pathOptions={{ color: MAP_ROUTE_ACTIVE, weight: 3, opacity: 0.7 }} />}
         {items.map((activity) => (
           <Marker
             key={activity.id}
