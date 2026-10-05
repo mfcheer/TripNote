@@ -30,7 +30,7 @@ interface TripState {
   mapDisplayProvider: 'amap' | 'osm' | 'maptiler-zh'
   placeSearchProvider: 'amap' | 'osm'
   mapRouteMode: 'direct' | 'walking'
-  // Agent 模型密钥永远只配置在服务端；访问口令只存本浏览器，不进入备份。
+  // Agent 模型密钥永远只配置在服务端；访问口令保存在浏览器，并进入完整备份。
   agentServiceUrl: string
   agentAccessToken: string
   /** 按旅行隔离的本机助手短会话；不进入备份，也不写入 NAS。 */
@@ -597,6 +597,7 @@ export const useTripStore = create<TripState>()(
           ...(typeof data.amapWebServiceKey === 'string' ? { amapWebServiceKey: data.amapWebServiceKey } : {}),
           ...(typeof data.maptilerKey === 'string' ? { maptilerKey: data.maptilerKey } : {}),
           ...(typeof data.agentServiceUrl === 'string' ? { agentServiceUrl: data.agentServiceUrl } : {}),
+          ...(typeof data.agentAccessToken === 'string' ? { agentAccessToken: data.agentAccessToken } : {}),
           view: 'plan',
           planTab: 'timeline',
         })

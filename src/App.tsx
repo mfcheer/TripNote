@@ -81,6 +81,7 @@ export default function App() {
         mapDisplayProvider: state.mapDisplayProvider,
         placeSearchProvider: state.placeSearchProvider,
         agentServiceUrl: state.agentServiceUrl,
+        agentAccessToken: state.agentAccessToken,
       }
     }
     const unsubscribe = useTripStore.subscribe((state) => scheduleLocalBackup(toBackupData(state)))

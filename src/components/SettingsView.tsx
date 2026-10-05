@@ -64,7 +64,7 @@ export default function SettingsView({
   const [isIos] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent))
   const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
 
-  const backupData: BackupData = { trips, deletedTrips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider, agentServiceUrl }
+  const backupData: BackupData = { trips, deletedTrips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider, agentServiceUrl, agentAccessToken }
 
   async function refreshBackupStatus() {
     setBackupStatus(await getLocalBackupStatus())
@@ -118,6 +118,7 @@ export default function SettingsView({
       mapDisplayProvider: state.mapDisplayProvider,
       placeSearchProvider: state.placeSearchProvider,
       agentServiceUrl: state.agentServiceUrl,
+      agentAccessToken: state.agentAccessToken,
     }
   }
 
@@ -129,7 +130,7 @@ export default function SettingsView({
       const exportedAt = new Date(candidate.backup.exportedAt).toLocaleString('zh-CN', { hour12: false })
       askConfirm({
         title: '恢复并连接这个备份文件夹？',
-        message: `找到 ${exportedAt} 的备份，共 ${count} 个旅行。恢复后将替换当前旅行与地图配置，并把“${candidate.directoryName}”设为自动备份文件夹；此后应用打开期间的修改会自动写入这里。`,
+        message: `找到 ${exportedAt} 的备份，共 ${count} 个旅行。恢复后将替换当前旅行、地图配置和 Agent 访问口令，并把“${candidate.directoryName}”设为自动备份文件夹；此后应用打开期间的修改会自动写入这里。`,
         onConfirm: () => {
           void (async () => {
             setBackupBusy(true)
@@ -211,7 +212,7 @@ export default function SettingsView({
           const exportedAt = new Date(data.exportedAt).toLocaleString('zh-CN', { hour12: false })
           askConfirm({
             title: '恢复完整备份？',
-            message: `这份备份生成于 ${exportedAt}，包含 ${count} 个旅行。恢复后将替换当前全部旅行，并同步恢复地图服务 Key、地图来源和连线配置。恢复前建议先保存一份当前备份。`,
+            message: `这份备份生成于 ${exportedAt}，包含 ${count} 个旅行。恢复后将替换当前全部旅行，并同步恢复 Agent 访问口令、地图服务 Key、地图来源和连线配置。恢复前建议先保存一份当前备份。`,
             onConfirm: () => {
               if (!restoreBackup(data.data)) {
                 info({ title: '恢复失败', message: '备份中的旅行数据不完整。' })
@@ -308,14 +309,14 @@ export default function SettingsView({
           <div className="text-[15px] font-semibold">规划助手</div>
           <p className="mt-1 max-w-[620px] text-[12.5px] leading-relaxed text-text-muted">规划助手是可选服务。旅行数据仍保存在本机；模型 API Key 只写在 NAS 服务端。若服务设置了访问口令，在此设备填写相同口令。</p>
           <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]"><input value={agentUrl} onChange={(event) => setAgentUrl(event.target.value)} placeholder="例如：https://agent.example.ts.net" className="min-w-0 rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] outline-none focus:border-accent" /><input value={agentToken} type="password" onChange={(event) => setAgentToken(event.target.value)} placeholder="访问口令（可选）" className="min-w-0 rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] outline-none focus:border-accent" /><button onClick={() => { setAgentServiceUrl(agentUrl); setAgentAccessToken(agentToken); useToastStore.getState().show(agentUrl.trim() ? '规划助手连接已保存' : '已关闭规划助手服务') }} className="rounded-md bg-action px-4 py-2 text-[12.5px] font-medium text-white hover:bg-action-hover">保存</button></div>
-          <p className="mt-2 text-[11px] text-text-faint">访问口令仅保存在当前浏览器，不会导出到备份；未配置时，手动创建、地图、导出和备份不受影响。</p>
+          <p className="mt-2 text-[11px] text-text-faint">访问口令会随完整备份保存和恢复；DeepSeek 等模型 API Key 仍只保存在 Agent 服务端。备份文件包含敏感配置，请妥善保管。</p>
         </section>
 
         {/* 数据管理 */}
         <section className="border-b border-border/80 py-6">
           <div className="mb-1 text-[15px] font-semibold">数据管理</div>
           <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">
-            数据仍保存在当前浏览器。完整备份包含全部旅行、当前旅行、地图服务 Key 与地图连线方式；手机可保存到“文件”，支持文件夹访问的浏览器还可自动归档。备份含密钥，请勿外发。
+            数据仍保存在当前浏览器。完整备份包含全部旅行、访问口令、地图服务 Key 与地图连线方式；手机可保存到“文件”，支持文件夹访问的浏览器还可自动归档。备份含敏感密钥，请勿外发。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
