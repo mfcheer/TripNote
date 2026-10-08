@@ -698,35 +698,12 @@ input:focus, textarea:focus, select:focus {
 /* 第一阶段旅行叙事：只强化旅行身份与章节关系，不增加新的大卡片。 */
 .trip-identity-header {
   isolation: isolate;
-  overflow: hidden;
-  background:
-    linear-gradient(100deg, rgba(255,255,255,.94) 0%, rgba(247,250,251,.92) 64%, rgba(231,240,244,.58) 100%);
+  overflow: visible;
+  background: rgba(255,255,255,.96);
 }
-.trip-identity-header::after {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  top: 10px;
-  right: 13%;
-  width: 150px;
-  height: 42px;
-  border-top: 1px solid rgba(78, 119, 140, .18);
-  border-radius: 50%;
-  transform: rotate(-7deg);
-  pointer-events: none;
-}
+.trip-identity-header::after,
 .trip-identity-header::before {
-  content: '';
-  position: absolute;
-  z-index: -1;
-  top: 14px;
-  right: calc(13% + 114px);
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
-  box-shadow: 124px 15px 0 color-mix(in srgb, var(--color-travel) 22%, transparent);
-  pointer-events: none;
+  display: none;
 }
 
 .day-route-chip {
