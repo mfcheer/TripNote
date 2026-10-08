@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { requestAgentCheck, requestAgentPlan, type AgentPlanInput } from '../api/agent'
 import { useActiveTrip, useTripStore } from '../store'
-import type { AgentDiagnosis, AgentPlanDraft } from '../types'
+import type { Activity, AgentDiagnosis, AgentDraftActivity, AgentPlanDraft } from '../types'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 import { useToastStore } from './toastStore'
 
@@ -14,13 +14,10 @@ const intentMeta: Record<AssistantIntent, { title: string; description: string; 
   check: { title: '检查当前行程', description: '先只找出节奏、跨城移动与待确认项；不会直接改动你的旅行。', action: '开始检查' },
 }
 
-function activityNames(values: Array<{ title: string }>) {
-  return values.map((item) => item.title.trim()).filter(Boolean)
-}
-
-function isDayChanged(before: { place: string; activities: Array<{ title: string }> } | undefined, after: { place: string; activities: Array<{ title: string }> }) {
+function isDayChanged(before: { place: string; activities: Activity[] } | undefined, after: { place: string; activities: AgentDraftActivity[] }) {
   if (!before) return true
-  return before.place.trim() !== after.place.trim() || activityNames(before.activities).join('\u0000') !== activityNames(after.activities).join('\u0000')
+  const fields = (item: Activity | AgentDraftActivity) => [item.title.trim(), item.time, item.category, item.location ?? '', item.durationMinutes ?? '', item.duration ?? '', item.travelMode ?? '']
+  return before.place.trim() !== after.place.trim() || JSON.stringify([...before.activities].sort((a, b) => a.time.localeCompare(b.time)).map(fields)) !== JSON.stringify(after.activities.map(fields))
 }
 
 function guessedDays(text: string, fallback: number) {
@@ -47,16 +44,19 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
   const [targetDayIndex, setTargetDayIndex] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [draftBase, setDraftBase] = useState('')
   const revising = intent === 'revise'
   const meta = intentMeta[intent]
   const conversation = agentConversations[trip.id] ?? []
+  const preservedActivity = (activity: AgentDraftActivity, dayIndex: number) => revising ? trip.activities.find((item) => item.id === activity.sourceActivityId)
+    ?? trip.activities.find((item) => item.dayId === trip.days[dayIndex]?.id && item.title === activity.title && (item.location ?? '') === (activity.location ?? '')) : undefined
 
   const preparedInput = useMemo<AgentPlanInput>(() => ({
     ...input,
     mode: intent,
     // 新旅行时把自然语言需求交给模型理解，避免先填一排参数；调整时保留当前旅行区域。
     destination: intent === 'create' ? message.trim() : (trip.searchRegion || trip.days[0]?.place || trip.name),
-    days: guessedDays(message, input.days),
+    days: intent === 'create' ? guessedDays(message, input.days) : trip.days.length,
     preferences: message.trim(),
     targetDayIndex: intent === 'revise' && targetDayIndex !== null ? targetDayIndex : undefined,
   }), [input, intent, message, targetDayIndex, trip])
@@ -82,6 +82,7 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
         return
       }
       const nextDraft = await requestAgentPlan(agentServiceUrl, preparedInput, trip, undefined, agentAccessToken, conversation)
+      setDraftBase(JSON.stringify(trip))
       setDraft(nextDraft)
       addAgentConversationTurn(trip.id, {
         intent,
@@ -104,6 +105,10 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
 
   function applyToCurrentTrip() {
     if (!draft) return
+    if (draftBase !== JSON.stringify(trip)) {
+      setError('生成建议后，当前旅行已有修改。请继续调整并重新生成，避免覆盖新内容。')
+      return
+    }
     const snapshot = trips
     const previousActiveTripId = activeTripId
     const isLocal = targetDayIndex !== null
@@ -128,12 +133,13 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
 
   if (draft) return <ModalShell title={revising ? '这是我整理后的建议' : '这份旅行可以这样开始'} description={revising ? (targetDayIndex !== null ? `只会应用第 ${targetDayIndex + 1} 天，其余日期与手填内容不动。` : `相对当前行程，建议调整 ${changedDays} 天；应用前仍可继续提要求。`) : '先看重点与每天的安排，确认后才会写入旅行。'} onClose={onClose} size="lg" mobile="sheet" footer={revising ? <><button onClick={() => setDraft(null)} className={overlaySecondaryButtonClass}>继续调整</button><button onClick={applyDraft} className={overlaySecondaryButtonClass}>另存为新旅行</button><button onClick={applyToCurrentTrip} className={overlayPrimaryButtonClass}>{targetDayIndex !== null ? `应用第 ${targetDayIndex + 1} 天调整` : '应用建议'}</button></> : <><button onClick={() => setDraft(null)} className={overlaySecondaryButtonClass}>继续完善</button><button onClick={applyDraft} className={overlayPrimaryButtonClass}>创建这份旅行</button></>}>
     <div className="space-y-4">
+      {error && <div role="alert" className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11.5px] text-red-600">{error}</div>}
       <section className="rounded-2xl border border-action/15 bg-[linear-gradient(135deg,rgba(238,247,253,.9),rgba(255,255,255,.96))] px-4 py-3.5">
-        <div className="flex items-start justify-between gap-3"><div><div className="text-[15px] font-semibold text-text">{draft.tripName}</div><div className="mt-1 text-[12px] text-text-muted">{draft.days.length} 天{draft.totalBudget ? ` · 预计 ¥${draft.totalBudget.toLocaleString()}` : ''}{locatedCount ? ` · 已定位 ${locatedCount} 个地点` : ''}</div></div><span className="rounded-full bg-white/80 px-2.5 py-1 text-[10.5px] font-medium text-accent-hover">草案</span></div>
-        {draft.assumptions.length > 0 && <p className="mt-2.5 text-[11.5px] leading-relaxed text-text-muted">{draft.assumptions.slice(0, 2).join('；')}</p>}
+        <div className="flex items-start justify-between gap-3"><div className="min-w-0"><div className="text-[15px] font-semibold text-text">{draft.tripName}</div><div className="mt-1 text-[12px] text-text-muted">{draft.days.length} 天{revising ? ` · 原预算 ¥${trip.totalBudget.toLocaleString()}（保留）` : draft.totalBudget ? ` · 参考预算 ¥${draft.totalBudget.toLocaleString()}` : ''}{locatedCount ? ` · ${locatedCount} 项有地图坐标` : ''}</div></div><span className="shrink-0 whitespace-nowrap rounded-full bg-white/80 px-2.5 py-1 text-[10.5px] font-medium text-accent-hover">草案</span></div>
+        {draft.assumptions.length > 0 && <details className="mt-2.5 text-[11.5px] leading-relaxed text-text-muted"><summary className="cursor-pointer font-medium">规划采用的假设 · {draft.assumptions.length} 项</summary><ul className="mt-1.5 list-disc space-y-1 pl-4">{draft.assumptions.map((item, index) => <li key={index}>{item}</li>)}</ul></details>}
       </section>
       {draft.warnings.length > 0 && <section className="rounded-xl border border-amber-200/80 bg-amber-50/70 px-3.5 py-3 text-[11.5px] leading-relaxed text-amber-900"><div className="font-semibold">需要你确认</div><div className="mt-1">{draft.warnings.join('；')}</div></section>}
-      {(draft.checks?.length ?? 0) > 0 && <section className="rounded-xl border border-border/75 bg-surface/65 px-3.5 py-3"><div className="text-[12px] font-semibold text-text">我已经帮你核验</div><div className="mt-2 space-y-2">{draft.checks!.map((check, index) => <div key={`${check.kind}-${index}`} className="text-[11px] leading-relaxed text-text-muted"><span className={`mr-1.5 font-medium ${check.tone === 'warning' ? 'text-amber-700' : 'text-accent-hover'}`}>{check.tone === 'warning' ? '需留意' : '已完成'} · {check.title}</span>{check.detail}</div>)}</div></section>}
+      {(draft.checks?.length ?? 0) > 0 && <section className="rounded-xl border border-border/75 bg-surface/65 px-3.5 py-3"><div className="text-[12px] font-semibold text-text">检查结果与覆盖范围</div><div className="mt-2 space-y-2">{draft.checks!.map((check, index) => <div key={`${check.kind}-${index}`} className="text-[11px] leading-relaxed text-text-muted"><span className={`mr-1.5 font-medium ${check.tone === 'warning' ? 'text-amber-700' : 'text-accent-hover'}`}>{check.tone === 'warning' ? '待确认' : '参考'} · {check.title}</span>{check.detail}</div>)}</div></section>}
       <section className="space-y-2">{draft.days.map((day, index) => {
         const before = trip.days[index]
         const beforeActivities = before ? trip.activities.filter((activity) => activity.dayId === before.id) : []
@@ -141,15 +147,19 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
         const activities = day.activities.slice(0, 3)
         return <article key={`${day.date}-${index}`} className={`rounded-xl border bg-white px-3.5 py-3 ${revising && changed ? 'border-action/30' : 'border-border/75'}`}>
           <div className="flex items-center gap-2"><span className="text-[10.5px] font-semibold tracking-[.08em] text-accent">D{String(index + 1).padStart(2, '0')}</span><span className="truncate text-[13px] font-semibold text-text">{day.place}</span>{revising && <span className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[10px] ${changed ? 'bg-action-soft text-accent-hover' : 'bg-surface-2 text-text-faint'}`}>{changed ? '建议调整' : '保持不变'}</span>}</div>
-          {revising && changed && before && <div className="mt-2 text-[10.5px] text-text-faint">原安排：{activityNames(beforeActivities).join('、') || '暂无安排'}</div>}
+          {revising && changed && before && <div className="mt-2 text-[10.5px] text-text-faint">原安排：{beforeActivities.map((item) => `${item.time} ${item.title}`).join('、') || '暂无安排'}</div>}
           <div className="mt-2 space-y-1.5 text-[11.5px] text-text-muted">{activities.map((activity, activityIndex) => <div key={`${activity.time}-${activityIndex}`} className="flex gap-3"><span className="w-10 shrink-0 tabular-nums text-text-faint">{activity.time}</span><span className="truncate">{activity.title}</span></div>)}{day.activities.length > activities.length && <div className="pl-[52px] text-text-faint">还有 {day.activities.length - activities.length} 项安排</div>}</div>
+          <details className="mt-2 text-[11px] leading-relaxed text-text-muted"><summary className="cursor-pointer font-medium text-accent-hover">查看完整安排与待确认信息</summary><div className="mt-2 space-y-2">{day.activities.map((activity, activityIndex) => {
+            const known = preservedActivity(activity, index)
+            return <div key={activityIndex} className="rounded-lg bg-surface px-2.5 py-2"><div className="font-medium text-text">{activity.time} · {activity.title}</div><p className="mt-1">{activity.location || '未补充具体地址'}{activity.category !== 'traffic' && ` · ${activity.geo ? '有地图坐标，请核对地点' : '位置待确认'}`}</p>{(activity.durationMinutes != null || activity.duration || activity.estimatedCost != null || known) && <p className="mt-1">{activity.durationMinutes != null ? `预计停留 ${activity.durationMinutes} 分钟` : activity.duration}{known ? ` · 已记花费 ¥${known.costs.reduce((sum, cost) => sum + cost.amount, 0).toLocaleString()}（保留）` : activity.estimatedCost != null ? ` · 参考花费 ¥${activity.estimatedCost.toLocaleString()}` : ''}</p>}{(known?.note ?? activity.note) && <p className="mt-1">{known?.note ?? activity.note}</p>}</div>
+          })}</div></details>
         </article>
       })}</section>
     </div>
   </ModalShell>
 
   return <ModalShell title="北极熊旅行助手" description="不替代手动编排；先把想法说出来，我来整理成可确认的建议。" onClose={onClose} size="md" mobile="sheet" footer={<><button onClick={onClose} className={overlaySecondaryButtonClass}>取消</button><button onClick={generate} disabled={busy || !agentServiceUrl} className={overlayPrimaryButtonClass}>{busy ? '正在整理…' : meta.action}</button></>}>
-    <div className="space-y-4">
+    <fieldset disabled={busy} className="space-y-4">
       {!agentServiceUrl && <div className="rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-3 text-[12px] leading-relaxed text-amber-800">还没有连接助手服务。手动规划不受影响；连接后才能生成建议。<button onClick={onOpenSettings} className="ml-1 font-semibold underline underline-offset-2">去设置连接</button></div>}
       <div className="grid grid-cols-3 gap-1.5 rounded-xl bg-surface-2/80 p-1.5">
         {(Object.keys(intentMeta) as AssistantIntent[]).map((key) => <button key={key} onClick={() => changeIntent(key)} className={`rounded-[10px] px-2 py-2 text-[11.5px] font-medium transition-colors ${intent === key ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>{key === 'create' ? '规划旅行' : key === 'revise' ? '调整行程' : '检查行程'}</button>)}
@@ -161,6 +171,6 @@ export default function AgentPlannerDialog({ onClose, onOpenSettings }: { onClos
       <button onClick={() => setDetailsOpen((value) => !value)} className="text-[11.5px] font-medium text-text-muted hover:text-text">{detailsOpen ? '收起旅行细节' : '补充日期、天数和交通方式（可选）'}</button>
       {detailsOpen && <div className="grid grid-cols-2 gap-3 rounded-xl bg-surface p-3"><label className="text-[11px] font-medium text-text-muted">出发日期<input type="date" value={input.startDate} onChange={(event) => setInput({ ...input, startDate: event.target.value })} className="mt-1.5 w-full rounded-md border border-border bg-white px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label><label className="text-[11px] font-medium text-text-muted">计划天数<input type="number" min="1" max="30" value={input.days} onChange={(event) => setInput({ ...input, days: Math.max(1, Math.min(30, Number(event.target.value) || 1)) })} className="mt-1.5 w-full rounded-md border border-border bg-white px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label><label className="col-span-2 text-[11px] font-medium text-text-muted">出行方式<input value={input.transport} onChange={(event) => setInput({ ...input, transport: event.target.value })} placeholder="例如：自驾、公共交通" className="mt-1.5 w-full rounded-md border border-border bg-white px-2.5 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label></div>}
       {error && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-[11.5px] text-red-600">{error}</div>}
-    </div>
+    </fieldset>
   </ModalShell>
 }

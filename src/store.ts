@@ -146,25 +146,29 @@ function blankTrip(input: string | TripCreateInput): Trip {
 }
 
 function agentDraftTrip(draft: AgentPlanDraft, id: string, previous?: Trip): Trip {
-  const previousActivities = new Map(previous?.activities.map((activity) => [`${activity.title}\u0000${activity.location ?? ''}`.toLocaleLowerCase(), activity]) ?? [])
+  const usedActivityIds = new Set<string>()
   const previousWishes = new Map(previous?.wishPlaces.map((wish) => [`${wish.title}\u0000${wish.location ?? ''}`.toLocaleLowerCase(), wish]) ?? [])
   const days = draft.days.map((day, index) => ({
-    id: makeId('day'), label: `第${index + 1}天`, date: isDate(day.date) ? day.date : '待定', place: day.place.trim() || '待定地点',
+    id: previous?.days[index]?.id ?? makeId('day'), label: `第${index + 1}天`, date: isDate(day.date) ? day.date : previous?.days[index]?.date ?? '待定', place: day.place.trim() || '待定地点',
   }))
   const wishByTitle = new Map<string, WishPlace>()
   const activities: Activity[] = draft.days.flatMap((day, dayIndex) => day.activities.map((activity) => {
     const title = activity.title.trim() || '待补充安排'
     const key = `${title}\u0000${activity.location ?? ''}`.toLocaleLowerCase()
-    const knownActivity = previousActivities.get(key)
+    const knownActivity = previous?.activities.find((item) => !usedActivityIds.has(item.id) && item.id === activity.sourceActivityId)
+      ?? previous?.activities.find((item) => !usedActivityIds.has(item.id) && item.dayId === previous.days[dayIndex]?.id && `${item.title}\u0000${item.location ?? ''}`.toLocaleLowerCase() === key)
+    if (knownActivity) usedActivityIds.add(knownActivity.id)
     const knownWish = previousWishes.get(key)
+    const geo = activity.geo ?? (knownActivity?.location === activity.location ? knownActivity?.geo : undefined) ?? knownWish?.geo
     const wish = wishByTitle.get(key) ?? {
-      id: makeId('wish'), title, category: activity.category, location: activity.location, note: activity.note,
-      geo: activity.geo ?? knownActivity?.geo ?? knownWish?.geo, scheduledActivityIds: [],
+      id: knownWish?.id ?? makeId('wish'), title, category: activity.category, location: activity.location, note: knownWish?.note ?? activity.note,
+      geo, scheduledActivityIds: [],
     }
-    const activityId = makeId('activity')
+    const activityId = knownActivity?.id ?? makeId('activity')
     wish.scheduledActivityIds = [...wish.scheduledActivityIds!, activityId]
     wishByTitle.set(key, wish)
     return {
+      ...knownActivity,
       id: activityId,
       dayId: days[dayIndex].id,
       time: /^\d{2}:\d{2}$/.test(activity.time) ? activity.time : '09:00',
@@ -173,11 +177,15 @@ function agentDraftTrip(draft: AgentPlanDraft, id: string, previous?: Trip): Tri
       location: activity.location,
       duration: activity.duration,
       durationMinutes: activity.durationMinutes,
-      note: activity.note,
-      geo: activity.geo ?? knownActivity?.geo ?? knownWish?.geo,
+      endTime: activity.durationMinutes != null
+        ? toHHMM(toMinutes(activity.time) + activity.durationMinutes)
+        : knownActivity?.endTime && activity.duration === knownActivity.duration
+          ? toHHMM(toMinutes(activity.time) + schedulingDuration(knownActivity)) : undefined,
+      note: knownActivity?.note ?? activity.note,
+      geo,
       travelMode: activity.travelMode,
-      sourceWishId: wish.id,
-      costs: activity.estimatedCost && activity.estimatedCost > 0 ? [{ id: makeId('cost'), amount: activity.estimatedCost }] : [],
+      sourceWishId: knownActivity?.sourceWishId ?? wish.id,
+      costs: knownActivity ? knownActivity.costs : activity.estimatedCost && activity.estimatedCost > 0 ? [{ id: makeId('cost'), amount: activity.estimatedCost }] : [],
     }
   }))
   return {
@@ -187,9 +195,12 @@ function agentDraftTrip(draft: AgentPlanDraft, id: string, previous?: Trip): Tri
     daysCount: days.length,
     days,
     activities,
-    wishPlaces: [...wishByTitle.values()],
+    wishPlaces: previous ? [
+      ...previous.wishPlaces.map((wish) => ({ ...wish, scheduledActivityId: undefined, scheduledActivityIds: activities.filter((activity) => activity.sourceWishId === wish.id).map((activity) => activity.id) })),
+      ...[...wishByTitle.values()].filter((wish) => !previous.wishPlaces.some((existing) => existing.id === wish.id)),
+    ] : [...wishByTitle.values()],
     expenses: [],
-    totalBudget: Number.isFinite(draft.totalBudget) ? Math.max(0, draft.totalBudget!) : (previous?.totalBudget ?? 0),
+    totalBudget: previous?.totalBudget ?? (Number.isFinite(draft.totalBudget) ? Math.max(0, draft.totalBudget!) : 0),
   }
 }
 
@@ -463,16 +474,15 @@ export const useTripStore = create<TripState>()(
           const days = current.days.map((day, index) => selected.has(index)
             ? { ...day, date: next.days[index].date, place: next.days[index].place }
             : day)
-          const existingByKey = new Map(current.activities.map((activity) => [`${activity.title}\u0000${activity.location ?? ''}`.toLocaleLowerCase(), activity]))
           const untouchedActivities = current.activities.filter((activity) => !selected.has(current.days.findIndex((day) => day.id === activity.dayId)))
           const replacementActivities = targetDays.flatMap((index) => next.activities
             .filter((activity) => activity.dayId === next.days[index].id)
             .map((activity) => {
-              const known = existingByKey.get(`${activity.title}\u0000${activity.location ?? ''}`.toLocaleLowerCase())
+              const known = current.activities.find((item) => item.id === activity.id)
               // 匹配到用户原有事项时保留其 id、备注、花费、手动定位和来源；新增事项才采用助手字段。
               return known && known.dayId === current.days[index].id
-                ? { ...activity, id: known.id, dayId: current.days[index].id, note: known.note ?? activity.note, geo: known.geo ?? activity.geo, travelMode: known.travelMode ?? activity.travelMode, sourceWishId: known.sourceWishId, costs: known.costs.length ? known.costs : activity.costs }
-                : { ...activity, dayId: current.days[index].id, sourceWishId: undefined }
+                ? { ...activity, id: known.id, dayId: current.days[index].id, note: known.note ?? activity.note, sourceWishId: known.sourceWishId, costs: known.costs }
+                : { ...activity, id: known ? makeId('activity') : activity.id, dayId: current.days[index].id, sourceWishId: undefined }
             }))
           const merged: Trip = {
             ...current,
@@ -480,6 +490,7 @@ export const useTripStore = create<TripState>()(
             days,
             daysCount: days.length,
             activities: [...untouchedActivities, ...replacementActivities],
+            wishPlaces: current.wishPlaces.map((wish) => ({ ...wish, scheduledActivityId: undefined, scheduledActivityIds: [...untouchedActivities, ...replacementActivities].filter((activity) => activity.sourceWishId === wish.id).map((activity) => activity.id) })),
           }
           return {
             trips: s.trips.map((trip) => trip.id === current.id ? merged : trip),

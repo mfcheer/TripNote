@@ -21,14 +21,14 @@ function validTravelMode(value: unknown): TravelMode | undefined {
 
 function validGeo(value: unknown): GeoPoint | undefined {
   const geo = value as Partial<GeoPoint>
-  return typeof geo?.lat === 'number' && Number.isFinite(geo.lat) && typeof geo.lng === 'number' && Number.isFinite(geo.lng)
+  return typeof geo?.lat === 'number' && Number.isFinite(geo.lat) && Math.abs(geo.lat) <= 90 && typeof geo.lng === 'number' && Number.isFinite(geo.lng) && Math.abs(geo.lng) <= 180
     ? { lat: geo.lat, lng: geo.lng }
     : undefined
 }
 
 function validChecks(value: unknown): AgentPlanCheck[] {
   if (!Array.isArray(value)) return []
-  return value.slice(0, 8).flatMap((item) => {
+  return value.slice(0, 12).flatMap((item) => {
     const check = item as Partial<AgentPlanCheck>
     if (typeof check?.title !== 'string' || typeof check.detail !== 'string') return []
     return [{
@@ -45,24 +45,25 @@ function normalizeDraft(value: unknown): AgentPlanDraft {
   return {
     tripName: typeof raw.tripName === 'string' ? raw.tripName : 'AI 旅行草案',
     searchRegion: typeof raw.searchRegion === 'string' ? raw.searchRegion : undefined,
-    totalBudget: typeof raw.totalBudget === 'number' && Number.isFinite(raw.totalBudget) ? raw.totalBudget : undefined,
-    assumptions: Array.isArray(raw.assumptions) ? raw.assumptions.filter((item): item is string => typeof item === 'string').slice(0, 6) : [],
-    warnings: Array.isArray(raw.warnings) ? raw.warnings.filter((item): item is string => typeof item === 'string').slice(0, 6) : [],
+    totalBudget: typeof raw.totalBudget === 'number' && Number.isFinite(raw.totalBudget) && raw.totalBudget >= 0 ? raw.totalBudget : undefined,
+    assumptions: Array.isArray(raw.assumptions) ? raw.assumptions.filter((item): item is string => typeof item === 'string').slice(0, 12) : [],
+    warnings: Array.isArray(raw.warnings) ? raw.warnings.filter((item): item is string => typeof item === 'string').slice(0, 12) : [],
     checks: validChecks(raw.checks),
     days: raw.days.slice(0, 30).map((day, index) => {
       const item = day as AgentPlanDraft['days'][number]
       return {
         date: typeof item.date === 'string' ? item.date : undefined,
         place: typeof item.place === 'string' ? item.place : `第${index + 1}天目的地`,
-        activities: Array.isArray(item.activities) ? item.activities.slice(0, 10).map((activity) => ({
-          time: typeof activity.time === 'string' ? activity.time : '09:00',
+        activities: Array.isArray(item.activities) ? item.activities.slice(0, 30).map((activity) => ({
+          sourceActivityId: typeof activity.sourceActivityId === 'string' ? activity.sourceActivityId : undefined,
+          time: typeof activity.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(activity.time) ? activity.time : '09:00',
           title: typeof activity.title === 'string' ? activity.title : '待补充安排',
           category: validCategory(activity.category),
           location: typeof activity.location === 'string' ? activity.location : undefined,
           duration: typeof activity.duration === 'string' ? activity.duration : undefined,
-          durationMinutes: typeof activity.durationMinutes === 'number' && Number.isFinite(activity.durationMinutes) ? activity.durationMinutes : undefined,
+          durationMinutes: typeof activity.durationMinutes === 'number' && Number.isFinite(activity.durationMinutes) && activity.durationMinutes >= 0 && activity.durationMinutes <= 1440 ? activity.durationMinutes : undefined,
           note: typeof activity.note === 'string' ? activity.note : undefined,
-          estimatedCost: typeof activity.estimatedCost === 'number' && Number.isFinite(activity.estimatedCost) ? activity.estimatedCost : undefined,
+          estimatedCost: typeof activity.estimatedCost === 'number' && Number.isFinite(activity.estimatedCost) && activity.estimatedCost >= 0 ? activity.estimatedCost : undefined,
           travelMode: validTravelMode(activity.travelMode),
           geo: validGeo(activity.geo),
         })) : [],
@@ -92,9 +93,9 @@ function agentContext(currentTrip: Trip | undefined, conversation: AgentConversa
     searchRegion: currentTrip.searchRegion,
     places: currentTrip.wishPlaces.slice(0, 30).map((place) => ({ title: place.title, category: place.category, location: place.location, geo: place.geo })),
     itinerary: currentTrip.days.slice(0, 30).map((day) => ({
-      date: day.date, place: day.place,
+      date: /^\d{4}-\d{2}-\d{2}$/.test(day.date) ? day.date : undefined, place: day.place,
       activities: currentTrip.activities.filter((activity) => activity.dayId === day.id).map((activity) => ({
-        time: activity.time, title: activity.title, category: activity.category, location: activity.location,
+        id: activity.id, time: activity.time, title: activity.title, category: activity.category, location: activity.location, note: activity.note, endTime: activity.endTime,
         durationMinutes: activity.durationMinutes, duration: activity.duration, travelMode: activity.travelMode, geo: activity.geo,
         cost: activity.costs.reduce((sum, cost) => sum + cost.amount, 0),
       })),
@@ -106,7 +107,7 @@ function agentContext(currentTrip: Trip | undefined, conversation: AgentConversa
 
 function normalizeDiagnosis(value: unknown): AgentDiagnosis {
   const raw = value as Partial<AgentDiagnosis>
-  const issues = Array.isArray(raw?.issues) ? raw.issues.slice(0, 6).flatMap((item, index) => {
+  const issues = Array.isArray(raw?.issues) ? raw.issues.slice(0, 8).flatMap((item, index) => {
     const issue = item as Partial<AgentDiagnosisIssue>
     if (typeof issue?.title !== 'string' || typeof issue.detail !== 'string') return []
     return [{

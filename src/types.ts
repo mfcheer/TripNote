@@ -74,6 +74,8 @@ export interface Trip {
 
 // Agent 只返回草案；在用户确认前不会写入本地旅行数据。
 export interface AgentDraftActivity {
+  /** 调整时引用已有事项，保留用户花费、备注和关联；新建事项不设置。 */
+  sourceActivityId?: string
   time: string
   title: string
   category: ActivityCategory
