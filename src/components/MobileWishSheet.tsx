@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { searchPlaces, splitPlaceResults, tripSearchContext, type GeoResult } from '../api/geocode'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS, ClockIcon, MapIcon, TrashIcon } from './Icons'
@@ -7,6 +7,29 @@ import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import { CustomMapWishDialog } from './WishlistView'
 import { CATEGORY_META, type ActivityCategory, type WishPlace } from '../types'
+import type { Activity } from '../types'
+import { straightLineDistanceMeters } from '../api/route'
+
+function timeMinutes(time: string) {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+function endMinutes(activity: Activity) {
+  const start = timeMinutes(activity.time)
+  if (activity.endTime) {
+    const end = timeMinutes(activity.endTime)
+    return end < start ? end + 1440 : end
+  }
+  const hours = activity.duration?.match(/(\d+(?:\.\d+)?)\s*小时/)
+  const minutes = activity.duration?.match(/(\d+)\s*分钟/)
+  const duration = activity.durationMinutes || (hours ? Number(hours[1]) * 60 : 0) + (minutes ? Number(minutes[1]) : 0)
+  return duration > 0 ? start + duration : undefined
+}
+
+function clockTime(minutes: number) {
+  return `${String(Math.floor(minutes / 60) % 24).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+}
 
 function scheduledIds(place: WishPlace) {
   return [...(place.scheduledActivityIds ?? []), ...(place.scheduledActivityId ? [place.scheduledActivityId] : [])]
@@ -38,6 +61,13 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
   const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'empty' | 'results'>('idle')
   const [category, setCategory] = useState<ActivityCategory>('sight')
   const [showCustomMap, setShowCustomMap] = useState(false)
+  const assignmentRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!selectedPlaceId) return
+    const frame = window.requestAnimationFrame(() => assignmentRef.current?.scrollIntoView({ block: 'start', behavior: 'instant' }))
+    return () => window.cancelAnimationFrame(frame)
+  }, [selectedPlaceId])
 
   const scheduledItemsFor = (place: WishPlace) => Array.from(new Set(scheduledIds(place)))
     .map((id) => trip.activities.find((activity) => activity.id === id))
@@ -48,6 +78,14 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
   const places = useMemo(() => [...trip.wishPlaces].sort((a, b) => Number(scheduledItemsFor(a).length > 0) - Number(scheduledItemsFor(b).length > 0)), [trip.activities, trip.wishPlaces])
   const selectedPlace = places.find((place) => place.id === selectedPlaceId) ?? null
   const targetDay = trip.days.find((day) => day.id === targetDayId) ?? trip.days[0]
+  const targetActivities = trip.activities.filter((activity) => activity.dayId === targetDay?.id).sort((a, b) => a.time.localeCompare(b.time))
+  const chosenMinutes = timeMinutes(time)
+  const overlapping = targetActivities.find((activity) => chosenMinutes === timeMinutes(activity.time)
+    || (chosenMinutes > timeMinutes(activity.time) && chosenMinutes < (endMinutes(activity) ?? timeMinutes(activity.time))))
+  const previousActivity = [...targetActivities].reverse().find((activity) => timeMinutes(activity.time) <= chosenMinutes)
+  const nextActivity = targetActivities.find((activity) => timeMinutes(activity.time) > chosenMinutes)
+  const referenceDistances = selectedPlace?.geo ? [previousActivity, nextActivity].flatMap((activity) => activity?.geo
+    ? [{ title: activity.title, meters: straightLineDistanceMeters(activity.geo, selectedPlace.geo!) }] : []) : []
   const unscheduledCount = places.filter((place) => scheduledItemsFor(place).length === 0).length
   const groupedResults = splitPlaceResults(results)
 
@@ -147,6 +185,7 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
     if (!activityId) return
     setActiveDay(targetDay.id)
     selectActivity(activityId)
+    setTime(suggestedTime(useTripStore.getState().trips.find((item) => item.id === trip.id) ?? trip, targetDay.id))
     useToastStore.getState().show(`已安排「${selectedPlace.title}」到 ${targetDay.label} · ${time}`, {
       undo: () => {
         cancelWishSchedule(selectedPlace.id, activityId)
@@ -201,10 +240,34 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
                 <button type="button" onClick={() => removePlace(place)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-faint hover:bg-red-50 hover:text-red-500" aria-label={`移出「${place.title}」`}><TrashIcon size={14} /></button>
               </div>
 
-              {expanded && targetDay && <div className="mt-2.5 rounded-xl border border-action/10 bg-action-soft/42 px-3 py-3">
+              {expanded && targetDay && <div ref={assignmentRef} className="mt-2.5 scroll-mt-2 rounded-xl border border-action/10 bg-action-soft/42 px-3 py-3">
+                <div className="mb-2 truncate text-[12px] font-semibold text-text">安排「{place.title}」</div>
                 {scheduledItems.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5"><span className="mr-1 self-center text-[10.5px] text-text-faint">已安排</span>{scheduledItems.map((item) => <span key={item.id} className="inline-flex items-center overflow-hidden rounded-md border border-border bg-white text-[10.5px]"><span className="px-1.5 py-1 text-text-muted">{item.day?.label ?? '未分配'} · {item.time}</span><button type="button" onClick={() => cancelAssignment(place, item.id)} className="border-l border-border px-1.5 py-1 text-text-faint hover:bg-red-50 hover:text-red-500" aria-label={`取消 ${item.day?.label ?? ''} ${item.time} 的安排`}>×</button></span>)}</div>}
-                <div className="flex items-center justify-between gap-3"><span className="text-[11px] font-medium text-text-muted">再安排到</span><span className="truncate text-[11px] text-text-faint">{targetDay.label} · {targetDay.place || '待定'}</span></div>
+                <div className="flex items-center justify-between gap-3"><span className="text-[11px] font-medium text-text-muted">{scheduledItems.length ? '再安排到' : '安排到'}</span><span className="truncate text-[11px] text-text-faint">{targetDay.label} · {targetDay.place || '待定'}</span></div>
                 <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">{trip.days.map((day) => <button type="button" key={day.id} onClick={() => chooseDay(day.id)} className={`min-w-[74px] shrink-0 rounded-[10px] border px-2 py-2 text-center transition-colors ${day.id === targetDay.id ? 'border-action bg-white text-action shadow-[0_1px_4px_rgba(40,120,212,0.10)]' : 'border-border/80 bg-white/70 text-text-muted hover:border-action/35'}`}><span className="block text-[10.5px] leading-none">{compactDate(day.date)}</span><span className="mt-1 block text-[11.5px] font-semibold leading-none">{day.label}</span></button>)}</div>
+                <section aria-label="目标日期行程预览" className="mt-2 rounded-lg border border-border/70 bg-white/85 px-2.5 py-2">
+                  <div className="flex items-center justify-between text-[10.5px] text-text-muted"><span className="font-medium">当天已有安排</span><span>{targetActivities.length} 项</span></div>
+                  {targetActivities.length === 0 ? <p className="mt-2 text-[11px] text-text-faint">这一天还是空白，可以从这个地点开始。</p>
+                    : <div className="mt-1.5 max-h-[180px] overflow-y-auto overscroll-contain">
+                      {targetActivities.map((activity, index) => {
+                        const end = endMinutes(activity)
+                        const next = targetActivities[index + 1]
+                        const gap = end !== undefined && next ? timeMinutes(next.time) - end : 0
+                        const after = end ?? timeMinutes(activity.time) + 30
+                        return <div key={activity.id}>
+                          <div className="flex items-center gap-2 py-1.5 text-[11px]">
+                            <span className="w-[38px] shrink-0 tabular-nums text-text-faint">{activity.time}</span>
+                            <span className="min-w-0 flex-1"><span className="block truncate text-text">{activity.title}</span>{end !== undefined && <span className="block text-[10px] text-text-faint">{end >= 1440 ? '次日 ' : ''}{clockTime(end)} 结束</span>}</span>
+                            {after < 1440 && <button type="button" onClick={() => setTime(clockTime(after))} aria-label={`排在${activity.title}后面`} className="shrink-0 rounded-md px-1.5 py-1.5 text-[10px] font-medium text-accent-hover hover:bg-action-soft">排在后面</button>}
+                          </div>
+                          {gap > 0 && <div className="ml-[46px] border-l border-border pl-2 text-[10px] text-text-faint">间隔 {gap >= 60 ? `${Math.floor(gap / 60)} 小时${gap % 60 ? ` ${gap % 60} 分钟` : ''}` : `${gap} 分钟`} · 含移动时间</div>}
+                        </div>
+                      })}
+                    </div>}
+                  {targetActivities.some((activity) => endMinutes(activity) === undefined) && <p className="mt-1 text-[10px] text-text-faint">未填时长的安排，默认在开始后 30 分钟；请预留游玩和交通时间。</p>}
+                </section>
+                {overlapping && <p role="status" className="mt-2 text-[11px] text-amber-700">所选时间与「{overlapping.title}」重叠，可修改时间后安排。</p>}
+                {referenceDistances.length > 0 && <div className="mt-1.5 space-y-0.5 text-[10.5px] text-text-muted">{referenceDistances.map((distance, index) => <p key={`${distance.title}-${index}`} className="truncate">距「{distance.title}」直线约 {(distance.meters / 1000).toFixed(1)} km{distance.meters >= 15000 ? ' · 请预留交通时间' : ''}</p>)}</div>}
                 <div className="mt-2.5 flex items-center gap-2 border-t border-action/10 pt-2.5"><label className="flex min-w-0 flex-1 items-center gap-2 text-[11px] text-text-muted"><ClockIcon size={14} className="shrink-0 text-accent" /><span className="shrink-0">建议时间</span><input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="min-w-0 flex-1 bg-transparent text-right text-[13px] font-semibold text-text outline-none" aria-label="安排时间" /></label><button type="button" onClick={confirmAssignment} className={`${overlayPrimaryButtonClass} min-h-9 shrink-0 px-4 text-[12px]`}>安排</button></div>
               </div>}
             </div>

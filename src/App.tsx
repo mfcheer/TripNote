@@ -84,14 +84,18 @@ export default function App() {
         agentAccessToken: state.agentAccessToken,
       }
     }
+    scheduleLocalBackup(toBackupData(useTripStore.getState()))
     const unsubscribe = useTripStore.subscribe((state) => scheduleLocalBackup(toBackupData(state)))
+    const retryOnFocus = () => { void flushScheduledBackup() }
     const flushWhenHidden = () => {
       if (document.visibilityState === 'hidden') void flushScheduledBackup()
     }
     document.addEventListener('visibilitychange', flushWhenHidden)
+    window.addEventListener('focus', retryOnFocus)
     return () => {
       unsubscribe()
       document.removeEventListener('visibilitychange', flushWhenHidden)
+      window.removeEventListener('focus', retryOnFocus)
       void flushScheduledBackup()
     }
   }, [])

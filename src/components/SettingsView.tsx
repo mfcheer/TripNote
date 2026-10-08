@@ -7,6 +7,7 @@ import {
   chooseLocalBackupDirectory,
   connectLocalBackupDirectory,
   getLastPortableBackupAt,
+  getBackupWriteStatus,
   getLocalBackupStatus,
   isNorthwardBackup,
   listenForBackupStatusChanges,
@@ -61,6 +62,7 @@ export default function SettingsView({
   const [backupStatus, setBackupStatus] = useState<LocalBackupStatus | null>(null)
   const [backupBusy, setBackupBusy] = useState(false)
   const [portableBackupAt, setPortableBackupAt] = useState(() => getLastPortableBackupAt())
+  const [writeStatus, setWriteStatus] = useState(getBackupWriteStatus)
   const [isIos] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent))
   const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
 
@@ -75,6 +77,7 @@ export default function SettingsView({
     const stopListening = listenForBackupStatusChanges(() => {
       void refreshBackupStatus()
       setPortableBackupAt(getLastPortableBackupAt())
+      setWriteStatus(getBackupWriteStatus())
     })
     window.addEventListener('focus', refreshBackupStatus)
     return () => {
@@ -360,6 +363,13 @@ export default function SettingsView({
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
               <div>
                 <div className="text-[13px] font-semibold text-text">自动备份到指定文件夹</div>
+                {backupStatus?.configured && <p role="status" className={`mt-1 text-[12px] ${writeStatus.state === 'error' || writeStatus.state === 'permission' ? 'text-amber-700' : 'text-accent-hover'}`}>
+                  {writeStatus.state === 'writing' ? '数据已保存在浏览器，正在写入备份文件…'
+                    : writeStatus.state === 'pending' ? '数据已保存在浏览器，等待自动备份。'
+                    : writeStatus.state === 'error' ? `文件备份失败：${writeStatus.error}。最新修改已保留，将自动重试，也可点击“立即备份”。`
+                    : writeStatus.state === 'permission' ? '最新修改已保存在浏览器；重新授权后会补写到文件夹。'
+                    : writeStatus.state === 'saved' ? '最新修改已成功备份到文件夹。' : '数据已保存在当前浏览器。'}
+                </p>}
                 {backupStatus?.supported ? (
                   <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">
                     {backupStatus.configured

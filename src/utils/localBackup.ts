@@ -63,6 +63,20 @@ const LATEST_FILE = 'TripNote-最新备份.json'
 const PORTABLE_FILE = 'TripNote-完整备份.json'
 const MAX_HISTORY_FILES = 100
 
+export type BackupWriteState = 'idle' | 'pending' | 'writing' | 'saved' | 'permission' | 'error'
+let writeState: BackupWriteState = 'idle'
+let writeError = ''
+
+export function getBackupWriteStatus() {
+  return { state: writeState, error: writeError }
+}
+
+function setWriteState(state: BackupWriteState, error = '') {
+  writeState = state
+  writeError = error
+  notifyBackupStatusChanged()
+}
+
 export type LocalBackupStatus =
   | { supported: false; configured: false; permission: 'unsupported' }
   | { supported: true; configured: false; permission: 'none' }
@@ -287,47 +301,90 @@ async function cleanupHistory(directory: DirectoryHandle) {
   await Promise.all(names.slice(MAX_HISTORY_FILES).map((name) => directory.removeEntry!(name)))
 }
 
-export async function writeLocalBackup(data: BackupData) {
+async function performLocalBackup(data: BackupData) {
   const handle = await readDirectoryHandle()
   if (!handle) throw new Error('请先选择备份文件夹')
   const permission = await handle.queryPermission?.({ mode: 'readwrite' }) ?? 'prompt'
   if (permission !== 'granted') throw new Error('备份文件夹需要重新授权')
   const folder = await resolveBackupFolder(handle, true)
   const backup = buildBackup(data)
-  await writeJson(folder, LATEST_FILE, backup)
+  // 先写历史版本，再替换最新文件；最新文件写入失败时仍有完整恢复来源。
   await writeJson(folder, backupFileName(new Date(backup.exportedAt)), backup)
-  await cleanupHistory(folder)
+  await writeJson(folder, LATEST_FILE, backup)
+  await cleanupHistory(folder).catch(() => undefined)
   localStorage.setItem(LAST_BACKUP_KEY, backup.exportedAt)
-  notifyBackupStatusChanged()
   return { directoryName: handle.name, exportedAt: backup.exportedAt }
 }
 
 let pendingData: BackupData | null = null
 let pendingTimer: number | null = null
 let lastFingerprint = ''
+let writeQueue: Promise<unknown> = Promise.resolve()
+
+/** 手动和自动写入串行执行，防止旧版本在新版本之后覆盖最新文件。 */
+export function writeLocalBackup(data: BackupData) {
+  const snapshot = structuredClone(data)
+  const task = writeQueue.catch(() => undefined).then(async () => {
+    setWriteState('writing')
+    try {
+      const result = await performLocalBackup(snapshot)
+      if (pendingData && JSON.stringify(pendingData) === JSON.stringify(snapshot)) pendingData = null
+      setWriteState(pendingData ? 'pending' : 'saved')
+      return result
+    } catch (error) {
+      // 最新修改优先；只有尚无更晚的待备份数据时才保留本次写入内容。
+      if (!pendingData) pendingData = snapshot
+      const message = error instanceof Error ? error.message : '文件夹写入失败'
+      const needsPermission = message.includes('授权') || (error as DOMException)?.name === 'NotAllowedError'
+      setWriteState(needsPermission ? 'permission' : 'error', message)
+      if (!needsPermission) armBackupTimer(60_000)
+      throw error
+    }
+  })
+  writeQueue = task
+  return task
+}
+
+function armBackupTimer(delay = 30_000) {
+  if (pendingTimer != null) window.clearTimeout(pendingTimer)
+  pendingTimer = window.setTimeout(() => {
+    pendingTimer = null
+    void flushScheduledBackup()
+  }, delay)
+}
 
 export function scheduleLocalBackup(data: BackupData) {
   const fingerprint = JSON.stringify(data)
   if (fingerprint === lastFingerprint) return
   lastFingerprint = fingerprint
-  pendingData = data
-  if (pendingTimer != null) window.clearTimeout(pendingTimer)
-  pendingTimer = window.setTimeout(() => {
-    pendingTimer = null
-    void flushScheduledBackup()
-  }, 30_000)
+  pendingData = structuredClone(data)
+  if (writeState !== 'writing' && writeState !== 'error' && writeState !== 'permission') setWriteState('pending')
+  armBackupTimer()
 }
 
+let flushing: Promise<boolean> | null = null
+
 export async function flushScheduledBackup() {
+  if (flushing) return flushing
   if (!pendingData) return false
-  const data = pendingData
-  pendingData = null
-  try {
-    const status = await getLocalBackupStatus()
-    if (!status.supported || !status.configured || status.permission !== 'granted') return false
-    await writeLocalBackup(data)
-    return true
-  } catch {
-    return false
-  }
+  flushing = (async () => {
+    try {
+      const status = await getLocalBackupStatus()
+      if (!status.supported || !status.configured) return false
+      if (status.permission !== 'granted') {
+        setWriteState('permission', '文件夹需要重新授权；最新修改仍保存在浏览器')
+        return false
+      }
+      if (!pendingData) return true
+      await writeLocalBackup(pendingData)
+      return true
+    } catch {
+      // 临时写入失败时保留内容并稍后重试；权限问题等待用户明确授权。
+      if (writeState === 'error') armBackupTimer(60_000)
+      return false
+    } finally {
+      flushing = null
+    }
+  })()
+  return flushing
 }
