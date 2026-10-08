@@ -1,8 +1,10 @@
-import { Fragment, useEffect, useMemo, useRef, useState, type DragEvent as NativeDragEvent } from 'react'
+import { Fragment, useEffect, useMemo, useState, type DragEvent as NativeDragEvent } from 'react'
 import { MapContainer, Marker, Polyline, TileLayer, useMap } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { searchPlaces, splitPlaceResults, tripSearchContext, type GeoResult } from '../api/geocode'
+import { findSavedPlace, splitPlaceResults, type GeoResult } from '../api/geocode'
+import { usePlaceSearch } from '../hooks/usePlaceSearch'
+import PlaceSearchFeedback from './PlaceSearchFeedback'
 import { fetchRouteInfo, routeProfileForSegment } from '../api/route'
 import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CalendarIcon, CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, TrashIcon } from './Icons'
@@ -386,15 +388,13 @@ export default function WishlistView() {
   const [category, setCategory] = useState<ActivityCategory | 'all'>('all')
   const [keyword, setKeyword] = useState('')
   const [searching, setSearching] = useState('')
-  const [results, setResults] = useState<GeoResult[]>([])
+  const { results, status: searchStatus, error: searchError, retry: retrySearch } = usePlaceSearch(searching, trip, amapWebServiceKey, placeSearchProvider)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
-  const [searchStatus, setSearchStatus] = useState<'idle' | 'loading' | 'empty' | 'results'>('idle')
   const [mapPanelWidth, setMapPanelWidth] = useState(readMapPanelWidth)
   const [manualCategory, setManualCategory] = useState<ActivityCategory>('sight')
   const [schedulingPlaceId, setSchedulingPlaceId] = useState<string | null>(null)
   const [showCustomMap, setShowCustomMap] = useState(false)
-  const abortRef = useRef<AbortController | null>(null)
   const groupedResults = splitPlaceResults(results)
 
   useEffect(() => {
@@ -419,41 +419,8 @@ export default function WishlistView() {
     window.addEventListener('pointerup', onEnd, { once: true })
   }
 
-  useEffect(() => {
-    const query = searching.trim()
-    if (query.length < 2) {
-      setResults([])
-      setSearchStatus('idle')
-      return
-    }
-    const timer = setTimeout(async () => {
-      abortRef.current?.abort()
-      const ctrl = new AbortController()
-      abortRef.current = ctrl
-      try {
-        setSearchStatus('loading')
-        const nextResults = await searchPlaces(query, ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip))
-        if (ctrl.signal.aborted) return
-        setResults(nextResults)
-        setSearchStatus(nextResults.length > 0 ? 'results' : 'empty')
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          setResults([])
-          setSearchStatus('empty')
-        }
-      }
-    }, 450)
-    return () => {
-      clearTimeout(timer)
-      abortRef.current?.abort()
-    }
-  }, [searching, amapWebServiceKey, placeSearchProvider, trip])
-
   function clearPlaceSearch() {
-    abortRef.current?.abort()
     setSearching('')
-    setResults([])
-    setSearchStatus('idle')
   }
 
   // 从地图点选地点后，让清单自动滚到对应卡片，避免地图与列表脱节。
@@ -533,6 +500,13 @@ export default function WishlistView() {
   }))
 
   function addFromResult(result: GeoResult) {
+    const exists = findSavedPlace(trip.wishPlaces, result.label.split(',')[0], { lat: result.lat, lng: result.lng })
+    if (exists) {
+      setActiveId(exists.id)
+      clearPlaceSearch()
+      useToastStore.getState().show('这个地点已在想去中，已为你定位。')
+      return
+    }
     const id = addWishPlace({
       title: result.label.split(',')[0],
       category: manualCategory,
@@ -547,6 +521,13 @@ export default function WishlistView() {
   function addManual() {
     const title = searching.trim()
     if (!title) return
+    const exists = findSavedPlace(trip.wishPlaces, title)
+    if (exists) {
+      setActiveId(exists.id)
+      clearPlaceSearch()
+      useToastStore.getState().show('这个地点已在想去中，已为你定位。')
+      return
+    }
     const id = addWishPlace({ title, category: manualCategory })
     setActiveId(id)
     clearPlaceSearch()
@@ -613,8 +594,6 @@ export default function WishlistView() {
                   value={searching}
                   onChange={(event) => {
                     setSearching(event.target.value)
-                    setSearchStatus('idle')
-                    if (event.target.value.trim().length < 2) setResults([])
                   }}
                   onKeyDown={(event) => event.key === 'Enter' && addManual()}
                   placeholder="输入地点名称，搜索并收藏"
@@ -646,13 +625,7 @@ export default function WishlistView() {
                 {searchStatus === 'loading' && (
                   <InlineStatus loading className="absolute top-1 right-1 border-transparent bg-white/94 py-1 shadow-none">搜索中</InlineStatus>
                 )}
-                {searchStatus === 'empty' && searching.trim().length >= 2 && (
-                  <div className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-border bg-white p-3 shadow-lg">
-                    <InlineStatus tone="warning" className="border-0 bg-transparent p-0 font-medium">没有找到「{searching.trim()}」</InlineStatus>
-                    <p className="mt-1 text-[11.5px] leading-relaxed text-text-faint">已自动扩大搜索范围。可能是小众地点、临时地标或地图未收录的位置，你也可以直接在地图上点选并自定义名称。</p>
-                    <div className="mt-2 flex gap-2"><button onClick={addManual} className="rounded-md bg-action px-2.5 py-1.5 text-[11.5px] font-medium text-white hover:bg-action-hover">收藏「{searching.trim()}」</button><button onClick={() => setShowCustomMap(true)} className="flex items-center gap-1.5 rounded-md bg-accent-soft px-2.5 py-1.5 text-[11.5px] font-medium text-accent-hover transition-colors hover:bg-accent hover:text-white"><MapIcon size={13} /> 在地图上选点</button></div>
-                  </div>
-                )}
+                <PlaceSearchFeedback status={searchStatus} error={searchError} query={searching} onRetry={retrySearch} onManual={addManual} onMap={() => setShowCustomMap(true)} />
               </div>
               <button
                 onClick={() => setShowCustomMap(true)}

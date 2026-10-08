@@ -1,4 +1,11 @@
-import type { GeoPoint, Trip } from '../types'
+import type { GeoPoint, Trip, WishPlace } from '../types'
+
+/** 不把同名但异地的景点合并；坐标结果按名称及约一米范围匹配。 */
+export function findSavedPlace(places: WishPlace[], title: string, geo?: GeoPoint) {
+  const normalized = title.trim().toLocaleLowerCase()
+  return places.find((place) => place.title.trim().toLocaleLowerCase() === normalized && (!geo || (place.geo
+    && Math.abs(place.geo.lat - geo.lat) < 0.00001 && Math.abs(place.geo.lng - geo.lng) < 0.00001)))
+}
 
 // Nominatim 地理编码（OSM 官方，免费无 key，限频 1次/秒）
 const NOMINATIM_SEARCH = 'https://nominatim.openstreetmap.org/search'
@@ -195,7 +202,10 @@ export async function searchPlaces(query: string, signal?: AbortSignal, amapWebS
   const fallbackParams = new URLSearchParams({ q: query, format: 'json', limit: '8', 'accept-language': 'zh-CN' })
   // 这一轮是真正的全球兜底，不能沿用旅行区域的国家限制。
   const fallback = await fetch(`${NOMINATIM_SEARCH}?${fallbackParams}`, { signal, headers: { Accept: 'application/json' } })
-  if (!fallback.ok) return localResults
+  if (!fallback.ok) {
+    if (localResults.length) return localResults
+    throw new Error(`地理编码请求失败: ${fallback.status}`)
+  }
   const fallbackData = (await fallback.json()) as Array<{ lat: string; lon: string; display_name: string }>
   return rankResults(dedupeResults([...localResults, ...withScope(fallbackData.map((d) => ({ lat: parseFloat(d.lat), lng: parseFloat(d.lon), label: d.display_name })), 'broader')]), context, query).slice(0, 8)
 }

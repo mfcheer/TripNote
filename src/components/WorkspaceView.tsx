@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent as NativeDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
-import { searchPlaces, splitPlaceResults, tripSearchContext, type GeoResult } from '../api/geocode'
+import { findSavedPlace, splitPlaceResults, type GeoResult } from '../api/geocode'
+import { usePlaceSearch } from '../hooks/usePlaceSearch'
+import PlaceSearchFeedback from './PlaceSearchFeedback'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
 import { CATEGORY_ICONS, HeartIcon, LogoIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type WishPlace } from '../types'
@@ -26,43 +28,18 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   const { addWishPlace, removeWishPlace, scheduleWishPlace, amapWebServiceKey, placeSearchProvider } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<GeoResult[]>([])
-  const [loading, setLoading] = useState(false)
-  const [searchFinished, setSearchFinished] = useState(false)
+  const { results, status: searchStatus, error: searchError, retry: retrySearch } = usePlaceSearch(query, trip, amapWebServiceKey, placeSearchProvider)
   const activeDayId = useTripStore((state) => state.activeDayId)
   const groupedResults = splitPlaceResults(results)
 
   useEffect(() => {
-    const term = query.trim()
-    if (term.length < 2) {
-      setResults([])
-      setSearchFinished(false)
-      return
-    }
-    const ctrl = new AbortController()
-    const timer = window.setTimeout(async () => {
-      setLoading(true)
-      setSearchFinished(false)
-      try {
-        setResults(await searchPlaces(term, ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip)))
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') setResults([])
-      } finally {
-        setLoading(false)
-        if (!ctrl.signal.aborted) setSearchFinished(true)
-      }
-    }, 360)
-    return () => {
-      window.clearTimeout(timer)
-      ctrl.abort()
-    }
-  }, [amapWebServiceKey, placeSearchProvider, query, trip])
+    if (!selectedWishPlaceId) return
+    document.querySelector<HTMLElement>(`[data-library-place-id="${CSS.escape(selectedWishPlaceId)}"]`)
+      ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [selectedWishPlaceId])
 
   function clearPlaceSearch() {
     setQuery('')
-    setResults([])
-    setLoading(false)
-    setSearchFinished(false)
   }
 
   const places = useMemo(() => {
@@ -77,8 +54,10 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
 
   function addResult(result: GeoResult) {
     const title = result.label.split(',')[0]
-    const exists = trip.wishPlaces.some((place) => place.title === title && place.geo && Math.abs(place.geo.lat - result.lat) < 0.00001 && Math.abs(place.geo.lng - result.lng) < 0.00001)
+    const exists = findSavedPlace(trip.wishPlaces, title, { lat: result.lat, lng: result.lng })
     if (exists) {
+      onSelectWishPlace(exists.id)
+      clearPlaceSearch()
       useToastStore.getState().show('这个地点已在想去中')
       return
     }
@@ -91,6 +70,13 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   function addPlainPlace() {
     const title = query.trim()
     if (!title) return
+    const exists = findSavedPlace(trip.wishPlaces, title)
+    if (exists) {
+      onSelectWishPlace(exists.id)
+      clearPlaceSearch()
+      useToastStore.getState().show('这个地点已在想去中，已为你选中')
+      return
+    }
     const id = addWishPlace({ title, category: 'sight' })
     onSelectWishPlace(id)
     clearPlaceSearch()
@@ -144,6 +130,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     const selected = selectedWishPlaceId === place.id
     return <div
       key={place.id}
+      data-library-place-id={place.id}
       draggable
       onDragStart={(event) => dragStart(event, place)}
       className={`group flex items-center gap-2 border-b border-border/60 px-3 py-2.5 last:border-b-0 ${selected ? 'bg-action-soft/45' : 'hover:bg-surface/70'} ${scheduled ? 'bg-surface/25' : ''} ${recentlyScheduledPlaceId === place.id ? 'wish-place-complete' : ''} cursor-grab active:cursor-grabbing`}
@@ -168,16 +155,18 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
       <div className="mt-2.5 flex gap-2">
         <div className="relative min-w-0 flex-1">
         <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && results.length === 0 && addPlainPlace()} placeholder="搜索或添加地点" className="w-full rounded-md border border-border bg-white px-3 py-2 text-[12px] outline-none focus:border-accent" />
-        {loading && <span className="absolute top-2.5 right-3 text-[10.5px] text-text-faint">搜索中</span>}
+        {searchStatus === 'loading' && <span role="status" className="absolute top-2.5 right-3 text-[10.5px] text-text-faint">搜索中</span>}
         {results.length > 0 && <div className="absolute inset-x-0 top-[calc(100%+5px)] z-[800] max-h-[220px] overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-[0_10px_28px_rgba(32,40,46,0.14)]">
+          {trip.wishPlaces.filter((place) => place.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).slice(0, 4).map((place) => <button key={place.id} onClick={() => { onSelectWishPlace(place.id); clearPlaceSearch() }} className="block w-full truncate bg-action-soft/50 px-3 py-2 text-left text-[11px] text-accent-hover">已收藏 · {place.title}</button>)}
           {groupedResults.trip.length > 0 && <div className="px-3 py-1 text-[10px] font-medium text-text-muted">旅行范围内</div>}
           {groupedResults.trip.map((result) => <button key={`${result.lat}-${result.lng}`} onClick={() => addResult(result)} className="block w-full px-3 py-2 text-left hover:bg-surface"><span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}
           {groupedResults.broader.length > 0 && <><div className="border-y border-border/60 bg-surface/70 px-3 py-1 text-[10px] font-medium text-text-faint">其他可能地点</div>{groupedResults.broader.map((result) => <button key={`${result.lat}-${result.lng}`} onClick={() => addResult(result)} className="block w-full px-3 py-2 text-left hover:bg-surface"><span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}</>}
         </div>}
-        {searchFinished && results.length === 0 && <button onClick={addPlainPlace} className="mt-1.5 text-left text-[10.5px] leading-relaxed text-accent hover:text-accent-hover">未找到「{query.trim()}」· 直接收藏这个名称</button>}
         </div>
         <button onClick={onStartMapPick} className="h-[34px] shrink-0 self-start rounded-md border border-border bg-white px-2.5 text-[11px] font-medium text-text-muted hover:border-accent/40 hover:text-accent" title="在右侧地图选择地点"><MapIcon size={14} /></button>
       </div>
+      <PlaceSearchFeedback status={searchStatus} error={searchError} query={query} onRetry={retrySearch} onManual={addPlainPlace} onMap={onStartMapPick} />
+      {results.length === 0 && query.trim().length >= 2 && trip.wishPlaces.filter((place) => place.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).slice(0, 4).map((place) => <button key={place.id} onClick={() => { onSelectWishPlace(place.id); clearPlaceSearch() }} className="mt-1 block w-full truncate rounded-md bg-action-soft/50 px-2 py-1.5 text-left text-[11px] text-accent-hover">已收藏 · {place.title}</button>)}
     </div>
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="flex items-center justify-between px-4 pt-3 pb-1.5"><span className="text-[10.5px] font-semibold tracking-[0.12em] text-text-faint">待安排</span><span className="text-[10.5px] text-text-faint">{places.unscheduled.length} 个</span></div>

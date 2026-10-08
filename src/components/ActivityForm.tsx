@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { searchPlaces, tripSearchContext, type GeoResult } from '../api/geocode'
+import { type GeoResult } from '../api/geocode'
+import { usePlaceSearch } from '../hooks/usePlaceSearch'
+import PlaceSearchFeedback from './PlaceSearchFeedback'
 import { CATEGORY_ICONS, MapIcon } from './Icons'
 import MapPicker from './MapPicker'
 import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint } from '../types'
@@ -73,14 +75,12 @@ export default function ActivityForm({
     note: initial?.note ?? '',
   })
   // 地理编码状态
-  const [geoResults, setGeoResults] = useState<GeoResult[]>([])
+  const [geoQuery, setGeoQuery] = useState('')
+  const { results: geoResults, status: geoStatus, error: geoError, retry: retryGeo } = usePlaceSearch(geoQuery, trip, amapWebServiceKey, placeSearchProvider)
   const [geoIndex, setGeoIndex] = useState(-1)
-  const [geoLoading, setGeoLoading] = useState(false)
   const [geo, setGeo] = useState<GeoPoint | undefined>(initial?.geo)
   const [geoLabel, setGeoLabel] = useState('') // 已解析提示
   const [showMapPicker, setShowMapPicker] = useState(false)
-  const abortRef = useRef<AbortController | null>(null)
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // 地点输入防抖 → Nominatim 搜索
   function onLocationChange(value: string) {
@@ -88,32 +88,14 @@ export default function ActivityForm({
     setGeo(undefined)
     setGeoLabel('')
     setGeoIndex(-1)
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (value.trim().length < 2) {
-      setGeoResults([])
-      return
-    }
-    debounceRef.current = setTimeout(async () => {
-      abortRef.current?.abort()
-      const ctrl = new AbortController()
-      abortRef.current = ctrl
-      setGeoLoading(true)
-      try {
-        const results = await searchPlaces(value.trim(), ctrl.signal, amapWebServiceKey, placeSearchProvider, tripSearchContext(trip))
-        setGeoResults(results)
-      } catch (e) {
-        if ((e as Error).name !== 'AbortError') setGeoResults([])
-      } finally {
-        setGeoLoading(false)
-      }
-    }, 500)
+    setGeoQuery(value)
   }
 
   // 选中一个候选地点
   function pickGeo(r: GeoResult) {
     setGeo({ lat: r.lat, lng: r.lng })
     setGeoLabel(r.label)
-    setGeoResults([])
+    setGeoQuery('')
     setGeoIndex(-1)
   }
 
@@ -234,7 +216,7 @@ export default function ActivityForm({
             placeholder="输入地点名称，可自动定位地图"
             className={`${inputCls} w-full`}
           />
-          {geoLoading && (
+          {geoStatus === 'loading' && (
             <InlineStatus loading className="absolute top-1 right-1 border-transparent bg-white/94 py-1 shadow-none">搜索中</InlineStatus>
           )}
           {geoLabel && (
@@ -264,6 +246,7 @@ export default function ActivityForm({
             </ul>
           )}
           </div>
+          <PlaceSearchFeedback status={geoStatus} error={geoError} query={geoQuery} onRetry={retryGeo} onMap={() => setShowMapPicker(true)} />
         </label>
         <label className={labelCls}>
           预计时长 <span className="font-normal text-text-faint">（选填）</span>
@@ -312,7 +295,7 @@ export default function ActivityForm({
           onPick={(p, label) => {
             setGeo(p)
             setGeoLabel(label)
-            setGeoResults([])
+            setGeoQuery('')
             if (label) setForm((f) => ({ ...f, location: label.split(',')[0] }))
           }}
         />
