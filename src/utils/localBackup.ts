@@ -61,7 +61,7 @@ const BACKUP_STATUS_EVENT = 'tripnote-backup-status-changed'
 const BACKUP_FOLDER = 'TripNote备份'
 const LATEST_FILE = 'TripNote-最新备份.json'
 const PORTABLE_FILE = 'TripNote-完整备份.json'
-const MAX_HISTORY_FILES = 100
+const MAX_HISTORY_FILES = 10
 
 export type BackupWriteState = 'idle' | 'pending' | 'writing' | 'saved' | 'permission' | 'error'
 let writeState: BackupWriteState = 'idle'

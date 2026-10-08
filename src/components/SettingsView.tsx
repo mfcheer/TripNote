@@ -374,7 +374,7 @@ export default function SettingsView({
                   <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">
                     {backupStatus.configured
                       ? backupStatus.permission === 'granted'
-                        ? `已连接「${backupStatus.directoryName} / TripNote备份」。修改后约 30 秒自动归档，并保留最近 100 份历史。${backupStatus.lastBackupAt ? ` 上次备份：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
+                        ? `已连接「${backupStatus.directoryName} / TripNote备份」。修改后约 30 秒自动归档，并保留最近 10 份历史。${backupStatus.lastBackupAt ? ` 上次备份：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
                         : `已记住「${backupStatus.directoryName}」，但浏览器暂未允许写入。重新授权后会立即完成一份最新备份，并继续自动归档。`
                       : '选择一个本机文件夹后，TripNote 会在应用打开期间自动创建完整备份（含当前高德 Key 和地图连线配置）。'}
                   </p>
