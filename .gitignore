@@ -15,6 +15,9 @@ agent-server/.env
 .playwright-cli/
 .DS_Store
 
+# Local historical projects and design artifacts, preserved during workspace cleanup.
+/archive/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

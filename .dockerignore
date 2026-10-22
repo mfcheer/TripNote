@@ -3,3 +3,4 @@ dist
 .git
 .playwright-cli
 npm-debug.log
+archive

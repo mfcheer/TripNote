@@ -3,7 +3,7 @@
 ## Comparison target
 
 - Source visual truth: `/Users/mfcheer/.codex/generated_images/01a062b1-92c2-7201-89de-2919c8c63072/exec-55c6dd3f-b4ec-40f1-b87e-18201e63add3.png`
-- Implementation screenshot: `/Users/mfcheer/code/qa-mobile-wish-sheet.png`
+- Implementation screenshot: [qa-mobile-wish-sheet.png](./qa-mobile-wish-sheet.png)
 - Viewport: `390 × 844` CSS px (in-app browser mobile override).
 - Source pixels: `853 × 1844`; implementation pixels: `390 × 832`. The source is an approximately `2.19×` mobile mock; comparison was normalized by its mobile content proportions rather than browser/device chrome.
 - State: continuous mobile itinerary, the unified “想去” drawer open, with pending and scheduled locations visible together.
