@@ -3,7 +3,7 @@ import { findSavedPlace, splitPlaceResults, type GeoResult } from '../api/geocod
 import { usePlaceSearch } from '../hooks/usePlaceSearch'
 import PlaceSearchFeedback from './PlaceSearchFeedback'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS, HeartIcon, LogoIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
+import { CATEGORY_ICONS, EditIcon, HeartIcon, LogoIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type WishPlace } from '../types'
 import MapView from './MapView'
 import TimelineView, { BudgetDrawer } from './TimelineView'
@@ -14,7 +14,7 @@ import { useConfirmStore } from './confirmStore'
 import TripTrashDialog from './TripTrashDialog'
 import DataSafetyStatus from './DataSafetyStatus'
 import { tripDateRange, tripPlanningProgress, tripTagline } from '../utils/tripPresentation'
-import TripRegionDialog, { tripRegionLabel } from './TripRegionDialog'
+import TripInfoDialog from './TripInfoDialog'
 
 const WISH_DRAG_TYPE = 'application/x-tripnote-wish-id'
 
@@ -188,7 +188,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
   const [tripMenuOpen, setTripMenuOpen] = useState(false)
   const [createTripOpen, setCreateTripOpen] = useState(false)
   const [tripTrashOpen, setTripTrashOpen] = useState(false)
-  const [editRegionOpen, setEditRegionOpen] = useState(false)
+  const [editingTripId, setEditingTripId] = useState<string | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [budgetDrawerOpen, setBudgetDrawerOpen] = useState(false)
   const [mapPickRequest, setMapPickRequest] = useState(0)
@@ -320,21 +320,16 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
       <span className="shrink-0 text-[14px] font-semibold tracking-[-0.025em] text-text">TripNote</span>
       <span className="h-4 w-px shrink-0 bg-border/80" aria-hidden="true" />
       <div className="relative min-w-0">
-        <button aria-expanded={tripMenuOpen} aria-controls="workspace-trip-menu" onClick={() => setTripMenuOpen((open) => !open)} className="flex max-w-[380px] items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-surface">
+        <button aria-label={`切换旅行：${trip.name}`} aria-expanded={tripMenuOpen} aria-controls="workspace-trip-menu" onClick={() => setTripMenuOpen((open) => !open)} className="flex max-w-[380px] items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-surface">
           <span className="min-w-0"><span className="block truncate text-[14px] font-semibold">{trip.name}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{tripTagline(trip)} · {tripDateRange(trip)} · 已规划 {tripPlanningProgress(trip)}%</span></span><span className="text-[10px] text-text-faint">⌄</span>
         </button>
         {tripMenuOpen && <div id="workspace-trip-menu" className="absolute top-[calc(100%+7px)] left-0 z-[1100] max-h-[calc(100dvh-90px)] w-[280px] overflow-y-auto rounded-lg border border-border bg-white py-1.5 shadow-[0_14px_34px_rgba(32,40,46,0.16)]">
           <div className="px-3 pb-1.5 text-[10.5px] font-semibold tracking-[0.12em] text-text-faint">我的旅行</div>
           {trips.map((item) => <div key={item.id} className={`group flex items-center gap-1 px-3 py-1.5 ${item.id === activeTripId ? 'bg-action-soft/50 text-accent-hover' : 'hover:bg-surface'}`}>
             <button onClick={() => { switchTrip(item.id); setTripMenuOpen(false) }} className="flex min-w-0 flex-1 items-center justify-between gap-2 py-0.5 text-left"><span className="truncate text-[12.5px] font-medium">{item.name}</span><span className="shrink-0 text-[10.5px] text-text-faint">{item.days.length} 天</span></button>
+            <button onClick={() => { setTripMenuOpen(false); setEditingTripId(item.id) }} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-text-muted hover:bg-accent-soft hover:text-accent focus-visible:outline-2 focus-visible:outline-accent" title={`编辑「${item.name}」的旅行信息`} aria-label={`编辑「${item.name}」的旅行信息`}><EditIcon size={14} /></button>
             {trips.length > 1 && <button onClick={() => confirmDeleteTrip(item)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-red-50 hover:text-red-500 focus:opacity-100" title={`删除「${item.name}」`} aria-label={`删除旅行「${item.name}」`}><TrashIcon size={12} /></button>}
           </div>)}
-          <button onClick={() => { setTripMenuOpen(false); setEditRegionOpen(true) }} className="mt-1 flex w-full items-center gap-2 border-t border-border/70 px-3 py-2.5 text-left transition-colors hover:bg-surface">
-            <MapIcon size={13} className="text-accent" />
-            <span className="text-[11.5px] text-text-muted">旅行区域</span>
-            <span className="ml-auto max-w-[130px] truncate text-[11.5px] font-medium text-text">{tripRegionLabel(trip.searchRegion)}</span>
-            <span className="text-[10.5px] text-text-faint">修改</span>
-          </button>
           <div className="mt-1 border-t border-border/70 pt-1">
             <button onClick={() => { setTripMenuOpen(false); setTripTrashOpen(true) }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-text-muted hover:bg-surface hover:text-text"><TrashIcon size={13} /> 回收站{deletedTrips.length ? ` · ${deletedTrips.length}` : ''}</button>
             <button onClick={() => { setTripMenuOpen(false); setCreateTripOpen(true) }} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12px] font-medium text-text-muted hover:bg-surface hover:text-text"><PlusIcon size={13} /> 创建新旅行</button>
@@ -366,7 +361,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
     {createTripOpen && <ModalShell title="创建新旅行" description="填一次旅行区域，之后地点搜索会自动优先匹配这里。" onClose={() => setCreateTripOpen(false)} size="md" footer={<><button onClick={() => setCreateTripOpen(false)} className="rounded-md px-3 py-2 text-[12px] text-text-muted hover:bg-surface">取消</button><button onClick={submitNewTrip} className="rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white hover:bg-action-hover">创建旅行</button></>}>
       <div className="grid gap-3"><label className="text-[12px] font-medium text-text-muted">旅行名称 <span className="font-normal text-text-faint">（可选）</span><input value={newTripName} onChange={(event) => setNewTripName(event.target.value)} placeholder="例如：日本关西之旅" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">旅行区域 <span className="font-normal text-text-faint">（用于智能搜索）</span><input value={newTripDestination} onChange={(event) => setNewTripDestination(event.target.value)} placeholder="例如：东北、关西、大阪" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><div className="grid grid-cols-2 gap-3"><label className="text-[12px] font-medium text-text-muted">出发日期<input type="date" value={newTripStart} onChange={(event) => { setNewTripStart(event.target.value); if (newTripEnd < event.target.value) setNewTripEnd(event.target.value) }} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">返程日期<input type="date" min={newTripStart} value={newTripEnd} onChange={(event) => setNewTripEnd(event.target.value)} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label></div></div>
     </ModalShell>}
-    {editRegionOpen && <TripRegionDialog onClose={() => setEditRegionOpen(false)} />}
+    {editingTripId && <TripInfoDialog key={editingTripId} tripId={editingTripId} onClose={() => setEditingTripId(null)} />}
     {settingsOpen && <ModalShell title="数据与设置" description="备份、导入、高德地图与路线配置都在这里。" onClose={() => setSettingsOpen(false)} size="lg" bodyClassName="px-0 py-0"><SettingsView embedded /></ModalShell>}
   </div>
 }

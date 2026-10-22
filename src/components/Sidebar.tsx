@@ -3,14 +3,14 @@ import type { DragEvent, PointerEvent as ReactPointerEvent, ReactElement } from 
 import { activitiesByDay, useActiveTrip, useTripStore, displayDate, nextActivityTime } from '../store'
 import { straightLineDistanceMeters } from '../api/route'
 import type { TripDay, ViewKey } from '../types'
-import { CalendarIcon, ChevronDownIcon, DownloadIcon, EditIcon, LogoIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
+import { CalendarIcon, ChevronDownIcon, DownloadIcon, EditIcon, LogoIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 import TripTrashDialog from './TripTrashDialog'
 import DataSafetyStatus from './DataSafetyStatus'
 import { tripDateRange, tripPlanningProgress } from '../utils/tripPresentation'
-import TripRegionDialog, { tripRegionLabel } from './TripRegionDialog'
+import TripInfoDialog from './TripInfoDialog'
 
 const NAV_ITEMS: { key: ViewKey; label: string; Icon: (p: { size?: number }) => ReactElement }[] = [
   { key: 'plan', label: '行程规划', Icon: CalendarIcon },
@@ -167,16 +167,14 @@ function CreateTripDialog({ onClose }: { onClose: () => void }) {
   )
 }
 
-// 旅程切换器：点击展开下拉，支持切换 / 重命名 / 新建 / 删除
+// 旅程切换器：编辑入口绑定到各自旅行，编辑其他旅行时无需切换。
 function TripSwitcher({ compact = false }: { compact?: boolean }) {
-  const { trips, activeTripId, switchTrip, deleteTrip, renameTrip, setView } = useTripStore()
+  const { trips, activeTripId, switchTrip, deleteTrip, setView } = useTripStore()
   const trip = useActiveTrip()
   const [open, setOpen] = useState(false)
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [tripTrashOpen, setTripTrashOpen] = useState(false)
-  const [tripRegionOpen, setTripRegionOpen] = useState(false)
-  const [renamingId, setRenamingId] = useState<string | null>(null)
-  const [renameDraft, setRenameDraft] = useState('')
+  const [editingTripId, setEditingTripId] = useState<string | null>(null)
   const askConfirm = useConfirmStore((s) => s.ask)
   const boxRef = useRef<HTMLDivElement>(null)
 
@@ -190,15 +188,12 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
     return () => document.removeEventListener('mousedown', onDown)
   }, [open])
 
-  function confirmRename(id: string) {
-    if (renameDraft.trim()) renameTrip(id, renameDraft)
-    setRenamingId(null)
-  }
-
   return (
     <div ref={boxRef} className={compact ? 'relative min-w-0 flex-1' : 'relative px-5'}>
       <button
         onClick={() => setOpen(!open)}
+        aria-label={`切换旅行：${trip.name}`}
+        aria-expanded={open}
         className={`flex w-full min-w-0 items-center gap-2 rounded-lg text-left transition-colors ${
           compact
             ? 'px-2 py-1.5 active:bg-surface-2'
@@ -216,86 +211,53 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
         <div className={`z-[950] max-h-[min(360px,60dvh)] overflow-y-auto rounded-lg border border-border bg-white py-1.5 shadow-lg ${compact ? 'fixed top-[62px] right-3 left-3' : 'absolute top-full left-5 mt-1 w-[calc(100%-40px)]'}`}>
           {trips.map((t) => {
             const active = t.id === activeTripId
-            const renaming = renamingId === t.id
             return (
               <div
                 key={t.id}
                 className={`group flex items-center gap-1 px-2 py-1.5 ${active ? 'bg-accent-soft' : 'hover:bg-surface'}`}
               >
-                {renaming ? (
-                  <input
-                    autoFocus
-                    value={renameDraft}
-                    onChange={(e) => setRenameDraft(e.target.value)}
-                    onBlur={() => confirmRename(t.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') confirmRename(t.id)
-                      if (e.key === 'Escape') setRenamingId(null)
-                    }}
-                    className="min-w-0 flex-1 rounded border border-accent px-1.5 py-1 text-[13px] outline-none"
-                  />
-                ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        if (!active) switchTrip(t.id)
-                        else setOpen(false)
-                      }}
-                      onDoubleClick={() => {
-                        setRenamingId(t.id)
-                        setRenameDraft(t.name)
-                      }}
-                      className="min-w-0 flex-1 truncate text-left text-[13px]"
-                      title={active ? '双击可重命名' : undefined}
-                    >
-                      <span className={active ? 'font-medium text-accent-hover' : ''}>{t.name}</span>
-                      <span className="ml-1.5 text-[11px] text-text-faint">{t.days.length}天</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setRenamingId(t.id)
-                        setRenameDraft(t.name)
-                      }}
-                      className="shrink-0 rounded p-1 text-text-faint transition-colors hover:bg-accent-soft hover:text-accent"
-                      title="重命名"
-                    >
-                      <EditIcon size={12} />
-                    </button>
-                    {trips.length > 1 && (
-                      <button
-                        onClick={() =>
-                          askConfirm({
-                            title: `删除旅程「${t.name}」？`,
-                            message: '会移入回收站，可随时恢复。',
-                            onConfirm: () => {
-                              deleteTrip(t.id)
-                              useToastStore.getState().show(`已将旅程「${t.name}」移入回收站`)
-                            },
-                          })
-                        }
-                        className={`shrink-0 rounded p-1 text-text-faint transition-opacity hover:text-red-500 ${compact ? 'h-8 w-8 opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-                        title="删除旅程"
-                      >
-                        <TrashIcon size={12} />
-                      </button>
-                    )}
-                  </>
+                <button
+                  onClick={() => {
+                    if (!active) switchTrip(t.id)
+                    setOpen(false)
+                  }}
+                  className="min-w-0 flex-1 truncate text-left text-[13px]"
+                >
+                  <span className={active ? 'font-medium text-accent-hover' : ''}>{t.name}</span>
+                  <span className="ml-1.5 text-[11px] text-text-faint">{t.days.length}天</span>
+                </button>
+                <button
+                  onClick={() => {
+                    setOpen(false)
+                    setEditingTripId(t.id)
+                  }}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-text-muted transition-colors hover:bg-accent-soft hover:text-accent focus-visible:outline-2 focus-visible:outline-accent"
+                  title={`编辑「${t.name}」的旅行信息`}
+                  aria-label={`编辑「${t.name}」的旅行信息`}
+                >
+                  <EditIcon size={14} />
+                </button>
+                {trips.length > 1 && (
+                  <button
+                    onClick={() =>
+                      askConfirm({
+                        title: `删除旅程「${t.name}」？`,
+                        message: '会移入回收站，可随时恢复。',
+                        onConfirm: () => {
+                          deleteTrip(t.id)
+                          useToastStore.getState().show(`已将旅程「${t.name}」移入回收站`)
+                        },
+                      })
+                    }
+                    className={`shrink-0 rounded p-1 text-text-faint transition-opacity hover:text-red-500 ${compact ? 'h-8 w-8 opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                    title="删除旅程"
+                  >
+                    <TrashIcon size={12} />
+                  </button>
                 )}
               </div>
             )
           })}
-          <button
-            onClick={() => {
-              setOpen(false)
-              setTripRegionOpen(true)
-            }}
-            className="mt-1 flex w-full items-center gap-2 border-t border-border px-3.5 py-2.5 text-left transition-colors hover:bg-surface"
-          >
-            <MapIcon size={14} className="text-accent" />
-            <span className="text-[12px] text-text-muted">旅行区域</span>
-            <span className="ml-auto max-w-[150px] truncate text-[12px] font-medium text-text">{tripRegionLabel(trip.searchRegion)}</span>
-            <span className="text-[11px] text-text-faint">修改</span>
-          </button>
           <div className="mt-1 border-t border-border pt-1">
             <button
               onClick={() => {
@@ -321,7 +283,7 @@ function TripSwitcher({ compact = false }: { compact?: boolean }) {
       )}
       {showCreateDialog && <CreateTripDialog onClose={() => setShowCreateDialog(false)} />}
       {tripTrashOpen && <TripTrashDialog onClose={() => setTripTrashOpen(false)} />}
-      {tripRegionOpen && <TripRegionDialog onClose={() => setTripRegionOpen(false)} />}
+      {editingTripId && <TripInfoDialog key={editingTripId} tripId={editingTripId} onClose={() => setEditingTripId(null)} />}
     </div>
   )
 }
