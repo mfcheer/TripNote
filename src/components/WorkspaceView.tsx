@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties, type DragEvent as NativeDragEvent, type PointerEvent as ReactPointerEvent } from 'react'
-import { findSavedPlace, splitPlaceResults, type GeoResult } from '../api/geocode'
+import { findSavedPlace, parsePlaceSnippet, splitPlaceResults, type GeoResult } from '../api/geocode'
 import { usePlaceSearch } from '../hooks/usePlaceSearch'
 import PlaceSearchFeedback from './PlaceSearchFeedback'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
@@ -25,12 +25,14 @@ function plannedIds(place: WishPlace) {
 
 function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPlaceId, onSelectWishPlace, onScheduleSuccess }: { onStartMapPick: () => void; recentlyScheduledPlaceId: string | null; selectedWishPlaceId: string | null; onSelectWishPlace: (placeId: string | null) => void; onScheduleSuccess: (activityId: string, placeId: string) => void }) {
   const trip = useActiveTrip()
-  const { addWishPlace, removeWishPlace, scheduleWishPlace, amapWebServiceKey, placeSearchProvider } = useTripStore()
+  const { addWishPlace, removeWishPlace, scheduleWishPlace } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
   const [query, setQuery] = useState('')
-  const { results, status: searchStatus, error: searchError, retry: retrySearch } = usePlaceSearch(query, trip, amapWebServiceKey, placeSearchProvider)
+  const [highlightIndex, setHighlightIndex] = useState(-1)
+  const { results, status: searchStatus, error: searchError, retry: retrySearch } = usePlaceSearch(query, trip)
   const activeDayId = useTripStore((state) => state.activeDayId)
   const groupedResults = splitPlaceResults(results)
+  const parsed = useMemo(() => parsePlaceSnippet(query), [query])
 
   useEffect(() => {
     if (!selectedWishPlaceId) return
@@ -40,7 +42,13 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
 
   function clearPlaceSearch() {
     setQuery('')
+    setHighlightIndex(-1)
   }
+
+  const matchingWishes = useMemo(() => {
+    const q = parsed.title.trim().toLocaleLowerCase()
+    return q.length >= 1 ? trip.wishPlaces.filter((place) => place.title.toLocaleLowerCase().includes(q)).slice(0, 3) : []
+  }, [parsed.title, trip.wishPlaces])
 
   const places = useMemo(() => {
     const unscheduled: WishPlace[] = []
@@ -64,11 +72,15 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     const id = addWishPlace({ title, category: 'sight', location: result.label, geo: { lat: result.lat, lng: result.lng } })
     onSelectWishPlace(id)
     clearPlaceSearch()
-    useToastStore.getState().show(`已加入想去：${title}`)
+    useToastStore.getState().show(`已加入想去：${title}`, {
+      undo: () => {
+        removeWishPlace(id)
+      },
+    })
   }
 
-  function addPlainPlace() {
-    const title = query.trim()
+  function addSnippetPlace(snippet: typeof parsed) {
+    const title = snippet.title.trim()
     if (!title) return
     const exists = findSavedPlace(trip.wishPlaces, title)
     if (exists) {
@@ -77,10 +89,19 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
       useToastStore.getState().show('这个地点已在想去中，已为你选中')
       return
     }
-    const id = addWishPlace({ title, category: 'sight' })
+    const id = addWishPlace({
+      title,
+      category: 'sight',
+      location: snippet.location,
+      note: snippet.note,
+    })
     onSelectWishPlace(id)
     clearPlaceSearch()
-    useToastStore.getState().show(`已加入想去：${title}`)
+    useToastStore.getState().show(`已加入想去：${title}`, {
+      undo: () => {
+        removeWishPlace(id)
+      },
+    })
   }
 
   function schedule(place: WishPlace) {
@@ -145,32 +166,159 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
     </div>
   }
 
+  const hasQuery = query.trim().length > 0
+  const flatSearchResults = [...groupedResults.trip, ...groupedResults.broader]
+
+  function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (!hasQuery) return
+    const totalItems = 1 + matchingWishes.length + flatSearchResults.length
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setHighlightIndex((prev) => (prev + 1) % totalItems)
+    } else if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setHighlightIndex((prev) => (prev <= 0 ? totalItems - 1 : prev - 1))
+    } else if (event.key === 'Enter') {
+      event.preventDefault()
+      if (highlightIndex <= 0) {
+        addSnippetPlace(parsed)
+      } else if (highlightIndex <= matchingWishes.length) {
+        const wish = matchingWishes[highlightIndex - 1]
+        if (wish) {
+          onSelectWishPlace(wish.id)
+          clearPlaceSearch()
+        }
+      } else {
+        const resIdx = highlightIndex - 1 - matchingWishes.length
+        const res = flatSearchResults[resIdx]
+        if (res) addResult(res)
+        else addSnippetPlace(parsed)
+      }
+    } else if (event.key === 'Escape') {
+      clearPlaceSearch()
+    }
+  }
+
   return <aside className="workspace-library flex min-h-0 shrink-0 flex-col overflow-hidden rounded-[18px] border border-border/70 bg-white" style={{ width: 'var(--workspace-library-width)' }}>
     <div className="border-b border-border/70 px-4 pt-4 pb-3">
       <div className="flex items-center justify-between">
         <div className="text-[14px] font-semibold text-text">想去</div>
         <span className="rounded-full bg-action-soft px-2 py-0.5 text-[11px] font-medium text-accent-hover">{places.unscheduled.length}</span>
       </div>
-      <p className="mt-1 text-[11px] text-text-faint">搜索、选点后拖入日程。</p>
+      <p className="mt-1 text-[11px] text-text-faint">输入地名按回车秒存，或从下拉建议中选择。</p>
       <div className="mt-2.5 flex gap-2">
         <div className="relative min-w-0 flex-1">
-        <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && results.length === 0 && addPlainPlace()} placeholder="搜索或添加地点" className="w-full rounded-md border border-border bg-white px-3 py-2 text-[12px] outline-none focus:border-accent" />
-        {searchStatus === 'loading' && <span role="status" className="absolute top-2.5 right-3 text-[10.5px] text-text-faint">搜索中</span>}
-        {results.length > 0 && <div className="absolute inset-x-0 top-[calc(100%+5px)] z-[800] max-h-[220px] overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-[0_10px_28px_rgba(32,40,46,0.14)]">
-          {trip.wishPlaces.filter((place) => place.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).slice(0, 4).map((place) => <button key={place.id} onClick={() => { onSelectWishPlace(place.id); clearPlaceSearch() }} className="block w-full truncate bg-action-soft/50 px-3 py-2 text-left text-[11px] text-accent-hover">已收藏 · {place.title}</button>)}
-          {groupedResults.trip.length > 0 && <div className="px-3 py-1 text-[10px] font-medium text-text-muted">旅行范围内</div>}
-          {groupedResults.trip.map((result) => <button key={`${result.lat}-${result.lng}`} onClick={() => addResult(result)} className="block w-full px-3 py-2 text-left hover:bg-surface"><span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}
-          {groupedResults.broader.length > 0 && <><div className="border-y border-border/60 bg-surface/70 px-3 py-1 text-[10px] font-medium text-text-faint">其他可能地点</div>{groupedResults.broader.map((result) => <button key={`${result.lat}-${result.lng}`} onClick={() => addResult(result)} className="block w-full px-3 py-2 text-left hover:bg-surface"><span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}</>}
-        </div>}
+          <input
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value)
+              setHighlightIndex(-1)
+            }}
+            onKeyDown={handleKeyDown}
+            placeholder="输入地名、贴攻略、或搜索"
+            className="w-full rounded-md border border-border bg-white px-3 py-2 text-[12px] outline-none focus:border-accent"
+          />
+          {searchStatus === 'loading' && <span role="status" className="absolute top-2.5 right-3 text-[10.5px] text-text-faint">匹配中</span>}
+          {hasQuery && (
+            <div className="absolute inset-x-0 top-[calc(100%+5px)] z-[800] max-h-[260px] overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-[0_12px_30px_rgba(32,40,46,0.15)]">
+              {/* 选项 0：极速直接添加项 */}
+              <button
+                type="button"
+                onClick={() => addSnippetPlace(parsed)}
+                onMouseEnter={() => setHighlightIndex(0)}
+                className={`block w-full border-b border-border/70 px-3 py-2 text-left transition-colors ${
+                  highlightIndex === 0 ? 'bg-action-soft text-accent-hover' : 'hover:bg-surface'
+                }`}
+              >
+                <div className="flex items-center justify-between text-[12px] font-medium text-text">
+                  <span className="truncate">↵ 回车直接添加：<strong className="font-semibold text-accent">{parsed.title}</strong></span>
+                  <span className="ml-1.5 shrink-0 rounded bg-surface px-1.5 py-0.5 text-[10px] text-text-faint">秒存</span>
+                </div>
+                {parsed.isSnippet && (
+                  <div className="mt-1 flex flex-wrap gap-1 text-[10.5px] text-text-faint">
+                    {parsed.location && <span className="rounded bg-surface px-1.5 py-0.5">📍 {parsed.location}</span>}
+                    {parsed.note && <span className="rounded bg-surface px-1.5 py-0.5">💬 {parsed.note}</span>}
+                  </div>
+                )}
+              </button>
+
+              {/* 已在清单中的地点匹配 */}
+              {matchingWishes.map((place, idx) => {
+                const itemIdx = 1 + idx
+                return (
+                  <button
+                    key={place.id}
+                    type="button"
+                    onClick={() => { onSelectWishPlace(place.id); clearPlaceSearch() }}
+                    onMouseEnter={() => setHighlightIndex(itemIdx)}
+                    className={`block w-full truncate border-b border-border/40 px-3 py-2 text-left text-[11px] ${
+                      highlightIndex === itemIdx ? 'bg-action-soft text-accent-hover' : 'bg-action-soft/30 hover:bg-action-soft/60 text-accent-hover'
+                    }`}
+                  >
+                    ⭐ 已在想去清单 · {place.title}
+                  </button>
+                )
+              })}
+
+              {/* 搜索建议列表 */}
+              {searchStatus === 'loading' && flatSearchResults.length === 0 && (
+                <div className="flex items-center gap-2 px-3 py-2.5 text-[11px] text-text-faint">
+                  <span className="inline-block h-3 w-3 animate-spin rounded-full border border-accent border-t-transparent" />
+                  正在查找在线定位（可直接按回车保存）...
+                </div>
+              )}
+
+              {groupedResults.trip.length > 0 && <div className="px-3 pt-1.5 pb-0.5 text-[10px] font-medium text-text-muted">旅行范围内匹配</div>}
+              {groupedResults.trip.map((result) => {
+                const itemIdx = 1 + matchingWishes.length + flatSearchResults.indexOf(result)
+                return (
+                  <button
+                    key={`${result.lat}-${result.lng}`}
+                    type="button"
+                    onClick={() => addResult(result)}
+                    onMouseEnter={() => setHighlightIndex(itemIdx)}
+                    className={`block w-full px-3 py-2 text-left transition-colors ${
+                      highlightIndex === itemIdx ? 'bg-surface' : 'hover:bg-surface'
+                    }`}
+                  >
+                    <span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span>
+                    <span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span>
+                  </button>
+                )
+              })}
+
+              {groupedResults.broader.length > 0 && (
+                <>
+                  <div className="border-y border-border/60 bg-surface/70 px-3 py-1 text-[10px] font-medium text-text-faint">其他可能地点</div>
+                  {groupedResults.broader.map((result) => {
+                    const itemIdx = 1 + matchingWishes.length + flatSearchResults.indexOf(result)
+                    return (
+                      <button
+                        key={`${result.lat}-${result.lng}`}
+                        type="button"
+                        onClick={() => addResult(result)}
+                        onMouseEnter={() => setHighlightIndex(itemIdx)}
+                        className={`block w-full px-3 py-2 text-left transition-colors ${
+                          highlightIndex === itemIdx ? 'bg-surface' : 'hover:bg-surface'
+                        }`}
+                      >
+                        <span className="block truncate text-[12px] font-medium">{result.label.split(',')[0]}</span>
+                        <span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span>
+                      </button>
+                    )
+                  })}
+                </>
+              )}
+            </div>
+          )}
         </div>
         <button onClick={onStartMapPick} className="h-[34px] shrink-0 self-start rounded-md border border-border bg-white px-2.5 text-[11px] font-medium text-text-muted hover:border-accent/40 hover:text-accent" title="在右侧地图选择地点"><MapIcon size={14} /></button>
       </div>
-      <PlaceSearchFeedback status={searchStatus} error={searchError} query={query} onRetry={retrySearch} onManual={addPlainPlace} onMap={onStartMapPick} />
-      {results.length === 0 && query.trim().length >= 2 && trip.wishPlaces.filter((place) => place.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).slice(0, 4).map((place) => <button key={place.id} onClick={() => { onSelectWishPlace(place.id); clearPlaceSearch() }} className="mt-1 block w-full truncate rounded-md bg-action-soft/50 px-2 py-1.5 text-left text-[11px] text-accent-hover">已收藏 · {place.title}</button>)}
+      <PlaceSearchFeedback status={searchStatus} error={searchError} query={query} onRetry={retrySearch} onManual={() => addSnippetPlace(parsed)} onMap={onStartMapPick} />
     </div>
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="flex items-center justify-between px-4 pt-3 pb-1.5"><span className="text-[10.5px] font-semibold tracking-[0.12em] text-text-faint">待安排</span><span className="text-[10.5px] text-text-faint">{places.unscheduled.length} 个</span></div>
-      <div>{places.unscheduled.length ? places.unscheduled.map((place) => renderPlace(place)) : <p className="px-4 py-5 text-[11.5px] leading-relaxed text-text-faint">地点都已安排完，可以用上方地图按钮继续收藏。</p>}</div>
+      <div>{places.unscheduled.length ? places.unscheduled.map((place) => renderPlace(place)) : <p className="px-4 py-5 text-[11.5px] leading-relaxed text-text-faint">地点都已安排完，可在上方输入新地名继续收藏。</p>}</div>
       {places.scheduled.length > 0 && <details className="mt-2 border-t border-border/70" open>
         <summary className="cursor-pointer list-none px-4 py-3 text-[10.5px] font-semibold tracking-[0.12em] text-text-faint [&::-webkit-details-marker]:hidden">已安排 · {places.scheduled.length} <span className="font-normal tracking-normal">（可再次安排）</span></summary>
         <div>{places.scheduled.map((place) => renderPlace(place, true))}</div>
@@ -362,6 +510,6 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
       <div className="grid gap-3"><label className="text-[12px] font-medium text-text-muted">旅行名称 <span className="font-normal text-text-faint">（可选）</span><input value={newTripName} onChange={(event) => setNewTripName(event.target.value)} placeholder="例如：日本关西之旅" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">旅行区域 <span className="font-normal text-text-faint">（用于智能搜索）</span><input value={newTripDestination} onChange={(event) => setNewTripDestination(event.target.value)} placeholder="例如：东北、关西、大阪" className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal outline-none focus:border-accent" /></label><div className="grid grid-cols-2 gap-3"><label className="text-[12px] font-medium text-text-muted">出发日期<input type="date" value={newTripStart} onChange={(event) => { setNewTripStart(event.target.value); if (newTripEnd < event.target.value) setNewTripEnd(event.target.value) }} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label><label className="text-[12px] font-medium text-text-muted">返程日期<input type="date" min={newTripStart} value={newTripEnd} onChange={(event) => setNewTripEnd(event.target.value)} className="mt-1.5 w-full rounded-md border border-border px-2 py-2 text-[12px] font-normal outline-none focus:border-accent" /></label></div></div>
     </ModalShell>}
     {editingTripId && <TripInfoDialog key={editingTripId} tripId={editingTripId} onClose={() => setEditingTripId(null)} />}
-    {settingsOpen && <ModalShell title="数据与设置" description="备份、导入、高德地图与路线配置都在这里。" onClose={() => setSettingsOpen(false)} size="lg" bodyClassName="px-0 py-0"><SettingsView embedded /></ModalShell>}
+    {settingsOpen && <ModalShell title="数据与设置" description="备份、导入、高德地图与路线配置都在这里。" onClose={() => setSettingsOpen(false)} size="lg" bodyClassName="px-0 py-0 pb-6"><SettingsView embedded /></ModalShell>}
   </div>
 }

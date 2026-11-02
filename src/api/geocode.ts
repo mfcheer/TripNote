@@ -1,5 +1,72 @@
 import type { GeoPoint, Trip, WishPlace } from '../types'
 
+export interface ParsedPlaceSnippet {
+  title: string
+  location?: string
+  note?: string
+  isSnippet: boolean
+}
+
+/**
+ * 智能解析从小红书、大众点评、聊天记录等粘贴的杂糅文本。
+ * 能够自动提取：标题名、地址、备注信息。
+ */
+export function parsePlaceSnippet(raw: string): ParsedPlaceSnippet {
+  let text = raw.trim()
+  if (!text) return { title: '', isSnippet: false }
+
+  // 1. 去除列表前缀与标记（如 "1.", "1、", "- ", "* ", "• "）
+  text = text.replace(/^[\d一二三四五六七八九十]+[.、\s\-:]\s*/, '').replace(/^[-*•]\s*/, '')
+
+  // 2. 去除常见社交媒体攻略标签（如 【哈尔滨必吃】, [推荐], #美食打卡）
+  text = text.replace(/^[【[(][^】\])]*(?:必去|必吃|打卡|推荐|景点|美食|住宿|交通|玩乐|攻略|第[0-9一二三四五六七八九十]+站)[^】\])]*[】\])]\s*/i, '')
+  text = text.replace(/#\S+\s*/g, '')
+
+  let location = ''
+  let note = ''
+
+  // 3. 提取显式 "地址/位置/位于：xxx"
+  const addrMatch = text.match(/(?:地址|位置|位于)[：:]\s*([^\s,，;；()（）]+)/)
+  if (addrMatch) {
+    location = addrMatch[1]
+    text = text.replace(addrMatch[0], ' ').trim()
+  }
+
+  // 4. 提取括号中的地址或备注：如 "老厨家 (道里区友谊路392号)"
+  const parenMatch = text.match(/[（(]([^)）]+)[)）]/)
+  if (parenMatch) {
+    const inside = parenMatch[1].trim()
+    if (/(?:分店|总店|店|旗舰店)/.test(inside)) {
+      // 保留分店名在主标题中
+    } else if (/(?:省|市|区|县|镇|街道|路|号|巷|弄)/.test(inside) && !location) {
+      location = inside
+      text = text.replace(parenMatch[0], ' ').trim()
+    } else if (inside.length > 1 && !note) {
+      note = inside
+      text = text.replace(parenMatch[0], ' ').trim()
+    }
+  }
+
+  // 5. 按逗号、分号、换行分隔多段内容
+  const parts = text.split(/[,，;；\n]+/).map((p) => p.trim()).filter(Boolean)
+  let title = parts[0] || ''
+
+  if (parts.length > 1) {
+    for (let i = 1; i < parts.length; i++) {
+      const part = parts[i]
+      if (/(?:省|市|区|县|镇|街道|路|号|巷|弄)/.test(part) && !location) {
+        location = part
+      } else {
+        note = note ? `${note} · ${part}` : part
+      }
+    }
+  }
+
+  title = title.replace(/\s+/g, ' ').trim()
+  const isSnippet = Boolean((location && location !== title) || note || raw.trim().length > title.length + 3)
+  return { title: title || raw.trim(), location: location || undefined, note: note || undefined, isSnippet }
+}
+
 /** 不把同名但异地的景点合并；坐标结果按名称及约一米范围匹配。 */
 export function findSavedPlace(places: WishPlace[], title: string, geo?: GeoPoint) {
   const normalized = title.trim().toLocaleLowerCase()
@@ -55,16 +122,6 @@ const PLACE_ALIASES: Record<string, string[]> = {
   '济州岛': ['제주도', 'Jeju'],
 }
 
-type AmapPlaceResponse = {
-  status?: string
-  pois?: Array<{ name?: string; address?: string; location?: string }>
-}
-
-type AmapReverseResponse = {
-  status?: string
-  regeocode?: { formatted_address?: string }
-}
-
 // 简易节流：保证两次请求间隔 ≥1.1s（遵守 Nominatim 使用政策）
 let lastCall = 0
 
@@ -118,55 +175,88 @@ function withScope(results: GeoResult[], scope: NonNullable<GeoResult['scope']>)
   return results.map((result) => ({ ...result, scope }))
 }
 
-async function searchWithAmap(query: string, key: string, signal?: AbortSignal, context?: PlaceSearchContext, global = false): Promise<GeoResult[]> {
-  const cities = global ? [] : (context?.cities ?? []).slice(0, 5)
-  const searches = cities.length ? cities : [undefined]
-  const responses = await Promise.all(searches.map(async (city) => {
-    const contextualQuery = !global && !city && context?.region ? `${context.region} ${query}` : query
-    const params = new URLSearchParams({ key, keywords: contextualQuery, offset: '5', page: '1', extensions: 'base' })
-    if (city) {
-      params.set('city', city)
-      params.set('citylimit', 'true')
-    }
-    const res = await fetch(`https://restapi.amap.com/v3/place/text?${params}`, { signal })
-    if (!res.ok) throw new Error(`高德地点搜索失败: ${res.status}`)
-    const data = await res.json() as AmapPlaceResponse
-    if (data.status !== '1') throw new Error('高德地点搜索失败')
-    return (data.pois ?? []).flatMap((place) => {
-      const [lng, lat] = (place.location ?? '').split(',').map(Number)
-      if (!place.name || !Number.isFinite(lat) || !Number.isFinite(lng)) return []
-      const point = gcj02ToWgs84({ lat, lng })
-      return [{ lat: point.lat, lng: point.lng, label: [place.name, place.address].filter(Boolean).join(', ') }]
-    })
-  }))
-  return dedupeResults(responses.flat()).slice(0, 8)
+const PHOTON_SEARCH = 'https://photon.komoot.io/api/'
+
+interface PhotonFeature {
+  geometry?: { coordinates: [number, number] }
+  properties?: {
+    name?: string
+    street?: string
+    city?: string
+    district?: string
+    county?: string
+    state?: string
+    country?: string
+  }
 }
 
-export type PlaceSearchProvider = 'amap' | 'osm'
-
-export async function searchPlaces(query: string, signal?: AbortSignal, amapWebServiceKey?: string, provider: PlaceSearchProvider = 'amap', context?: PlaceSearchContext): Promise<GeoResult[]> {
-  if (provider === 'amap' && amapWebServiceKey) {
-    try {
-      let localResults = await searchWithAmap(query, amapWebServiceKey, signal, context)
-      if (needsGlobalFallback(localResults, query)) {
-        for (const alias of queryVariants(query).slice(1)) {
-          localResults = dedupeResults([...localResults, ...await searchWithAmap(alias, amapWebServiceKey, signal, context)])
-          if (!needsGlobalFallback(localResults, query)) break
-        }
-      }
-      localResults = withScope(localResults, context ? 'trip' : 'broader')
-      // 区域内没有足够候选时自动补一次无范围检索，用户无需理解或切换搜索范围。
-      if (!needsGlobalFallback(localResults, query) || !context) return localResults
-      const expandedResults = rankResults(dedupeResults([...localResults, ...withScope(await searchWithAmap(query, amapWebServiceKey, signal, context, true), 'broader')]), context, query).slice(0, 8)
-      // 高德对境外 POI 的覆盖不稳定；完全没有候选时继续使用 OSM 的全球兜底。
-      if (!needsGlobalFallback(expandedResults, query)) return expandedResults
-    } catch (error) {
-      if ((error as Error).name === 'AbortError') throw error
-      // Key 配置错误或服务暂不可用时，继续使用原有服务，避免搜索入口失效。
+/**
+ * 免费快速的开源地理搜索源（Komoot Photon，基于 OpenStreetMap）
+ * 支持中文及拼音容错，无严格限频限制，通常 150-400ms 内响应。
+ */
+async function searchWithPhoton(query: string, signal?: AbortSignal, context?: PlaceSearchContext): Promise<GeoResult[]> {
+  const params = new URLSearchParams({ q: query, limit: '8' })
+  if (context?.viewbox) {
+    const lon = (context.viewbox[0] + context.viewbox[2]) / 2
+    const lat = (context.viewbox[1] + context.viewbox[3]) / 2
+    if (Number.isFinite(lat) && Number.isFinite(lon)) {
+      params.set('lat', lat.toFixed(4))
+      params.set('lon', lon.toFixed(4))
     }
   }
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 4000)
+  const combinedSignal = signal ? AbortSignal.any([signal, controller.signal]) : controller.signal
+
+  try {
+    const res = await fetch(`${PHOTON_SEARCH}?${params}`, { signal: combinedSignal })
+    if (!res.ok) return []
+    const data = (await res.json()) as { features?: PhotonFeature[] }
+    const features = Array.isArray(data.features) ? data.features : []
+    return features.flatMap((f) => {
+      const coords = f.geometry?.coordinates
+      if (!coords || typeof coords[0] !== 'number' || typeof coords[1] !== 'number') return []
+      const [lng, lat] = coords
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return []
+      const p = f.properties ?? {}
+      const name = p.name || p.street
+      if (!name) return []
+      const addressParts = [p.state, p.city, p.district || p.county, p.street].filter(Boolean) as string[]
+      const uniqueAddr = addressParts.filter((item, idx, arr) => arr.indexOf(item) === idx && item !== name)
+      const label = uniqueAddr.length ? `${name}, ${uniqueAddr.join(' ')}` : name
+      return [{ lat, lng, label }]
+    })
+  } catch {
+    return []
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+export async function searchPlaces(
+  query: string,
+  signal?: AbortSignal,
+  context?: PlaceSearchContext,
+): Promise<GeoResult[]> {
+  const cleanedQuery = parsePlaceSnippet(query).title.trim() || query.trim()
+  if (!cleanedQuery) return []
+
+  // 1. 免费开源极速源：Photon（免 Key，毫秒级返回，支持就近偏置）
+  try {
+    let photonResults = await searchWithPhoton(cleanedQuery, signal, context)
+    if (!photonResults.length && context?.region) {
+      photonResults = await searchWithPhoton(`${context.region} ${cleanedQuery}`, signal, context)
+    }
+    if (photonResults.length > 0) {
+      return rankResults(withScope(photonResults, context ? 'trip' : 'broader'), context ?? {}, cleanedQuery)
+    }
+  } catch {
+    // 降级继续
+  }
+
+  // 2. 终极兜底：OSM Nominatim（带 1.1s 限频节流）
   await throttle()
-  const contextualQuery = context?.region && !context.viewbox ? `${context.region} ${query}` : query
+  const contextualQuery = context?.region && !context.viewbox ? `${context.region} ${cleanedQuery}` : cleanedQuery
   const params = new URLSearchParams({ q: contextualQuery, format: 'json', limit: '8', 'accept-language': 'zh-CN' })
   if (context?.countryCode) params.set('countrycodes', context.countryCode)
   if (context?.viewbox) {
@@ -185,8 +275,8 @@ export async function searchPlaces(query: string, signal?: AbortSignal, amapWebS
     lng: parseFloat(d.lon),
     label: d.display_name,
   })), context ? 'trip' : 'broader')
-  if (needsGlobalFallback(localResults, query) && context) {
-    for (const alias of queryVariants(query).slice(1)) {
+  if (needsGlobalFallback(localResults, cleanedQuery) && context) {
+    for (const alias of queryVariants(cleanedQuery).slice(1)) {
       await throttle()
       const aliasParams = new URLSearchParams(params)
       aliasParams.set('q', context.region && !context.viewbox ? `${context.region} ${alias}` : alias)
@@ -194,12 +284,12 @@ export async function searchPlaces(query: string, signal?: AbortSignal, amapWebS
       if (!aliasResponse.ok) continue
       const aliasData = (await aliasResponse.json()) as Array<{ lat: string; lon: string; display_name: string }>
       localResults = dedupeResults([...localResults, ...withScope(aliasData.map((d) => ({ lat: parseFloat(d.lat), lng: parseFloat(d.lon), label: d.display_name })), 'trip')])
-      if (!needsGlobalFallback(localResults, query)) break
+      if (!needsGlobalFallback(localResults, cleanedQuery)) break
     }
   }
-  if (!needsGlobalFallback(localResults, query) || !context?.viewbox) return localResults
+  if (!needsGlobalFallback(localResults, cleanedQuery) || !context?.viewbox) return localResults
   await throttle()
-  const fallbackParams = new URLSearchParams({ q: query, format: 'json', limit: '8', 'accept-language': 'zh-CN' })
+  const fallbackParams = new URLSearchParams({ q: cleanedQuery, format: 'json', limit: '8', 'accept-language': 'zh-CN' })
   // 这一轮是真正的全球兜底，不能沿用旅行区域的国家限制。
   const fallback = await fetch(`${NOMINATIM_SEARCH}?${fallbackParams}`, { signal, headers: { Accept: 'application/json' } })
   if (!fallback.ok) {
@@ -207,7 +297,7 @@ export async function searchPlaces(query: string, signal?: AbortSignal, amapWebS
     throw new Error(`地理编码请求失败: ${fallback.status}`)
   }
   const fallbackData = (await fallback.json()) as Array<{ lat: string; lon: string; display_name: string }>
-  return rankResults(dedupeResults([...localResults, ...withScope(fallbackData.map((d) => ({ lat: parseFloat(d.lat), lng: parseFloat(d.lon), label: d.display_name })), 'broader')]), context, query).slice(0, 8)
+  return rankResults(dedupeResults([...localResults, ...withScope(fallbackData.map((d) => ({ lat: parseFloat(d.lat), lng: parseFloat(d.lon), label: d.display_name })), 'broader')]), context, cleanedQuery).slice(0, 8)
 }
 
 function rankResults(results: GeoResult[], context: PlaceSearchContext, query = '') {
@@ -256,18 +346,7 @@ export function tripSearchContext(trip: Trip): PlaceSearchContext | undefined {
 }
 
 // 逆地理编码：坐标 → 地名（地图选点用）
-export async function reverseGeocode(lat: number, lng: number, amapWebServiceKey?: string, provider: PlaceSearchProvider = 'amap'): Promise<string | null> {
-  if (provider === 'amap' && amapWebServiceKey) {
-    try {
-      const point = wgs84ToGcj02({ lat, lng })
-      const url = `https://restapi.amap.com/v3/geocode/regeo?key=${encodeURIComponent(amapWebServiceKey)}&location=${point.lng},${point.lat}&extensions=base`
-      const res = await fetch(url)
-      const data = await res.json() as AmapReverseResponse
-      if (res.ok && data.status === '1') return data.regeocode?.formatted_address ?? null
-    } catch {
-      // 继续回退 Nominatim，选点不因第三方服务异常而中断。
-    }
-  }
+export async function reverseGeocode(lat: number, lng: number): Promise<string | null> {
   await throttle()
   const url = `${NOMINATIM_REVERSE}?lat=${lat}&lon=${lng}&format=json&accept-language=zh&zoom=16`
   try {
@@ -279,4 +358,3 @@ export async function reverseGeocode(lat: number, lng: number, amapWebServiceKey
     return null
   }
 }
-import { gcj02ToWgs84, wgs84ToGcj02 } from './coordinates'

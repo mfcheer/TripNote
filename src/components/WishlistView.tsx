@@ -14,7 +14,6 @@ import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
 import MapPicker from './MapPicker'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
-import MapTilerChineseLayer from './MapTilerLayer'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
 import { EmptyState, InlineStatus } from './FeedbackState'
 import { routeProgressColor } from '../utils/mapPalette'
@@ -383,12 +382,12 @@ function SortableWishCard({
 
 export default function WishlistView() {
   const trip = useActiveTrip()
-  const { addWishPlace, removeWishPlace, reorderWishPlace, cancelWishSchedule, focusActivity, amapWebServiceKey, amapJsKey, maptilerKey, mapRouteMode, mapDisplayProvider, placeSearchProvider } = useTripStore()
+  const { addWishPlace, removeWishPlace, reorderWishPlace, cancelWishSchedule, focusActivity, amapJsKey, mapRouteMode, mapDisplayProvider } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
   const [category, setCategory] = useState<ActivityCategory | 'all'>('all')
   const [keyword, setKeyword] = useState('')
   const [searching, setSearching] = useState('')
-  const { results, status: searchStatus, error: searchError, retry: retrySearch } = usePlaceSearch(searching, trip, amapWebServiceKey, placeSearchProvider)
+  const { results, status: searchStatus, error: searchError, retry: retrySearch } = usePlaceSearch(searching, trip)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [mapPanelWidth, setMapPanelWidth] = useState(readMapPanelWidth)
@@ -753,9 +752,7 @@ export default function WishlistView() {
               <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={[...itineraryLines, ...crossDayLines]} className="h-full w-full" zoom={11} />
             ) : (
             <MapContainer center={allMapPoints[0]} zoom={11} className="h-full w-full" attributionControl={false}>
-              {mapDisplayProvider === 'maptiler-zh' && maptilerKey ? (
-                <MapTilerChineseLayer apiKey={maptilerKey} />
-              ) : <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />}
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <FitPlaces points={allMapPoints} />
               {[...itineraryLines, ...crossDayLines].map((line) => <WishlistRouteLine key={line.id} line={line} />)}
               {mapped.map((place) => (

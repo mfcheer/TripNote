@@ -76,10 +76,7 @@ export default function App() {
         activeTripId: state.activeTripId,
         mapRouteMode: state.mapRouteMode,
         amapJsKey: state.amapJsKey,
-        amapWebServiceKey: state.amapWebServiceKey,
-        maptilerKey: state.maptilerKey,
         mapDisplayProvider: state.mapDisplayProvider,
-        placeSearchProvider: state.placeSearchProvider,
         agentServiceUrl: state.agentServiceUrl,
         agentAccessToken: state.agentAccessToken,
       }

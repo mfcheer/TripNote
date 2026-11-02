@@ -8,7 +8,6 @@ import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint, typ
 import { fetchRouteInfo, routeProfileForSegment, straightLineDistanceMeters } from '../api/route'
 import { reverseGeocode } from '../api/geocode'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
-import MapTilerChineseLayer from './MapTilerLayer'
 import { useToastStore } from './toastStore'
 import { EmptyState } from './FeedbackState'
 import { MAP_ROUTE_ACTIVE, MAP_ROUTE_INACTIVE, ROUTE_PROGRESS_COLORS, WISH_PENDING, WISH_PENDING_TEXT, WISH_SCHEDULED, WISH_SCHEDULED_TEXT, routeProgressColor } from '../utils/mapPalette'
@@ -168,7 +167,7 @@ export default function MapView({
   onWorkspaceMapScopeChange?: (scope: 'follow' | 'all') => void
   narrativePreview?: boolean
 }) {
-  const { setActiveDay, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
+  const { setActiveDay, amapJsKey, mapDisplayProvider, mapRouteMode, addWishPlace, removeWishPlace } = useTripStore()
   const trip = useActiveTrip()
   const [filter, setFilter] = useState<'all' | string>(() => initialDayId === 'all' || trip.days.some((day) => day.id === initialDayId) ? initialDayId : 'all')
   const [amapUnavailable, setAmapUnavailable] = useState(false)
@@ -242,7 +241,7 @@ export default function MapView({
     const requestId = ++pickRequestRef.current
     setResolvingPoint(true)
     try {
-      const location = await reverseGeocode(point.lat, point.lng, amapWebServiceKey, placeSearchProvider)
+      const location = await reverseGeocode(point.lat, point.lng)
       if (requestId !== pickRequestRef.current) return
       if (!location) return
       setPickedLocation(location)
@@ -250,7 +249,7 @@ export default function MapView({
     } finally {
       if (requestId === pickRequestRef.current) setResolvingPoint(false)
     }
-  }, [amapWebServiceKey, placeSearchProvider])
+  }, [])
   const stopPicking = useCallback(() => {
     pickRequestRef.current += 1
     setIsPicking(false)
@@ -274,7 +273,6 @@ export default function MapView({
     })
   }, [addWishPlace, pickedCategory, pickedLocation, pickedName, pickedPoint, removeWishPlace, stopPicking])
   const useAmap = mapDisplayProvider === 'amap' && !!amapJsKey && !amapUnavailable
-  const useMapTilerChinese = mapDisplayProvider === 'maptiler-zh' && !!maptilerKey
   const followedDay = trip.days.find((day) => day.id === followDayId)
   const narrativeDay = followedDay ?? visibleDays[0]
   const narrativeItems = narrativeDay ? activitiesByDay(trip, narrativeDay.id).filter((activity) => activity.geo) : []
@@ -424,14 +422,10 @@ export default function MapView({
         <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={amapLines} className="h-full w-full" zoom={9} onMapPick={isPicking ? handleMapPick : undefined} onError={handleAmapError} onRouteFallback={handleRouteFallback} />
       ) : (
       <MapContainer center={[34.9, 135.6]} zoom={9} className="h-full w-full">
-        {useMapTilerChinese ? (
-          <MapTilerChineseLayer apiKey={maptilerKey} />
-        ) : (
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
-        )}
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
         <FitBounds points={allPoints} />
         <MapPickHandler enabled={isPicking} onPick={handleMapPick} />
 

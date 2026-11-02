@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { findSavedPlace, splitPlaceResults, type GeoResult } from '../api/geocode'
+import { findSavedPlace, parsePlaceSnippet, splitPlaceResults, type GeoResult } from '../api/geocode'
 import { usePlaceSearch } from '../hooks/usePlaceSearch'
 import PlaceSearchFeedback from './PlaceSearchFeedback'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
@@ -51,7 +51,7 @@ function suggestedTime(trip: ReturnType<typeof useActiveTrip>, dayId: string) {
 export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
   const trip = useActiveTrip()
   const {
-    activeDayId, amapWebServiceKey, placeSearchProvider, addWishPlace, removeWishPlace, restoreTrips,
+    activeDayId, addWishPlace, removeWishPlace, restoreTrips,
     scheduleWishPlace, cancelWishSchedule, setActiveDay, selectActivity,
   } = useTripStore()
   const askConfirm = useConfirmStore((state) => state.ask)
@@ -59,7 +59,8 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
   const [targetDayId, setTargetDayId] = useState(() => activeDayId || trip.days[0]?.id || '')
   const [time, setTime] = useState(() => suggestedTime(trip, activeDayId || trip.days[0]?.id || ''))
   const [query, setQuery] = useState('')
-  const { results, status: searchStatus, error: searchError, retry: retrySearch } = usePlaceSearch(query, trip, amapWebServiceKey, placeSearchProvider)
+  const parsed = useMemo(() => parsePlaceSnippet(query), [query])
+  const { results, status: searchStatus, error: searchError, retry: retrySearch } = usePlaceSearch(query, trip)
   const [category, setCategory] = useState<ActivityCategory>('sight')
   const [showCustomMap, setShowCustomMap] = useState(false)
   const assignmentRef = useRef<HTMLDivElement>(null)
@@ -122,8 +123,8 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
     useToastStore.getState().show(`已收藏「${title}」`)
   }
 
-  function addManual() {
-    const title = query.trim()
+  function addSnippetPlace() {
+    const title = parsed.title.trim()
     if (!title) return
     const exists = findSavedPlace(trip.wishPlaces, title)
     if (exists) {
@@ -132,7 +133,12 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
       useToastStore.getState().show('这个地点已在想去中，已为你选中')
       return
     }
-    const id = addWishPlace({ title, category })
+    const id = addWishPlace({
+      title,
+      category,
+      location: parsed.location,
+      note: parsed.note,
+    })
     setSelectedPlaceId(id)
     clearAdd()
     useToastStore.getState().show(`已收藏「${title}」`)
@@ -191,21 +197,81 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
         <div className="mb-2 text-[11.5px] text-text-faint">搜索、收藏或选择一个地点安排到行程</div>
         <div className="relative mb-3 rounded-xl border border-border/80 bg-surface p-2.5">
           <div className="flex gap-2">
-            <input value={query} onChange={(event) => setQuery(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && addManual()} placeholder="搜索或直接输入地点名称" aria-label="搜索并收藏新地点" className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-[13px]" />
-            <button type="button" onClick={addManual} disabled={!query.trim()} className={`${overlayPrimaryButtonClass} min-h-9 shrink-0 px-3 text-[12px]`}>收藏</button>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') {
+                  event.preventDefault()
+                  addSnippetPlace()
+                }
+              }}
+              placeholder="搜索或输入地点名称（支持粘贴攻略）"
+              aria-label="搜索并收藏新地点"
+              className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-[13px]"
+            />
+            <button
+              type="button"
+              onClick={addSnippetPlace}
+              disabled={!query.trim()}
+              className={`${overlayPrimaryButtonClass} min-h-9 shrink-0 px-3 text-[12px]`}
+            >
+              收藏
+            </button>
           </div>
           <div className="mt-2 flex items-center gap-2">
             <select value={category} onChange={(event) => setCategory(event.target.value as ActivityCategory)} className="min-w-0 flex-1 rounded-lg border border-border bg-white px-2.5 py-1.5 text-[11.5px] text-text-muted outline-none focus:border-accent">{(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => <option key={value} value={value}>{CATEGORY_META[value].label}</option>)}</select>
             <button type="button" onClick={() => setShowCustomMap(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-text-muted hover:border-accent hover:text-accent"><MapIcon size={13} /> 地图选点</button>
           </div>
-          {searchStatus === 'loading' && <div role="status" className="mt-2 text-[11px] text-text-faint">正在搜索…</div>}
+
+          {query.trim().length > 0 && (
+            <div className="mt-2 overflow-hidden rounded-lg border border-border bg-white shadow-xs">
+              <button
+                type="button"
+                onClick={addSnippetPlace}
+                className="flex w-full items-center justify-between border-b border-border/70 bg-action-soft/35 px-3 py-2 text-left hover:bg-action-soft"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13px] font-semibold text-text">
+                    ↵ 直接收藏：<span className="text-accent">{parsed.title}</span>
+                  </div>
+                  {parsed.isSnippet && (
+                    <div className="mt-0.5 truncate text-[11px] text-text-faint">
+                      {parsed.location && <span>📍 {parsed.location} </span>}
+                      {parsed.note && <span>💬 {parsed.note}</span>}
+                    </div>
+                  )}
+                </div>
+                <span className="ml-2 shrink-0 rounded bg-white px-2 py-0.5 text-[10.5px] font-medium text-accent shadow-xs">
+                  秒存
+                </span>
+              </button>
+              {trip.wishPlaces
+                .filter((place) => place.title.toLocaleLowerCase().includes(parsed.title.toLocaleLowerCase()))
+                .slice(0, 3)
+                .map((place) => (
+                  <button
+                    type="button"
+                    key={place.id}
+                    onClick={() => {
+                      setSelectedPlaceId(place.id)
+                      clearAdd()
+                    }}
+                    className="block w-full truncate border-b border-border/40 px-3 py-1.5 text-left text-[11.5px] text-accent-hover hover:bg-action-soft/40"
+                  >
+                    ⭐ 已收藏 · {place.title}
+                  </button>
+                ))}
+            </div>
+          )}
+
+          {searchStatus === 'loading' && <div role="status" className="mt-2 text-[11px] text-text-faint">正在查找定位建议（可随时点击上方直接收藏）…</div>}
           {results.length > 0 && <div className="mt-2 overflow-hidden rounded-lg border border-border bg-white">
-            {groupedResults.trip.length > 0 && <div className="border-b border-border/70 bg-surface px-3 py-1.5 text-[10.5px] font-medium text-text-muted">旅行范围内</div>}
+            {groupedResults.trip.length > 0 && <div className="border-b border-border/70 bg-surface px-3 py-1.5 text-[10.5px] font-medium text-text-muted">旅行范围内匹配</div>}
             {groupedResults.trip.map((result) => <button key={`${result.lat},${result.lng}`} type="button" onClick={() => addFromResult(result)} className="block w-full border-b border-border/70 px-3 py-2 text-left last:border-b-0 hover:bg-accent-soft"><span className="block truncate text-[12.5px] font-medium text-text">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}
             {groupedResults.broader.length > 0 && <><div className="border-y border-border/70 bg-surface px-3 py-1.5 text-[10.5px] font-medium text-text-faint">其他可能地点</div>{groupedResults.broader.map((result) => <button key={`${result.lat},${result.lng}`} type="button" onClick={() => addFromResult(result)} className="block w-full border-b border-border/70 px-3 py-2 text-left last:border-b-0 hover:bg-accent-soft"><span className="block truncate text-[12.5px] font-medium text-text">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}</>}
           </div>}
-          <PlaceSearchFeedback status={searchStatus} error={searchError} query={query} onRetry={retrySearch} onManual={addManual} onMap={() => setShowCustomMap(true)} />
-          {query.trim().length >= 2 && trip.wishPlaces.filter((place) => place.title.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())).slice(0, 4).map((place) => <button type="button" key={place.id} onClick={() => { setSelectedPlaceId(place.id); clearAdd() }} className="mt-1 block w-full truncate rounded-md bg-action-soft/50 px-2 py-1.5 text-left text-[11px] text-accent-hover">已收藏 · {place.title}</button>)}
+          <PlaceSearchFeedback status={searchStatus} error={searchError} query={query} onRetry={retrySearch} onManual={addSnippetPlace} onMap={() => setShowCustomMap(true)} />
         </div>
 
         {places.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-[12px] leading-relaxed text-text-faint">还没有收藏地点。可以搜索，或从地图上选一个位置。</div> : <div className="divide-y divide-border/80">

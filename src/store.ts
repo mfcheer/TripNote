@@ -23,22 +23,17 @@ interface TripState {
   activeDayId: string
   selectedActivityId: string | null
   editingActivityId: string | null
-  // 可选地图服务：所有 Key 仅保存在当前浏览器；不可用时始终回退 OSM / Nominatim。
+  // 可选地图服务：Key 仅保存在当前浏览器；未配置时使用全球 OpenStreetMap。
   amapJsKey: string
-  amapWebServiceKey: string
-  maptilerKey: string
-  mapDisplayProvider: 'amap' | 'osm' | 'maptiler-zh'
-  placeSearchProvider: 'amap' | 'osm'
+  mapDisplayProvider: 'amap' | 'osm'
   mapRouteMode: 'direct' | 'walking'
   // Agent 模型密钥永远只配置在服务端；访问口令保存在浏览器，并进入完整备份。
   agentServiceUrl: string
   agentAccessToken: string
   /** 按旅行隔离的本机助手短会话；不进入备份，也不写入 NAS。 */
   agentConversations: Record<string, AgentConversationTurn[]>
-  setAmapKeys: (keys: { jsKey: string; webServiceKey: string }) => void
-  setMaptilerKey: (key: string) => void
-  setMapDisplayProvider: (provider: 'amap' | 'osm' | 'maptiler-zh') => void
-  setPlaceSearchProvider: (provider: 'amap' | 'osm') => void
+  setAmapJsKey: (jsKey: string) => void
+  setMapDisplayProvider: (provider: 'amap' | 'osm') => void
   setMapRouteMode: (mode: 'direct' | 'walking') => void
   setAgentServiceUrl: (url: string) => void
   setAgentAccessToken: (token: string) => void
@@ -359,22 +354,13 @@ export const useTripStore = create<TripState>()(
       selectedActivityId: null,
       editingActivityId: null,
       amapJsKey: '',
-      amapWebServiceKey: '',
-      maptilerKey: '',
-      // 保持旧版本“填入 Key 后优先高德”的行为，同时允许用户随时手动切回 OSM。
-      mapDisplayProvider: 'amap',
-      placeSearchProvider: 'amap',
+      mapDisplayProvider: 'osm',
       mapRouteMode: 'direct',
       agentServiceUrl: '',
       agentAccessToken: '',
       agentConversations: {},
-      setAmapKeys: ({ jsKey, webServiceKey }) => set({
-        amapJsKey: jsKey.trim(),
-        amapWebServiceKey: webServiceKey.trim(),
-      }),
-      setMaptilerKey: (maptilerKey) => set({ maptilerKey: maptilerKey.trim() }),
+      setAmapJsKey: (jsKey) => set({ amapJsKey: jsKey.trim() }),
       setMapDisplayProvider: (mapDisplayProvider) => set({ mapDisplayProvider }),
-      setPlaceSearchProvider: (placeSearchProvider) => set({ placeSearchProvider }),
       setMapRouteMode: (mapRouteMode) => set({ mapRouteMode }),
       setAgentServiceUrl: (agentServiceUrl) => set({ agentServiceUrl: agentServiceUrl.trim().replace(/\/$/, '') }),
       setAgentAccessToken: (agentAccessToken) => set({ agentAccessToken: agentAccessToken.trim() }),
@@ -600,13 +586,10 @@ export const useTripStore = create<TripState>()(
           editingActivityId: null,
           activityDraft: null,
           mapRouteMode: data.mapRouteMode === 'walking' ? 'walking' : 'direct',
-          ...(data.mapDisplayProvider === 'osm' || data.mapDisplayProvider === 'amap' || data.mapDisplayProvider === 'maptiler-zh' ? { mapDisplayProvider: data.mapDisplayProvider } : {}),
-          ...(data.placeSearchProvider === 'osm' || data.placeSearchProvider === 'amap' ? { placeSearchProvider: data.placeSearchProvider } : {}),
+          ...(data.mapDisplayProvider === 'osm' || data.mapDisplayProvider === 'amap' ? { mapDisplayProvider: data.mapDisplayProvider } : { mapDisplayProvider: 'osm' }),
           // Older complete backups did not include map settings. Keep the current
           // keys in that case, but restore them whenever the backup provides them.
           ...(typeof data.amapJsKey === 'string' ? { amapJsKey: data.amapJsKey } : {}),
-          ...(typeof data.amapWebServiceKey === 'string' ? { amapWebServiceKey: data.amapWebServiceKey } : {}),
-          ...(typeof data.maptilerKey === 'string' ? { maptilerKey: data.maptilerKey } : {}),
           ...(typeof data.agentServiceUrl === 'string' ? { agentServiceUrl: data.agentServiceUrl } : {}),
           ...(typeof data.agentAccessToken === 'string' ? { agentAccessToken: data.agentAccessToken } : {}),
           view: 'plan',
@@ -1102,10 +1085,7 @@ export const useTripStore = create<TripState>()(
         deletedTrips: s.deletedTrips,
         activeTripId: s.activeTripId,
         amapJsKey: s.amapJsKey,
-        amapWebServiceKey: s.amapWebServiceKey,
-        maptilerKey: s.maptilerKey,
         mapDisplayProvider: s.mapDisplayProvider,
-        placeSearchProvider: s.placeSearchProvider,
         mapRouteMode: s.mapRouteMode,
         agentServiceUrl: s.agentServiceUrl,
         agentAccessToken: s.agentAccessToken,

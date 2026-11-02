@@ -6,7 +6,6 @@ import { reverseGeocode } from '../api/geocode'
 import type { GeoPoint } from '../types'
 import { useTripStore } from '../store'
 import AmapCanvas, { type AmapMarker } from './AmapCanvas'
-import MapTilerChineseLayer from './MapTilerLayer'
 
 const pickIcon = L.divIcon({
   className: '',
@@ -66,11 +65,8 @@ export default function MapPicker({
   initialZoom?: number
   heightClassName?: string
 }) {
-  const amapWebServiceKey = useTripStore((state) => state.amapWebServiceKey)
   const amapJsKey = useTripStore((state) => state.amapJsKey)
-  const maptilerKey = useTripStore((state) => state.maptilerKey)
   const mapDisplayProvider = useTripStore((state) => state.mapDisplayProvider)
-  const placeSearchProvider = useTripStore((state) => state.placeSearchProvider)
   const [picking, setPicking] = useState(false)
   const [resolving, setResolving] = useState(false)
   const latestCall = useRef(0)
@@ -80,7 +76,7 @@ export default function MapPicker({
     setPicking(true)
     setResolving(true)
     const callId = ++latestCall.current
-    const name = await reverseGeocode(newPoint.lat, newPoint.lng, amapWebServiceKey, placeSearchProvider)
+    const name = await reverseGeocode(newPoint.lat, newPoint.lng)
     if (callId !== latestCall.current) return // 已有更新的选点，丢弃
     setResolving(false)
     setPicking(false)
@@ -103,14 +99,10 @@ export default function MapPicker({
           center={point ? [point.lat, point.lng] : [initialCenter.lat, initialCenter.lng]}
           zoom={point ? 13 : initialZoom}
         >
-          {mapDisplayProvider === 'maptiler-zh' && maptilerKey ? (
-            <MapTilerChineseLayer apiKey={maptilerKey} />
-          ) : (
-            <TileLayer
-              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-          )}
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
           <InitialView center={point} fallbackCenter={initialCenter} fallbackZoom={initialZoom} />
           <ClickHandler onPick={handlePick} />
           <FollowPoint point={point} />

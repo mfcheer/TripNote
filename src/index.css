@@ -324,16 +324,12 @@ input:focus, textarea:focus, select:focus {
   background: rgba(255,255,255,.9) !important;
   box-shadow: 0 10px 28px rgba(33,43,54,.045) !important;
 }
-.settings-view details > div,
 .settings-view section > div.rounded-lg {
   border-color: rgba(29,29,31,.09) !important;
   background: color-mix(in srgb, var(--color-surface-2) 55%, white) !important;
+  border-radius: 14px !important;
 }
 .settings-view section { position: relative; }
-.settings-view section > div.rounded-lg { border-radius: 14px !important; }
-.settings-view details summary { border-radius: 10px; transition: background-color .16s ease; }
-.settings-view details summary:hover { background: color-mix(in srgb, var(--color-surface-2) 55%, white); }
-.settings-view details[open] summary { margin: -8px -10px 0; padding: 8px 10px; }
 .apple-modal-backdrop {
   background: rgba(30,34,40,.22) !important;
   backdrop-filter: saturate(130%) blur(9px);

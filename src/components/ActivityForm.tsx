@@ -5,7 +5,7 @@ import PlaceSearchFeedback from './PlaceSearchFeedback'
 import { CATEGORY_ICONS, MapIcon } from './Icons'
 import MapPicker from './MapPicker'
 import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint } from '../types'
-import { useActiveTrip, useTripStore } from '../store'
+import { useActiveTrip } from '../store'
 import { InlineStatus } from './FeedbackState'
 
 export interface ActivityFormValues {
@@ -62,8 +62,6 @@ export default function ActivityForm({
   onDraftChange?: (values: ActivityFormValues) => void
   stickyActions?: boolean
 }) {
-  const amapWebServiceKey = useTripStore((state) => state.amapWebServiceKey)
-  const placeSearchProvider = useTripStore((state) => state.placeSearchProvider)
   const trip = useActiveTrip()
   const [form, setForm] = useState({
     time: initial?.time ?? '09:00',
@@ -76,7 +74,7 @@ export default function ActivityForm({
   })
   // 地理编码状态
   const [geoQuery, setGeoQuery] = useState('')
-  const { results: geoResults, status: geoStatus, error: geoError, retry: retryGeo } = usePlaceSearch(geoQuery, trip, amapWebServiceKey, placeSearchProvider)
+  const { results: geoResults, status: geoStatus, error: geoError, retry: retryGeo } = usePlaceSearch(geoQuery, trip)
   const [geoIndex, setGeoIndex] = useState(-1)
   const [geo, setGeo] = useState<GeoPoint | undefined>(initial?.geo)
   const [geoLabel, setGeoLabel] = useState('') // 已解析提示

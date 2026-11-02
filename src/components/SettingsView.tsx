@@ -36,15 +36,10 @@ export default function SettingsView({
     restoreBackup,
     resetAll,
     amapJsKey,
-    amapWebServiceKey,
-    maptilerKey,
     mapDisplayProvider,
-    placeSearchProvider,
     mapRouteMode,
-    setAmapKeys,
-    setMaptilerKey,
+    setAmapJsKey,
     setMapDisplayProvider,
-    setPlaceSearchProvider,
     setMapRouteMode,
     agentServiceUrl,
     setAgentServiceUrl,
@@ -54,8 +49,6 @@ export default function SettingsView({
   const askConfirm = useConfirmStore((s) => s.ask)
   const info = useConfirmStore((s) => s.info)
   const [jsKey, setJsKey] = useState(amapJsKey)
-  const [webServiceKey, setWebServiceKey] = useState(amapWebServiceKey)
-  const [maptilerApiKey, setMaptilerApiKey] = useState(maptilerKey)
   const [agentUrl, setAgentUrl] = useState(agentServiceUrl)
   const [agentToken, setAgentToken] = useState(agentAccessToken)
   const [copied, setCopied] = useState(false)
@@ -66,7 +59,7 @@ export default function SettingsView({
   const [isIos] = useState(() => /iPad|iPhone|iPod/.test(navigator.userAgent))
   const [isStandalone] = useState(() => window.matchMedia('(display-mode: standalone)').matches || Boolean((navigator as Navigator & { standalone?: boolean }).standalone))
 
-  const backupData: BackupData = { trips, deletedTrips, activeTripId, mapRouteMode, amapJsKey, amapWebServiceKey, maptilerKey, mapDisplayProvider, placeSearchProvider, agentServiceUrl, agentAccessToken }
+  const backupData: BackupData = { trips, deletedTrips, activeTripId, mapRouteMode, amapJsKey, mapDisplayProvider, agentServiceUrl, agentAccessToken }
 
   async function refreshBackupStatus() {
     setBackupStatus(await getLocalBackupStatus())
@@ -116,10 +109,7 @@ export default function SettingsView({
       activeTripId: state.activeTripId,
       mapRouteMode: state.mapRouteMode,
       amapJsKey: state.amapJsKey,
-      amapWebServiceKey: state.amapWebServiceKey,
-      maptilerKey: state.maptilerKey,
       mapDisplayProvider: state.mapDisplayProvider,
-      placeSearchProvider: state.placeSearchProvider,
       agentServiceUrl: state.agentServiceUrl,
       agentAccessToken: state.agentAccessToken,
     }
@@ -237,19 +227,12 @@ export default function SettingsView({
         }
         if (backup.mapSettings) {
           const nextJsKey = typeof backup.mapSettings.amapJsKey === 'string' ? backup.mapSettings.amapJsKey : ''
-          const nextWebServiceKey = typeof backup.mapSettings.amapWebServiceKey === 'string' ? backup.mapSettings.amapWebServiceKey : ''
-          const nextMaptilerKey = typeof backup.mapSettings.maptilerKey === 'string' ? backup.mapSettings.maptilerKey : ''
           const nextRouteMode = backup.mapSettings.mapRouteMode === 'walking' ? 'walking' : 'direct'
-          const nextMapProvider = backup.mapSettings.mapDisplayProvider === 'osm' || backup.mapSettings.mapDisplayProvider === 'maptiler-zh' ? backup.mapSettings.mapDisplayProvider : 'amap'
-          const nextSearchProvider = backup.mapSettings.placeSearchProvider === 'osm' ? 'osm' : 'amap'
-          setAmapKeys({ jsKey: nextJsKey, webServiceKey: nextWebServiceKey })
-          setMaptilerKey(nextMaptilerKey)
+          const nextMapProvider = backup.mapSettings.mapDisplayProvider === 'amap' ? 'amap' : 'osm'
+          setAmapJsKey(nextJsKey)
           setMapRouteMode(nextRouteMode)
           setMapDisplayProvider(nextMapProvider)
-          setPlaceSearchProvider(nextSearchProvider)
           setJsKey(nextJsKey)
-          setWebServiceKey(nextWebServiceKey)
-          setMaptilerApiKey(nextMaptilerKey)
           useToastStore.getState().show('已导入旅程和地图配置')
         }
       } catch {
@@ -260,26 +243,22 @@ export default function SettingsView({
   }
 
   function saveMapConfig() {
-    setAmapKeys({ jsKey, webServiceKey })
-    setMaptilerKey(maptilerApiKey)
-    const hasJsKey = !!jsKey.trim()
-    const hasWebServiceKey = !!webServiceKey.trim()
-    const hasMaptilerKey = !!maptilerApiKey.trim()
+    setAmapJsKey(jsKey)
     useToastStore.getState().show(
-      hasJsKey || hasWebServiceKey || hasMaptilerKey
-        ? '地图服务 Key 已保存；展示与搜索将按下方来源选择执行'
-        : '已清除地图服务 Key；需要时会自动回退默认地图与搜索服务',
+      jsKey.trim()
+        ? '高德 JS API Key 已保存'
+        : '已清除高德 JS API Key，使用默认全球 OSM 开源底图',
     )
   }
 
   return (
-    <div className={`settings-view ${embedded ? 'mx-auto max-w-[760px] px-0 py-0' : 'mx-auto max-w-[760px] px-4 py-6 sm:px-8 sm:py-10'}`}>
+    <div className={`settings-view ${embedded ? 'mx-auto max-w-[760px] px-0 py-0 pb-8' : 'mx-auto max-w-[760px] px-4 py-6 pb-12 sm:px-8 sm:py-10 sm:pb-16'}`}>
       {!embedded && <div className="mb-7">
         <h1 className="text-[22px] font-semibold tracking-[-0.025em]">设置</h1>
         <p className="mt-1 text-[13px] text-text-muted">管理安装方式、本地数据与地图服务。</p>
       </div>}
 
-      <div className={`overflow-hidden border-border/70 bg-white/90 px-5 sm:px-7 ${embedded ? '' : 'rounded-xl border shadow-[0_10px_34px_rgba(32,40,46,0.05)]'}`}>
+      <div className={`overflow-hidden border-border/70 bg-white/90 px-5 pb-6 sm:px-7 sm:pb-8 ${embedded ? '' : 'rounded-xl border shadow-[0_10px_34px_rgba(32,40,46,0.05)]'}`}>
         <section className="border-b border-border/80 py-6">
           <div className="mb-1 text-[15px] font-semibold">安装与分享</div>
           <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">
@@ -406,71 +385,103 @@ export default function SettingsView({
           </div>
         </section>
 
-        <details className="group py-6">
-          <summary className="flex cursor-pointer list-none items-start justify-between gap-4 [&::-webkit-details-marker]:hidden">
+        {/* 地图设置 */}
+        <section className="py-6">
+          <div className="mb-1 text-[15px] font-semibold">地图设置</div>
+          <p className="mb-4 max-w-[620px] text-[13px] leading-relaxed text-text-muted">
+            默认无需填写任何 Key 即可开箱使用，底图采用全球 OpenStreetMap，地点搜索已内置免 Key 的高速开源地理服务（Photon/OSM）并支持直接回车秒存草稿。如在国内出行并希望使用高德矢量底图，可填入高德 JS API Key。
+          </p>
+
+          <div className="space-y-5">
             <div>
-              <div className="text-[15px] font-semibold">高级地图设置</div>
-            <p className="mt-1 text-[12.5px] leading-relaxed text-text-muted">地图服务 Key、中文标注、地点搜索与地图连线方式</p>
-            </div>
-            <span className="mt-1 text-[12px] text-text-faint transition-transform group-open:rotate-180">⌄</span>
-          </summary>
-          <div className="mt-5 border-t border-border/80 pt-5">
-            <p className="mb-4 max-w-[620px] text-[12.5px] leading-relaxed text-text-muted">
-              可分别选择地图展示与地点搜索的服务来源。中文标注地图使用 MapTiler 矢量底图，优先显示中文地名，缺失时回退本地名称；高德或 MapTiler 缺少对应 Key 时，会自动回退至 OSM、Nominatim；智能路线仍由 OSRM 提供。
-            </p>
-            <div className="grid gap-3 sm:grid-cols-2">
               <label className="text-[12.5px] font-medium text-text-muted">
-                JS API Key（地图展示）
-                <input value={jsKey} onChange={(event) => setJsKey(event.target.value)} placeholder="留空则使用 OSM 地图" className="mt-1.5 w-full rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] font-normal text-text outline-none focus:border-accent" />
+                JS API Key（高德地图展示，选填）
               </label>
-              <label className="text-[12.5px] font-medium text-text-muted">
-                Web 服务 Key（地点搜索）
-                <input value={webServiceKey} onChange={(event) => setWebServiceKey(event.target.value)} placeholder="留空则使用原地点搜索" className="mt-1.5 w-full rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] font-normal text-text outline-none focus:border-accent" />
-              </label>
-              <label className="text-[12.5px] font-medium text-text-muted sm:col-span-2">
-                MapTiler API Key（中文标注地图）
-                <input value={maptilerApiKey} onChange={(event) => setMaptilerApiKey(event.target.value)} placeholder="留空则无法启用中文标注地图" className="mt-1.5 w-full rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] font-normal text-text outline-none focus:border-accent" />
-              </label>
-            </div>
-            <div className="mt-4 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-              <span className="text-[11.5px] leading-relaxed text-text-faint">高德 Key 会明文写入下载备份和文件夹自动备份；恢复完整备份时也会同步恢复。请勿外发，建议在高德控制台限制可用域名。</span>
-              <button onClick={saveMapConfig} className="shrink-0 rounded-md bg-action px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-action-hover">
-                保存配置
-              </button>
-            </div>
-            <div className="mt-5 grid gap-4 border-t border-border/80 pt-4 sm:grid-cols-2">
-              <div>
-                <div className="text-[12.5px] font-semibold text-text">地图展示</div>
-                <div className="mt-2 grid grid-cols-3 rounded-md bg-surface-2/70 p-1">
-                  <button onClick={() => setMapDisplayProvider('amap')} className={`rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${mapDisplayProvider === 'amap' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>高德地图</button>
-                  <button onClick={() => setMapDisplayProvider('osm')} className={`rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${mapDisplayProvider === 'osm' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>OSM 本地</button>
-                  <button onClick={() => setMapDisplayProvider('maptiler-zh')} className={`rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${mapDisplayProvider === 'maptiler-zh' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>中文标注</button>
-                </div>
-                <p className="mt-1.5 text-[11px] text-text-faint">{mapDisplayProvider === 'maptiler-zh' && !maptilerApiKey.trim() ? '尚未填写 MapTiler Key，当前地图会继续使用 OSM。' : '高德需 JS API Key；中文标注需 MapTiler Key，缺失时自动使用 OSM。'}</p>
+              <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <input
+                  value={jsKey}
+                  onChange={(event) => setJsKey(event.target.value)}
+                  placeholder="留空则使用默认全球 OSM 开源地图"
+                  className="min-w-0 flex-1 rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] font-normal text-text outline-none focus:border-accent"
+                />
+                <button
+                  type="button"
+                  onClick={saveMapConfig}
+                  className="shrink-0 rounded-md bg-action px-4 py-2.5 text-[12.5px] font-medium text-white transition-colors hover:bg-action-hover"
+                >
+                  保存配置
+                </button>
               </div>
-              <div>
-                <div className="text-[12.5px] font-semibold text-text">地点搜索</div>
-                <div className="mt-2 flex rounded-md bg-surface-2/70 p-1">
-                  <button onClick={() => setPlaceSearchProvider('amap')} className={`flex-1 rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${placeSearchProvider === 'amap' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>高德搜索</button>
-                  <button onClick={() => setPlaceSearchProvider('osm')} className={`flex-1 rounded px-2 py-1.5 text-[12px] font-medium transition-colors ${placeSearchProvider === 'osm' ? 'bg-white text-text shadow-sm' : 'text-text-muted hover:text-text'}`}>OpenStreetMap</button>
-                </div>
-                <p className="mt-1.5 text-[11px] text-text-faint">高德需 Web 服务 Key；缺失时自动使用 Nominatim。</p>
-              </div>
+              <p className="mt-1.5 text-[11px] text-text-faint">
+                密钥仅保存在当前浏览器本地存储中，不会上传到云端。恢复完整备份时也会同步恢复。
+              </p>
             </div>
-            <div className="mt-5 border-t border-border/80 pt-4">
+
+            <div className="border-t border-border/80 pt-4">
+              <div className="text-[12.5px] font-semibold text-text">底图展示</div>
+              <div className="mt-2 inline-flex rounded-lg bg-surface-2/70 p-1">
+                <button
+                  type="button"
+                  onClick={() => setMapDisplayProvider('osm')}
+                  className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                    mapDisplayProvider === 'osm'
+                      ? 'bg-white text-text shadow-sm'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  OSM 开源底图（默认）
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMapDisplayProvider('amap')}
+                  className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                    mapDisplayProvider === 'amap'
+                      ? 'bg-white text-text shadow-sm'
+                      : 'text-text-muted hover:text-text'
+                  }`}
+                >
+                  高德地图
+                </button>
+              </div>
+              <p className="mt-1.5 text-[11px] text-text-faint">
+                高德需配置上方 JS API Key；未填写或填错时自动回退为全球 OSM 地图。
+              </p>
+            </div>
+
+            <div className="border-t border-border/80 pt-4">
               <div className="text-[12.5px] font-semibold text-text">地图连线</div>
               <div className="mt-2 flex flex-col gap-2 sm:flex-row">
-                <button onClick={() => setMapRouteMode('direct')} className={`flex-1 rounded-md border-l-2 px-3 py-2.5 text-left text-[12.5px] transition-colors ${mapRouteMode === 'direct' ? 'border-action bg-action-soft text-text' : 'border-transparent bg-surface-2/60 text-text-muted hover:bg-surface-2'}`}>
-                  <span className="font-medium">直线连接</span><span className="ml-1.5 text-text-faint">推荐，不调用路线服务</span>
+                <button
+                  type="button"
+                  onClick={() => setMapRouteMode('direct')}
+                  className={`flex-1 rounded-lg border-l-2 px-3.5 py-2.5 text-left text-[12.5px] transition-colors ${
+                    mapRouteMode === 'direct'
+                      ? 'border-action bg-action-soft text-text'
+                      : 'border-transparent bg-surface-2/60 text-text-muted hover:bg-surface-2'
+                  }`}
+                >
+                  <span className="font-medium">直线连接</span>
+                  <span className="ml-1.5 text-text-faint">推荐，不调用路线服务</span>
                 </button>
-                <button onClick={() => setMapRouteMode('walking')} className={`flex-1 rounded-md border-l-2 px-3 py-2.5 text-left text-[12.5px] transition-colors ${mapRouteMode === 'walking' ? 'border-action bg-action-soft text-text' : 'border-transparent bg-surface-2/60 text-text-muted hover:bg-surface-2'}`}>
-                  <span className="font-medium">智能路线</span><span className="ml-1.5 text-text-faint">近距离步行，远距离驾车</span>
+                <button
+                  type="button"
+                  onClick={() => setMapRouteMode('walking')}
+                  className={`flex-1 rounded-lg border-l-2 px-3.5 py-2.5 text-left text-[12.5px] transition-colors ${
+                    mapRouteMode === 'walking'
+                      ? 'border-action bg-action-soft text-text'
+                      : 'border-transparent bg-surface-2/60 text-text-muted hover:bg-surface-2'
+                  }`}
+                >
+                  <span className="font-medium">智能路线</span>
+                  <span className="ml-1.5 text-text-faint">近距离步行，远距离驾车</span>
                 </button>
               </div>
-              <p className="mt-2 text-[11.5px] leading-relaxed text-text-faint">智能路线使用 OSRM 服务，打开地图时才会请求；火车、飞机、包车保留直线。请求失败时显示直线，并在地图图例处提示。</p>
+              <p className="mt-2 text-[11.5px] leading-relaxed text-text-faint">
+                智能路线使用 OSRM 服务，打开地图时才会请求；火车、飞机、包车保留直线。请求失败时显示直线，并在地图图例处提示。
+              </p>
             </div>
           </div>
-        </details>
+        </section>
       </div>
     </div>
   )
