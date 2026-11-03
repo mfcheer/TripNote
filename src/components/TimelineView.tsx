@@ -428,35 +428,35 @@ function TransitHint({
           : '驾车 / 打车约'
 
   return (
-    <div className={`relative flex items-center gap-2 pl-3 sm:pl-4 ${compact ? 'my-1' : 'my-1.5'}`}>
-      <div className="absolute top-0 bottom-0 left-[21px] sm:left-[25px] w-px border-l border-dashed border-border/70 pointer-events-none" />
+    <div className={`relative flex items-center pl-2.5 sm:pl-3.5 ${compact ? 'my-0.5' : 'my-1'}`}>
+      <div className="absolute top-0 bottom-0 left-[21px] sm:left-[25px] w-px border-l border-dashed border-border/40 pointer-events-none" />
       <button
         type="button"
         onClick={() => openNavigation({ title: to.title, location: to.location, lat: toGeo.lat, lng: toGeo.lng })}
-        className={`group relative z-10 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 transition-all active:scale-[0.98] ${
+        className={`group relative z-10 inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-left transition-colors ${
           insufficient
-            ? 'border-amber-300 bg-amber-50/90 text-amber-800 shadow-sm hover:bg-amber-100'
-            : 'border-border/80 bg-white/90 text-text-muted shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-accent/50 hover:bg-white hover:text-text'
-        } ${compact ? 'text-[10px]' : 'text-[11px]'}`}
+            ? 'text-amber-700/80 hover:bg-amber-50/60 hover:text-amber-800'
+            : 'text-text-faint hover:bg-surface-2/60 hover:text-text-muted'
+        } ${compact ? 'text-[10px]' : 'text-[10.5px]'}`}
         title={`点击导航前往「${to.title}」`}
       >
-        <span className={insufficient ? 'text-amber-600' : 'text-text-faint group-hover:text-accent'}>
+        <span className={insufficient ? 'text-amber-600/70' : 'text-text-faint/80 group-hover:text-text-muted'}>
           <IconComponent size={compact ? 11 : 12} />
         </span>
-        {isFlight || isTrain ? (
-          <span>{modeText} · 相距 {distanceText}</span>
-        ) : (
-          <span>
-            {modeText} {durationMinutes} 分钟 · {distanceText}
-          </span>
-        )}
+        <span>
+          {isFlight || isTrain ? (
+            `${modeText} · 相距 ${distanceText}`
+          ) : (
+            `${modeText} ${durationMinutes} 分钟 · ${distanceText}`
+          )}
+        </span>
         {insufficient && (
-          <span className="font-semibold text-amber-700">
+          <span className="font-medium text-amber-600/80">
             · 仅留 {available} 分钟
           </span>
         )}
-        <span className="opacity-0 transition-opacity group-hover:opacity-100 text-accent">
-          <NavigateIcon size={10} />
+        <span className="opacity-0 transition-opacity group-hover:opacity-100 text-text-faint">
+          <NavigateIcon size={9} />
         </span>
       </button>
     </div>
