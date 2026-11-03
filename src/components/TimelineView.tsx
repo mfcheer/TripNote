@@ -802,7 +802,7 @@ function ActivityCard({
         <Icon size={compact ? 14 : 16} />
       </div>
       {/* 可点击主体（展开/收起详情） */}
-      <button onClick={onClick} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+      <button onClick={onClick} className="flex min-w-0 flex-1 items-center text-left">
         <div className="min-w-0 flex-1">
           <div className={`truncate font-semibold tracking-[-0.01em] ${compact ? 'text-[12.5px]' : 'text-[13.5px] sm:text-[14px]'}`}>{activity.title}</div>
           <div className={`flex items-center gap-2.5 text-text-muted ${compact ? 'mt-0 text-[10.5px]' : 'mt-0.5 text-[11.5px] sm:text-[12px]'}`}>
@@ -810,12 +810,9 @@ function ActivityCard({
             {activity.location && <span className="truncate">{activity.location}</span>}
           </div>
         </div>
-        {activity.costs.length > 0 && (
-          <span className="shrink-0 text-[12px] font-medium text-text-muted">
-            ¥{activity.costs.reduce((s, c) => s + c.amount, 0).toLocaleString()}
-          </span>
-        )}
       </button>
+
+      {/* 悬浮操作按钮（在中间展示） */}
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
         {activity.geo && (
           <button
@@ -857,6 +854,17 @@ function ActivityCard({
           <TrashIcon size={14} />
         </button>
       </div>
+
+      {/* 价格（常驻在最右侧末尾） */}
+      {activity.costs.length > 0 && (
+        <button
+          type="button"
+          onClick={onClick}
+          className={`shrink-0 text-right font-medium text-text-muted tabular-nums hover:text-text sm:pl-1 ${compact ? 'text-[11.5px]' : 'text-[12px]'}`}
+        >
+          ¥{activity.costs.reduce((s, c) => s + c.amount, 0).toLocaleString()}
+        </button>
+      )}
       {warning && (
         <div className="absolute top-full left-0 mt-1 text-[11px] text-amber-600">⚠ {warning}</div>
       )}
