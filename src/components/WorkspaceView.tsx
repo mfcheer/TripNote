@@ -3,7 +3,7 @@ import { findSavedPlace, parsePlaceSnippet, splitPlaceResults, type GeoResult } 
 import { usePlaceSearch } from '../hooks/usePlaceSearch'
 import PlaceSearchFeedback from './PlaceSearchFeedback'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS, EditIcon, HeartIcon, LogoIcon, MapIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
+import { CATEGORY_ICONS, EditIcon, HeartIcon, LogoIcon, MapIcon, NavigateIcon, PlusIcon, SettingsIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type WishPlace } from '../types'
 import MapView from './MapView'
 import TimelineView, { BudgetDrawer } from './TimelineView'
@@ -15,6 +15,7 @@ import TripTrashDialog from './TripTrashDialog'
 import DataSafetyStatus from './DataSafetyStatus'
 import { tripDateRange, tripPlanningProgress, tripTagline } from '../utils/tripPresentation'
 import TripInfoDialog from './TripInfoDialog'
+import { openNavigation } from './navigationStore'
 
 const WISH_DRAG_TYPE = 'application/x-tripnote-wish-id'
 
@@ -161,8 +162,45 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
         <span className="block truncate text-[12.5px] font-medium text-text">{place.title}</span>
         <span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{place.location || '未补充位置'}</span>
       </button>
-      <button onClick={() => schedule(place)} className="rounded px-1.5 py-1 text-[11px] text-text-faint opacity-0 transition-opacity group-hover:opacity-100 hover:bg-white hover:text-accent" title="安排到当前日期">＋</button>
-      <button onClick={() => removePlace(place, scheduled)} className="flex h-6 w-6 shrink-0 items-center justify-center rounded text-text-faint/70 transition-colors hover:bg-red-50 hover:text-red-500" title="从想去移除" aria-label={`从想去移除 ${place.title}`}><TrashIcon size={12} /></button>
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
+        <button
+          type="button"
+          onClick={() => schedule(place)}
+          className="flex h-6 w-6 items-center justify-center rounded text-[11px] font-medium text-text-faint transition-colors hover:bg-surface hover:text-accent"
+          title="安排到当前日期"
+          aria-label={`安排「${place.title}」到当前日期`}
+        >
+          ＋
+        </button>
+        {place.geo && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              openNavigation({
+                title: place.title,
+                location: place.location,
+                lat: place.geo!.lat,
+                lng: place.geo!.lng,
+              })
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded text-text-faint transition-colors hover:bg-accent-soft hover:text-accent-hover"
+            title="外部地图导航"
+            aria-label={`导航至 ${place.title}`}
+          >
+            <NavigateIcon size={12} />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={() => removePlace(place, scheduled)}
+          className="flex h-6 w-6 items-center justify-center rounded text-text-faint/70 transition-colors hover:bg-red-50 hover:text-red-500"
+          title="从想去移除"
+          aria-label={`从想去移除 ${place.title}`}
+        >
+          <TrashIcon size={12} />
+        </button>
+      </div>
     </div>
   }
 

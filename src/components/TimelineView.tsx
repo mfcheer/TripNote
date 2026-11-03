@@ -791,7 +791,7 @@ function ActivityCard({
     <div
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
-      className={`relative flex min-w-0 w-full items-center ${compact ? 'gap-2 py-1.5 pr-1 pl-2' : 'gap-2.5 py-2 pr-1 pl-2.5 sm:py-2.5 sm:pr-2 sm:pl-3'} rounded-md border-l-2 transition-[border-color,background-color,box-shadow] ${introduced ? 'activity-drop-in' : ''} ${
+      className={`group relative flex min-w-0 w-full items-center ${compact ? 'gap-2 py-1.5 pr-1 pl-2' : 'gap-2.5 py-2 pr-1 pl-2.5 sm:py-2.5 sm:pr-2 sm:pl-3'} rounded-md border-l-2 transition-[border-color,background-color,box-shadow] ${introduced ? 'activity-drop-in' : ''} ${
         selected ? 'border-action bg-white shadow-[0_2px_9px_rgba(32,40,46,0.07)]' : highlighted ? 'border-accent/40 bg-accent-soft/70' : 'border-transparent hover:bg-white/80'
       }`}
     >
@@ -816,45 +816,47 @@ function ActivityCard({
           </span>
         )}
       </button>
-      {activity.geo && (
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 focus-within:opacity-100">
+        {activity.geo && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              openNavigation({
+                title: activity.title,
+                location: activity.location,
+                lat: activity.geo!.lat,
+                lng: activity.geo!.lng,
+              })
+            }}
+            className={`flex shrink-0 items-center justify-center rounded-md text-text-faint transition-colors hover:bg-accent-soft hover:text-accent-hover ${compact ? 'h-7 w-7' : 'h-10 w-10 sm:h-auto sm:w-auto sm:p-1.5'}`}
+            title="外部地图导航"
+            aria-label={`导航至 ${activity.title}`}
+          >
+            <NavigateIcon size={14} />
+          </button>
+        )}
         <button
-          type="button"
           onClick={(e) => {
             e.stopPropagation()
-            openNavigation({
-              title: activity.title,
-              location: activity.location,
-              lat: activity.geo!.lat,
-              lng: activity.geo!.lng,
+            askConfirm({
+              title: `删除安排「${activity.title}」？`,
+              message: '该安排及其中记录的花费都会被删除。',
+              onConfirm: () => {
+                const { trips, activeTripId } = useTripStore.getState()
+                removeActivity(activity.id)
+                useToastStore.getState().show(`已删除安排「${activity.title}」`, {
+                  undo: () => useTripStore.getState().restoreTrips(trips, activeTripId),
+                })
+              },
             })
           }}
-          className={`flex shrink-0 items-center justify-center rounded-md text-text-faint transition-colors hover:bg-accent-soft hover:text-accent-hover ${compact ? 'h-7 w-7' : 'h-10 w-10 sm:h-auto sm:w-auto sm:p-1.5'}`}
-          title="外部地图导航"
-          aria-label={`导航至 ${activity.title}`}
+          className={`flex shrink-0 items-center justify-center rounded-md text-text-faint transition-colors hover:bg-red-50 hover:text-red-500 ${compact ? 'h-7 w-7' : 'h-10 w-10 sm:h-auto sm:w-auto sm:p-1.5'}`}
+          title="删除安排"
         >
-          <NavigateIcon size={14} />
+          <TrashIcon size={14} />
         </button>
-      )}
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          askConfirm({
-            title: `删除安排「${activity.title}」？`,
-            message: '该安排及其中记录的花费都会被删除。',
-            onConfirm: () => {
-              const { trips, activeTripId } = useTripStore.getState()
-              removeActivity(activity.id)
-              useToastStore.getState().show(`已删除安排「${activity.title}」`, {
-                undo: () => useTripStore.getState().restoreTrips(trips, activeTripId),
-              })
-            },
-          })
-        }}
-        className={`flex shrink-0 items-center justify-center rounded-md text-text-faint transition-colors hover:bg-red-50 hover:text-red-500 ${compact ? 'h-7 w-7' : 'h-10 w-10 sm:h-auto sm:w-auto sm:p-1.5'}`}
-        title="删除安排"
-      >
-        <TrashIcon size={14} />
-      </button>
+      </div>
       {warning && (
         <div className="absolute top-full left-0 mt-1 text-[11px] text-amber-600">⚠ {warning}</div>
       )}
