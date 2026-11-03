@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { activitiesByDay, useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS, ClockIcon, CoinIcon, EditIcon, NoteIcon, PinIcon, TrashIcon } from './Icons'
+import { CATEGORY_ICONS, ClockIcon, CoinIcon, EditIcon, NavigateIcon, NoteIcon, PinIcon, TrashIcon } from './Icons'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
+import { openNavigation } from './navigationStore'
 import { CATEGORY_META, type Activity, type TravelMode } from '../types'
 
 const TRAVEL_MODE_LABELS: Record<TravelMode, string> = {
@@ -142,7 +143,17 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
           <Icon size={13} />
           <span className="font-medium">{meta.label}</span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
+          {activity.geo && (
+            <button
+              type="button"
+              onClick={() => openNavigation({ title: activity.title, location: activity.location, lat: activity.geo!.lat, lng: activity.geo!.lng })}
+              className="flex items-center gap-1 rounded bg-accent-soft px-2 py-0.5 text-[12px] font-medium text-accent-hover transition-colors hover:bg-accent-soft/80"
+              title="在外部地图中导航"
+            >
+              <NavigateIcon size={12} /> 导航
+            </button>
+          )}
           <button
             onClick={() => setEditingActivity(activity.id)}
             className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[12px] text-accent transition-colors hover:bg-accent-soft"

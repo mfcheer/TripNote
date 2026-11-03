@@ -7,6 +7,7 @@ import MobilePlanView from './components/MobilePlanView'
 import SettingsView from './components/SettingsView'
 import ConfirmDialog from './components/ConfirmDialog'
 import Toast from './components/Toast'
+import NavigationModal from './components/NavigationModal'
 import { useActiveTrip, useTripStore } from './store'
 import type { PlanTab } from './types'
 import { exportTripImage } from './utils/exportTripImage'
@@ -208,6 +209,7 @@ export default function App() {
       {agentPlannerOpen && <AgentPlannerDialog onClose={() => setAgentPlannerOpen(false)} onOpenSettings={() => { setAgentPlannerOpen(false); useTripStore.getState().setView('settings') }} />}
       <ConfirmDialog />
       <Toast />
+      <NavigationModal />
     </div>
   )
 }

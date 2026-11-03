@@ -3,10 +3,11 @@ import { findSavedPlace, parsePlaceSnippet, splitPlaceResults, type GeoResult } 
 import { usePlaceSearch } from '../hooks/usePlaceSearch'
 import PlaceSearchFeedback from './PlaceSearchFeedback'
 import { displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS, ClockIcon, MapIcon, TrashIcon } from './Icons'
+import { CATEGORY_ICONS, ClockIcon, MapIcon, NavigateIcon, TrashIcon } from './Icons'
 import ModalShell, { overlayPrimaryButtonClass } from './OverlayShell'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
+import { openNavigation } from './navigationStore'
 import { CustomMapWishDialog } from './WishlistView'
 import { CATEGORY_META, type ActivityCategory, type WishPlace } from '../types'
 import type { Activity } from '../types'
@@ -289,6 +290,17 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
                   <span className="min-w-0 flex-1"><span className="block truncate text-[14px] font-semibold tracking-[-0.01em] text-text">{place.title}</span><span className="mt-0.5 block truncate text-[11.5px] text-text-faint">{place.location || '未补充位置'}</span></span>
                 </button>
                 <button type="button" onClick={() => choosePlace(place.id)} className={`shrink-0 rounded-full px-2 py-1 text-[10.5px] font-semibold ${scheduledItems.length ? 'bg-surface-2 text-text-muted' : 'bg-action-soft text-action'}`}>{scheduledItems.length ? `已排 ${scheduledItems.length} 次` : '待安排'}</button>
+                {place.geo && (
+                  <button
+                    type="button"
+                    onClick={() => openNavigation({ title: place.title, location: place.location, lat: place.geo!.lat, lng: place.geo!.lng })}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-faint hover:bg-accent-soft hover:text-accent-hover"
+                    title="导航去这里"
+                    aria-label={`导航至 ${place.title}`}
+                  >
+                    <NavigateIcon size={13} />
+                  </button>
+                )}
                 <button type="button" onClick={() => removePlace(place)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-faint hover:bg-red-50 hover:text-red-500" aria-label={`移出「${place.title}」`}><TrashIcon size={14} /></button>
               </div>
 

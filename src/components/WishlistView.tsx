@@ -7,11 +7,12 @@ import { usePlaceSearch } from '../hooks/usePlaceSearch'
 import PlaceSearchFeedback from './PlaceSearchFeedback'
 import { fetchRouteInfo, routeProfileForSegment } from '../api/route'
 import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
-import { CalendarIcon, CATEGORY_ICONS, HeartIcon, MapIcon, PlusIcon, TrashIcon } from './Icons'
+import { CalendarIcon, CATEGORY_ICONS, HeartIcon, MapIcon, NavigateIcon, PlusIcon, TrashIcon } from './Icons'
 import { CATEGORY_META, type ActivityCategory, type GeoPoint, type WishPlace } from '../types'
 import ActivityForm, { type ActivityFormValues } from './ActivityForm'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
+import { openNavigation } from './navigationStore'
 import MapPicker from './MapPicker'
 import AmapCanvas, { type AmapLine, type AmapMarker } from './AmapCanvas'
 import ModalShell, { overlayPrimaryButtonClass, overlaySecondaryButtonClass } from './OverlayShell'
@@ -329,6 +330,20 @@ function SortableWishCard({
         >
           {scheduledItems.length > 1 ? `已排 ${scheduledItems.length} 天` : scheduledItems.length === 1 ? scheduledItems[0].dayLabel : '待安排'}
         </button>
+        {place.geo && (
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              openNavigation({ title: place.title, location: place.location, lat: place.geo!.lat, lng: place.geo!.lng })
+            }}
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-text-faint transition-all hover:bg-accent-soft hover:text-accent-hover md:h-auto md:w-auto md:p-1 md:opacity-0 md:group-hover:opacity-100"
+            title="外部地图导航"
+            aria-label={`导航至 ${place.title}`}
+          >
+            <NavigateIcon size={14} />
+          </button>
+        )}
         <button
           onClick={(event) => {
             event.stopPropagation()

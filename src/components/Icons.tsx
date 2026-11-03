@@ -186,6 +186,46 @@ export const CoinIcon = ({ size = 13, ...p }: IconProps) => (
   </svg>
 )
 
+export const NavigateIcon = ({ size = 14, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <polygon points="3 11 22 2 13 21 11 13 3 11" fill="currentColor" fillOpacity="0.12" />
+  </svg>
+)
+
+export const WalkIcon = ({ size = 13, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <circle cx="13" cy="4" r="2" />
+    <path d="M9 20l3-6 2 3 3 5M6 13l3-3 4 1 3 3M10 10l-1 4" />
+  </svg>
+)
+
+export const CarIcon = ({ size = 13, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <path d="M5 17h14M6 12l2-5h8l2 5M4 17V12a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v5" />
+    <circle cx="7.5" cy="16.5" r="1.5" fill="currentColor" />
+    <circle cx="16.5" cy="16.5" r="1.5" fill="currentColor" />
+  </svg>
+)
+
+export const PlaneIcon = ({ size = 13, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <path d="M17.8 19.2L16 11l3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2a1 1 0 0 0-1.1 1.4L6 12l-2 3H1l2 2 2 2v-3l3-2 4.4 2.3a1 1 0 0 0 1.4-1.1z" />
+  </svg>
+)
+
+export const CopyIcon = ({ size = 13, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+  </svg>
+)
+
+export const ExternalLinkIcon = ({ size = 13, ...p }: IconProps) => (
+  <svg {...base(size)} {...p}>
+    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" />
+  </svg>
+)
+
 export const CATEGORY_ICONS: Record<ActivityCategory, (p: IconProps) => ReactElement> = {
   traffic: TrainIcon,
   sight: LandmarkIcon,

@@ -3,7 +3,8 @@ import { MapContainer, Marker, Polyline, TileLayer, Popup, useMap, useMapEvents 
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { activitiesByDay, displayDate, useActiveTrip, useTripStore } from '../store'
-import { CATEGORY_ICONS, MapIcon, PlusIcon } from './Icons'
+import { CATEGORY_ICONS, MapIcon, NavigateIcon, PlusIcon } from './Icons'
+import { openNavigation } from './navigationStore'
 import { CATEGORY_META, type Activity, type ActivityCategory, type GeoPoint, type TripDay, type WishPlace } from '../types'
 import { fetchRouteInfo, routeProfileForSegment, straightLineDistanceMeters } from '../api/route'
 import { reverseGeocode } from '../api/geocode'
@@ -456,7 +457,25 @@ export default function MapView({
           const { activity, day, color } = group.items[0]
           const Icon = CATEGORY_ICONS[activity.category]
           return <Marker key={activity.id} position={[group.point.lat, group.point.lng]} icon={filter === 'all' ? dotMarkerIcon(color) : markerIcon(color, activity.title)} eventHandlers={{ click: () => focusMapActivity(activity.id) }}>
-            <Popup><div className="min-w-[160px]"><div className="flex items-center gap-1.5 font-medium" style={{ color }}><Icon size={13} />{activity.title}</div><div className="mt-1 text-[12px] text-text-muted">{day.label} {activity.time}{activity.location && ` · ${activity.location}`}</div></div></Popup>
+            <Popup>
+              <div className="min-w-[170px] p-0.5">
+                <div className="flex items-center gap-1.5 font-medium" style={{ color }}>
+                  <Icon size={13} />
+                  <span>{activity.title}</span>
+                </div>
+                <div className="mt-1 text-[12px] text-text-muted">
+                  {day.label} {activity.time}
+                  {activity.location && ` · ${activity.location}`}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openNavigation({ title: activity.title, location: activity.location, lat: group.point.lat, lng: group.point.lng })}
+                  className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-md bg-action px-2.5 py-1 text-[11.5px] font-medium text-white transition-colors hover:bg-action-hover"
+                >
+                  <NavigateIcon size={12} /> 外部地图导航
+                </button>
+              </div>
+            </Popup>
           </Marker>
         })() : (
           <Marker key={`cluster-${group.id}`} position={[group.point.lat, group.point.lng]} icon={clusterIcon(group.items.length)}>
@@ -478,7 +497,23 @@ export default function MapView({
           const scheduled = scheduledWishIds.has(place.id)
           const selected = place.id === highlightWishPlace?.id
           return <Marker key={`wish-overview-${place.id}`} position={[place.geo!.lat, place.geo!.lng]} icon={selected ? selectedWishIcon(place.title) : dotMarkerIcon(scheduled ? WISH_SCHEDULED : WISH_PENDING)} zIndexOffset={selected ? 1000 : 0}>
-            <Popup><div className="min-w-[150px]"><div className="font-medium" style={{ color: scheduled ? WISH_SCHEDULED_TEXT : WISH_PENDING_TEXT }}>{scheduled ? '已安排' : '待安排'} · {place.title}</div><div className="mt-1 text-[12px] text-text-muted">{place.location || '未补充位置'}</div></div></Popup>
+            <Popup>
+              <div className="min-w-[170px] p-0.5">
+                <div className="font-medium" style={{ color: scheduled ? WISH_SCHEDULED_TEXT : WISH_PENDING_TEXT }}>
+                  {scheduled ? '已安排' : '待安排'} · {place.title}
+                </div>
+                <div className="mt-1 text-[12px] text-text-muted">
+                  {place.location || '未补充位置'}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => openNavigation({ title: place.title, location: place.location, lat: place.geo!.lat, lng: place.geo!.lng })}
+                  className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-md bg-action px-2.5 py-1 text-[11.5px] font-medium text-white transition-colors hover:bg-action-hover"
+                >
+                  <NavigateIcon size={12} /> 外部地图导航
+                </button>
+              </div>
+            </Popup>
           </Marker>
         })}
         {!wishOverview && highlightWishPlace?.geo && <Marker

@@ -19,11 +19,12 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { activitiesByDay, displayDate, nextActivityTime, useActiveTrip, useTripStore } from '../store'
-import { CalendarIcon, CATEGORY_ICONS, MapIcon, OverviewIcon, PinIcon, PlusIcon, TrashIcon, WalletIcon } from './Icons'
+import { CalendarIcon, CarIcon, CATEGORY_ICONS, MapIcon, NavigateIcon, OverviewIcon, PinIcon, PlaneIcon, PlusIcon, TrainIcon, TrashIcon, WalkIcon, WalletIcon } from './Icons'
 import ActivityForm, { activityToFormValues } from './ActivityForm'
 import InlineActivityDetail from './ActivityDetail'
 import { useConfirmStore } from './confirmStore'
 import { useToastStore } from './toastStore'
+import { openNavigation } from './navigationStore'
 import { CATEGORY_META, type Activity, type ActivityCategory, type Trip } from '../types'
 import { searchPlaces, splitPlaceResults, tripSearchContext, type GeoResult } from '../api/geocode'
 import { fetchRouteInfo, fetchWalkingRouteInfo, routeProfileForSegment, straightLineDistanceMeters, WALKING_DISTANCE_THRESHOLD_METERS } from '../api/route'
@@ -358,15 +359,27 @@ export function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => voi
   )
 }
 
-function TransitHint({ from, to }: { from: Activity; to: Activity }) {
+function TransitHint({
+  from,
+  to,
+  compact = false,
+}: {
+  from: Activity
+  to: Activity
+  compact?: boolean
+}) {
   const [route, setRoute] = useState<{ durationMinutes: number | null; distanceMeters: number | null } | null>(null)
   const fromGeo = from.geo
   const toGeo = to.geo
+
   const directDistance = fromGeo && toGeo ? straightLineDistanceMeters(fromGeo, toGeo) : null
-  const routeProfile = fromGeo && toGeo ? routeProfileForSegment(fromGeo, toGeo, to.travelMode) : null
+  const isTrain = to.travelMode === 'train' || to.title.includes('高铁') || to.title.includes('火车')
+  const isFlight = to.travelMode === 'flight' || to.title.includes('飞往') || to.title.includes('航班')
+  const isWalk = to.travelMode === 'walk' || (!to.travelMode && (directDistance ?? 0) <= 1800)
+  const routeProfile = fromGeo && toGeo && !isTrain && !isFlight ? routeProfileForSegment(fromGeo, toGeo, to.travelMode) : null
 
   useEffect(() => {
-    if (from.category === 'traffic' || to.category === 'traffic' || !routeProfile || !fromGeo || !toGeo) {
+    if (!routeProfile || !fromGeo || !toGeo) {
       setRoute(null)
       return
     }
@@ -377,23 +390,75 @@ function TransitHint({ from, to }: { from: Activity; to: Activity }) {
       }
     })
     return () => ctrl.abort()
-  }, [from.category, fromGeo, routeProfile, to.category, toGeo])
+  }, [fromGeo, routeProfile, toGeo])
 
-  if (from.category === 'traffic' || to.category === 'traffic' || !from.geo || !to.geo) return null
-  if (!routeProfile && to.travelMode) {
-    return <div className="mt-1.5 flex items-center gap-1.5 text-[11px] text-accent-hover"><span>{TRAVEL_MODE_LABELS[to.travelMode!]}</span>{directDistance && <span>· 相距 {(directDistance / 1000).toFixed(directDistance >= 1000 ? 1 : 2)} km</span>}</div>
-  }
-  if (!route?.durationMinutes) return null
+  if (!fromGeo || !toGeo || directDistance == null) return null
+
+  const distanceMeters = route?.distanceMeters ?? Math.round(directDistance * (isWalk ? 1.2 : 1.3))
+  const durationMinutes = route?.durationMinutes ?? (
+    isWalk
+      ? Math.max(1, Math.round((directDistance * 1.25) / 75))
+      : Math.max(2, Math.round((directDistance * 1.35) / 450))
+  )
+
   const previousEnd = activityEndMinutes(from)
   const available = previousEnd === undefined ? undefined : timeToMinutes(to.time) - previousEnd
-  const insufficient = available !== undefined && available >= 0 && available < route.durationMinutes
-  const routeLabel = routeProfile === 'driving' ? '驾车约' : '步行约'
+  const insufficient = available !== undefined && available >= 0 && available < durationMinutes
+
+  const distanceText = distanceMeters < 1000
+    ? `${Math.round(distanceMeters / 50) * 50 || distanceMeters} 米`
+    : `${(distanceMeters / 1000).toFixed(distanceMeters >= 10000 ? 0 : 1)} km`
+
+  const IconComponent = isFlight
+    ? PlaneIcon
+    : isTrain
+      ? TrainIcon
+      : isWalk
+        ? WalkIcon
+        : CarIcon
+
+  const modeText = to.travelMode && TRAVEL_MODE_LABELS[to.travelMode]
+    ? `${TRAVEL_MODE_LABELS[to.travelMode]}约`
+    : isFlight
+      ? '航班'
+      : isTrain
+        ? '火车 / 高铁'
+        : isWalk
+          ? '步行约'
+          : '驾车 / 打车约'
 
   return (
-    <div className={`mt-1.5 flex items-center gap-1.5 text-[11px] ${insufficient ? 'text-amber-600' : 'text-text-faint'}`}>
-      <span>{routeLabel} {route.durationMinutes} 分钟</span>
-      {route.distanceMeters && <span>· {(route.distanceMeters / 1000).toFixed(route.distanceMeters >= 1000 ? 1 : 2)} km</span>}
-      {insufficient && <span className="font-medium">· 路程时间不足</span>}
+    <div className={`relative flex items-center gap-2 pl-3 sm:pl-4 ${compact ? 'my-1' : 'my-1.5'}`}>
+      <div className="absolute top-0 bottom-0 left-[21px] sm:left-[25px] w-px border-l border-dashed border-border/70 pointer-events-none" />
+      <button
+        type="button"
+        onClick={() => openNavigation({ title: to.title, location: to.location, lat: toGeo.lat, lng: toGeo.lng })}
+        className={`group relative z-10 inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 transition-all active:scale-[0.98] ${
+          insufficient
+            ? 'border-amber-300 bg-amber-50/90 text-amber-800 shadow-sm hover:bg-amber-100'
+            : 'border-border/80 bg-white/90 text-text-muted shadow-[0_1px_3px_rgba(0,0,0,0.02)] hover:border-accent/50 hover:bg-white hover:text-text'
+        } ${compact ? 'text-[10px]' : 'text-[11px]'}`}
+        title={`点击导航前往「${to.title}」`}
+      >
+        <span className={insufficient ? 'text-amber-600' : 'text-text-faint group-hover:text-accent'}>
+          <IconComponent size={compact ? 11 : 12} />
+        </span>
+        {isFlight || isTrain ? (
+          <span>{modeText} · 相距 {distanceText}</span>
+        ) : (
+          <span>
+            {modeText} {durationMinutes} 分钟 · {distanceText}
+          </span>
+        )}
+        {insufficient && (
+          <span className="font-semibold text-amber-700">
+            · 仅留 {available} 分钟
+          </span>
+        )}
+        <span className="opacity-0 transition-opacity group-hover:opacity-100 text-accent">
+          <NavigateIcon size={10} />
+        </span>
+      </button>
     </div>
   )
 }
@@ -751,6 +816,25 @@ function ActivityCard({
           </span>
         )}
       </button>
+      {activity.geo && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            openNavigation({
+              title: activity.title,
+              location: activity.location,
+              lat: activity.geo!.lat,
+              lng: activity.geo!.lng,
+            })
+          }}
+          className={`flex shrink-0 items-center justify-center rounded-md text-text-faint transition-colors hover:bg-accent-soft hover:text-accent-hover ${compact ? 'h-7 w-7' : 'h-10 w-10 sm:h-auto sm:w-auto sm:p-1.5'}`}
+          title="外部地图导航"
+          aria-label={`导航至 ${activity.title}`}
+        >
+          <NavigateIcon size={14} />
+        </button>
+      )}
       <button
         onClick={(e) => {
           e.stopPropagation()
@@ -1104,7 +1188,7 @@ function DaySection({
                         <InlineActivityDetail activity={a} />
                       </div>
                     )}
-                    {items[index + 1] && <TransitHint from={a} to={items[index + 1]} />}
+                    {items[index + 1] && <TransitHint from={a} to={items[index + 1]} compact={compact} />}
                   </div>
                 </div>
               ))}
