@@ -253,61 +253,61 @@ export default function SettingsView({
 
   return (
     <div className={`settings-view ${embedded ? 'mx-auto max-w-[760px] px-0 py-0 pb-8' : 'mx-auto max-w-[760px] px-4 py-6 pb-12 sm:px-8 sm:py-10 sm:pb-16'}`}>
-      {!embedded && <div className="mb-7">
-        <h1 className="text-[22px] font-semibold tracking-[-0.025em]">设置</h1>
-        <p className="mt-1 text-[13px] text-text-muted">管理安装方式、本地数据与地图服务。</p>
+      {!embedded && <div className="mb-6">
+        <h1 className="text-[20px] font-semibold tracking-[-0.025em]">设置</h1>
+        <p className="mt-1 text-[12.5px] text-text-muted">管理安装、本地数据与地图配置。</p>
       </div>}
 
-      <div className={`overflow-hidden border-border/70 bg-white/90 px-5 pb-6 sm:px-7 sm:pb-8 ${embedded ? '' : 'rounded-xl border shadow-[0_10px_34px_rgba(32,40,46,0.05)]'}`}>
-        <section className="border-b border-border/80 py-6">
-          <div className="mb-1 text-[15px] font-semibold">安装与分享</div>
-          <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">
-            将 TripNote 安装到桌面后，会以独立应用打开。把链接发给朋友，他们会拥有自己的本地行程，彼此不会看到或修改对方的数据。
+      <div className={`overflow-hidden border-border/70 bg-white/90 px-5 pb-5 sm:px-7 sm:pb-6 ${embedded ? '' : 'rounded-xl border shadow-[0_10px_34px_rgba(32,40,46,0.05)]'}`}>
+        <section className="border-b border-border/80 py-4.5 sm:py-5">
+          <div className="mb-1 text-[14.5px] font-semibold">安装与分享</div>
+          <p className="mb-3 max-w-[610px] text-[12px] leading-relaxed text-text-muted">
+            支持安装为桌面独立应用。数据均保存在本地，链接分享给他人后各自独立，互不影响。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             {!isStandalone && canInstall && onInstall && (
-              <button onClick={onInstall} className="rounded-md bg-action px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover">
+              <button onClick={onInstall} className="rounded-md bg-action px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-action-hover">
                 安装 TripNote
               </button>
             )}
-            <button onClick={copyAccessLink} className="rounded-md bg-surface-2 px-4 py-2 text-[13px] font-medium text-text-muted transition-colors hover:text-text">
+            <button onClick={copyAccessLink} className="rounded-md bg-surface-2 px-4 py-2 text-[12.5px] font-medium text-text-muted transition-colors hover:text-text">
               {copied ? '链接已复制' : '复制访问链接'}
             </button>
           </div>
           {!isStandalone && isIos && (
-            <div className="mt-4 border-l-2 border-action/50 pl-3 text-[12px] leading-relaxed text-text-muted">
-              iPhone / iPad：请使用 Safari 打开此链接，点底部“分享”，再选择“添加到主屏幕”。
+            <div className="mt-3 border-l-2 border-action/50 pl-2.5 text-[11.5px] text-text-muted">
+              iOS：在 Safari 中点击“分享” → “添加到主屏幕”。
             </div>
           )}
           {!isStandalone && !isIos && !canInstall && (
-            <div className="mt-4 border-l-2 border-border pl-3 text-[12px] leading-relaxed text-text-muted">
-              部署到 HTTPS 域名后，可在 Chrome、Edge 的浏览器菜单或地址栏中选择“安装应用”。
+            <div className="mt-3 border-l-2 border-border pl-2.5 text-[11.5px] text-text-muted">
+              可在 Chrome、Edge 地址栏或菜单中选择“安装应用”。
             </div>
           )}
-          {isStandalone && <div className="mt-4 text-[12px] font-medium text-accent-hover">TripNote 已安装到此设备。</div>}
+          {isStandalone && <div className="mt-3 text-[11.5px] font-medium text-accent-hover">✓ 已作为独立应用安装运行。</div>}
         </section>
 
-        <section className="border-b border-border/80 py-6">
-          <div className="text-[15px] font-semibold">规划助手</div>
-          <p className="mt-1 max-w-[620px] text-[12.5px] leading-relaxed text-text-muted">规划助手是可选服务。旅行数据仍保存在本机；模型 API Key 只写在 NAS 服务端。若服务设置了访问口令，在此设备填写相同口令。</p>
-          <div className="mt-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]"><input value={agentUrl} onChange={(event) => setAgentUrl(event.target.value)} placeholder="例如：https://agent.example.ts.net" className="min-w-0 rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] outline-none focus:border-accent" /><input value={agentToken} type="password" onChange={(event) => setAgentToken(event.target.value)} placeholder="访问口令（可选）" className="min-w-0 rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] outline-none focus:border-accent" /><button onClick={() => { setAgentServiceUrl(agentUrl); setAgentAccessToken(agentToken); useToastStore.getState().show(agentUrl.trim() ? '规划助手连接已保存' : '已关闭规划助手服务') }} className="rounded-md bg-action px-4 py-2 text-[12.5px] font-medium text-white hover:bg-action-hover">保存</button></div>
-          <p className="mt-2 text-[11px] text-text-faint">访问口令会随完整备份保存和恢复；DeepSeek 等模型 API Key 仍只保存在 Agent 服务端。备份文件包含敏感配置，请妥善保管。</p>
+        <section className="border-b border-border/80 py-4.5 sm:py-5">
+          <div className="text-[14.5px] font-semibold">规划助手</div>
+          <p className="mt-1 max-w-[620px] text-[12px] leading-relaxed text-text-muted">可选自建 AI 助手服务。行程保留在本机，模型 API 密钥保存在服务端。</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]"><input value={agentUrl} onChange={(event) => setAgentUrl(event.target.value)} placeholder="例如：https://agent.example.ts.net" className="min-w-0 rounded-md border border-border bg-[#fcfdfd] px-3 py-2 text-[12.5px] outline-none focus:border-accent" /><input value={agentToken} type="password" onChange={(event) => setAgentToken(event.target.value)} placeholder="访问口令（可选）" className="min-w-0 rounded-md border border-border bg-[#fcfdfd] px-3 py-2 text-[12.5px] outline-none focus:border-accent" /><button onClick={() => { setAgentServiceUrl(agentUrl); setAgentAccessToken(agentToken); useToastStore.getState().show(agentUrl.trim() ? '规划助手连接已保存' : '已关闭规划助手服务') }} className="rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white hover:bg-action-hover">保存</button></div>
+          <p className="mt-2 text-[11px] text-text-faint">若服务端设置了访问口令请在此填入，口令保存在本机。</p>
         </section>
 
         {/* 数据管理 */}
-        <section className="border-b border-border/80 py-6">
-          <div className="mb-1 text-[15px] font-semibold">数据管理</div>
-          <p className="mb-4 max-w-[610px] text-[13px] leading-relaxed text-text-muted">
-            数据仍保存在当前浏览器。完整备份包含全部旅行、访问口令、地图服务 Key 与地图连线方式；手机可保存到“文件”，支持文件夹访问的浏览器还可自动归档。备份含敏感密钥，请勿外发。
+        <section className="border-b border-border/80 py-4.5 sm:py-5">
+          <div className="mb-1 text-[14.5px] font-semibold">数据管理</div>
+          <p className="mb-3 max-w-[610px] text-[12px] leading-relaxed text-text-muted">
+            数据保存在本地浏览器中，备份包含全部行程与个性化配置。
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
               onClick={saveBackupFile}
-              className="rounded-md bg-accent px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover"
+              className="rounded-md bg-accent px-4 py-2 text-[12.5px] font-medium text-white transition-colors hover:bg-accent-hover"
             >
               保存完整备份
             </button>
-            <label className="cursor-pointer rounded-md bg-surface-2 px-4 py-2 text-center text-[13px] font-medium text-text-muted transition-colors hover:text-text">
+            <label className="cursor-pointer rounded-md bg-surface-2 px-4 py-2 text-center text-[12.5px] font-medium text-text-muted transition-colors hover:text-text">
               恢复备份 / 导入旅程
               <input
                 type="file"
@@ -327,55 +327,54 @@ export default function SettingsView({
                   onConfirm: resetAll,
                 })
               }
-              className="rounded-md px-3 py-2 text-[13px] text-text-faint transition-colors hover:bg-red-50 hover:text-red-500"
+              className="rounded-md px-3 py-2 text-[12.5px] text-text-faint transition-colors hover:bg-red-50 hover:text-red-500"
             >
               重置数据
             </button>
           </div>
-          <p className="mt-2 text-[11.5px] text-text-faint">
+          <p className="mt-2 text-[11px] text-text-faint">
             {portableBackupAt
-              ? `最近生成备份：${new Date(portableBackupAt).toLocaleString('zh-CN', { hour12: false })}`
-              : '尚未保存过独立备份文件；建议在重要修改后保存一份。'}
-            {' '}再次保存到同一文件夹时，请在系统面板中选择“替换”，即可更新原备份。
+              ? `最近备份：${new Date(portableBackupAt).toLocaleString('zh-CN', { hour12: false })}`
+              : '建议在重要修改后保存备份文件以防丢失。'}
           </p>
-          <div className="mt-5 rounded-lg border border-border/80 bg-surface/75 p-4 sm:p-4.5">
+          <div className="mt-4 rounded-lg border border-border/80 bg-surface/75 p-3.5 sm:p-4">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
               <div>
-                <div className="text-[13px] font-semibold text-text">自动备份到指定文件夹</div>
-                {backupStatus?.configured && <p role="status" className={`mt-1 text-[12px] ${writeStatus.state === 'error' || writeStatus.state === 'permission' ? 'text-amber-700' : 'text-accent-hover'}`}>
-                  {writeStatus.state === 'writing' ? '数据已保存在浏览器，正在写入备份文件…'
-                    : writeStatus.state === 'pending' ? '数据已保存在浏览器，等待自动备份。'
-                    : writeStatus.state === 'error' ? `文件备份失败：${writeStatus.error}。最新修改已保留，将自动重试，也可点击“立即备份”。`
-                    : writeStatus.state === 'permission' ? '最新修改已保存在浏览器；重新授权后会补写到文件夹。'
-                    : writeStatus.state === 'saved' ? '最新修改已成功备份到文件夹。' : '数据已保存在当前浏览器。'}
+                <div className="text-[12.5px] font-semibold text-text">自动备份到指定文件夹</div>
+                {backupStatus?.configured && <p role="status" className={`mt-1 text-[11.5px] ${writeStatus.state === 'error' || writeStatus.state === 'permission' ? 'text-amber-700' : 'text-accent-hover'}`}>
+                  {writeStatus.state === 'writing' ? '正在写入备份文件…'
+                    : writeStatus.state === 'pending' ? '等待自动同步…'
+                    : writeStatus.state === 'error' ? `同步失败：${writeStatus.error}，将自动重试。`
+                    : writeStatus.state === 'permission' ? '需重新授权写入文件夹以恢复同步。'
+                    : writeStatus.state === 'saved' ? '最新修改已同步至文件夹。' : '数据已保存在当前浏览器。'}
                 </p>}
                 {backupStatus?.supported ? (
-                  <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">
+                  <p className="mt-1 max-w-[500px] text-[11.5px] leading-relaxed text-text-muted">
                     {backupStatus.configured
                       ? backupStatus.permission === 'granted'
-                        ? `已连接「${backupStatus.directoryName} / TripNote备份」。修改后约 30 秒自动归档，并保留最近 10 份历史。${backupStatus.lastBackupAt ? ` 上次备份：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
-                        : `已记住「${backupStatus.directoryName}」，但浏览器暂未允许写入。重新授权后会立即完成一份最新备份，并继续自动归档。`
-                      : '选择一个本机文件夹后，TripNote 会在应用打开期间自动创建完整备份（含当前高德 Key 和地图连线配置）。'}
+                        ? `已关联「${backupStatus.directoryName}」，数据变动自动同步（保留近 10 份历史）。${backupStatus.lastBackupAt ? ` 最近同步：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
+                        : `已关联「${backupStatus.directoryName}」，需重新授权即可恢复自动同步。`
+                      : '关联本机文件夹后，数据变动将在打开应用时自动备份归档。'}
                   </p>
                 ) : (
-                  <p className="mt-1 max-w-[500px] text-[12px] leading-relaxed text-text-muted">当前浏览器不支持持续写入指定文件夹。请使用上方“保存完整备份”，在系统面板中选择“存储到文件”；桌面 Chrome、Edge 及部分 Android 浏览器可开启自动归档。</p>
+                  <p className="mt-1 max-w-[500px] text-[11.5px] leading-relaxed text-text-muted">当前浏览器不支持文件夹自动归档，请使用上方“保存完整备份”手动导出。</p>
                 )}
               </div>
               {backupStatus?.supported && (
                 <div className="flex shrink-0 flex-wrap gap-2">
                   {backupStatus.configured && backupStatus.permission !== 'granted' && (
-                    <button onClick={reauthorizeBackupFolder} disabled={backupBusy} className="rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50">
+                    <button onClick={reauthorizeBackupFolder} disabled={backupBusy} className="rounded-md bg-action px-3 py-1.5 text-[11.5px] font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50">
                       {backupBusy ? '授权中…' : '重新授权'}
                     </button>
                   )}
-                  <button onClick={selectBackupFolder} disabled={backupBusy} className="rounded-md bg-surface-2 px-3 py-2 text-[12px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50">
+                  <button onClick={selectBackupFolder} disabled={backupBusy} className="rounded-md bg-surface-2 px-3 py-1.5 text-[11.5px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50">
                     {backupStatus.configured ? '更换文件夹' : '选择文件夹'}
                   </button>
-                  <button onClick={restoreAndConnectBackupFolder} disabled={backupBusy} className="rounded-md bg-surface-2 px-3 py-2 text-[12px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50">
+                  <button onClick={restoreAndConnectBackupFolder} disabled={backupBusy} className="rounded-md bg-surface-2 px-3 py-1.5 text-[11.5px] font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50">
                     从文件夹恢复
                   </button>
                   {backupStatus.configured && (
-                    <button onClick={backupToFolderNow} disabled={backupBusy || backupStatus.permission !== 'granted'} className="rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50">
+                    <button onClick={backupToFolderNow} disabled={backupBusy || backupStatus.permission !== 'granted'} className="rounded-md bg-action px-3 py-1.5 text-[11.5px] font-medium text-white transition-colors hover:bg-action-hover disabled:opacity-50">
                       {backupBusy ? '备份中…' : '立即备份'}
                     </button>
                   )}
@@ -386,44 +385,44 @@ export default function SettingsView({
         </section>
 
         {/* 地图设置 */}
-        <section className="py-6">
-          <div className="mb-1 text-[15px] font-semibold">地图设置</div>
-          <p className="mb-4 max-w-[620px] text-[13px] leading-relaxed text-text-muted">
-            默认无需填写任何 Key 即可开箱使用，底图采用全球 OpenStreetMap，地点搜索已内置免 Key 的高速开源地理服务（Photon/OSM）并支持直接回车秒存草稿。如在国内出行并希望使用高德矢量底图，可填入高德 JS API Key。
+        <section className="py-4.5 sm:py-5">
+          <div className="mb-1 text-[14.5px] font-semibold">地图设置</div>
+          <p className="mb-3 max-w-[620px] text-[12px] leading-relaxed text-text-muted">
+            默认使用全球 OSM 开源底图与免 Key 地理搜索；国内出行如需高德底图可在此配置。
           </p>
 
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div>
-              <label className="text-[12.5px] font-medium text-text-muted">
+              <label className="text-[12px] font-medium text-text-muted">
                 JS API Key（高德地图展示，选填）
               </label>
-              <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center">
+              <div className="mt-1 flex flex-col gap-2 sm:flex-row sm:items-center">
                 <input
                   value={jsKey}
                   onChange={(event) => setJsKey(event.target.value)}
                   placeholder="留空则使用默认全球 OSM 开源地图"
-                  className="min-w-0 flex-1 rounded-md border border-border bg-[#fcfdfd] px-3 py-2.5 text-[13px] font-normal text-text outline-none focus:border-accent"
+                  className="min-w-0 flex-1 rounded-md border border-border bg-[#fcfdfd] px-3 py-2 text-[12.5px] font-normal text-text outline-none focus:border-accent"
                 />
                 <button
                   type="button"
                   onClick={saveMapConfig}
-                  className="shrink-0 rounded-md bg-action px-4 py-2.5 text-[12.5px] font-medium text-white transition-colors hover:bg-action-hover"
+                  className="shrink-0 rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white transition-colors hover:bg-action-hover"
                 >
                   保存配置
                 </button>
               </div>
-              <p className="mt-1.5 text-[11px] text-text-faint">
-                密钥仅保存在当前浏览器本地存储中，不会上传到云端。恢复完整备份时也会同步恢复。
+              <p className="mt-1 text-[11px] text-text-faint">
+                密钥仅保存在本地浏览器，不上传云端。
               </p>
             </div>
 
-            <div className="border-t border-border/80 pt-4">
-              <div className="text-[12.5px] font-semibold text-text">底图展示</div>
-              <div className="mt-2 inline-flex rounded-lg bg-surface-2/70 p-1">
+            <div className="border-t border-border/80 pt-3.5">
+              <div className="text-[12px] font-semibold text-text">底图展示</div>
+              <div className="mt-1.5 inline-flex rounded-lg bg-surface-2/70 p-0.5">
                 <button
                   type="button"
                   onClick={() => setMapDisplayProvider('osm')}
-                  className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                  className={`rounded-md px-3 py-1.5 text-[11.5px] font-medium transition-colors ${
                     mapDisplayProvider === 'osm'
                       ? 'bg-white text-text shadow-sm'
                       : 'text-text-muted hover:text-text'
@@ -434,7 +433,7 @@ export default function SettingsView({
                 <button
                   type="button"
                   onClick={() => setMapDisplayProvider('amap')}
-                  className={`rounded-md px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                  className={`rounded-md px-3 py-1.5 text-[11.5px] font-medium transition-colors ${
                     mapDisplayProvider === 'amap'
                       ? 'bg-white text-text shadow-sm'
                       : 'text-text-muted hover:text-text'
@@ -443,30 +442,30 @@ export default function SettingsView({
                   高德地图
                 </button>
               </div>
-              <p className="mt-1.5 text-[11px] text-text-faint">
-                高德需配置上方 JS API Key；未填写或填错时自动回退为全球 OSM 地图。
+              <p className="mt-1 text-[11px] text-text-faint">
+                使用高德需填入 JS API Key，未配置时自动回退至 OSM。
               </p>
             </div>
 
-            <div className="border-t border-border/80 pt-4">
-              <div className="text-[12.5px] font-semibold text-text">地图连线</div>
-              <div className="mt-2 flex flex-col gap-2 sm:flex-row">
+            <div className="border-t border-border/80 pt-3.5">
+              <div className="text-[12px] font-semibold text-text">地图连线</div>
+              <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
                 <button
                   type="button"
                   onClick={() => setMapRouteMode('direct')}
-                  className={`flex-1 rounded-lg border-l-2 px-3.5 py-2.5 text-left text-[12.5px] transition-colors ${
+                  className={`flex-1 rounded-lg border-l-2 px-3 py-2 text-left text-[12px] transition-colors ${
                     mapRouteMode === 'direct'
                       ? 'border-action bg-action-soft text-text'
                       : 'border-transparent bg-surface-2/60 text-text-muted hover:bg-surface-2'
                   }`}
                 >
                   <span className="font-medium">直线连接</span>
-                  <span className="ml-1.5 text-text-faint">推荐，不调用路线服务</span>
+                  <span className="ml-1.5 text-text-faint">推荐，轻量直观</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setMapRouteMode('walking')}
-                  className={`flex-1 rounded-lg border-l-2 px-3.5 py-2.5 text-left text-[12.5px] transition-colors ${
+                  className={`flex-1 rounded-lg border-l-2 px-3 py-2 text-left text-[12px] transition-colors ${
                     mapRouteMode === 'walking'
                       ? 'border-action bg-action-soft text-text'
                       : 'border-transparent bg-surface-2/60 text-text-muted hover:bg-surface-2'
@@ -476,8 +475,8 @@ export default function SettingsView({
                   <span className="ml-1.5 text-text-faint">近距离步行，远距离驾车</span>
                 </button>
               </div>
-              <p className="mt-2 text-[11.5px] leading-relaxed text-text-faint">
-                智能路线使用 OSRM 服务，打开地图时才会请求；火车、飞机、包车保留直线。请求失败时显示直线，并在地图图例处提示。
+              <p className="mt-1.5 text-[11px] leading-relaxed text-text-faint">
+                智能路线由 OSRM 实时规划；大交通或规划失败时自动使用直线连接。
               </p>
             </div>
           </div>
