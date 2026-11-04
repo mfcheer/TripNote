@@ -366,6 +366,25 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   </aside>
 }
 
+function getTwoColumnsWidth(libWidth: number, winWidth = typeof window !== 'undefined' ? window.innerWidth : 1440) {
+  return Math.max(680, winWidth - libWidth - 48)
+}
+
+function getDefaultMapWidth(libWidth: number, winWidth?: number) {
+  const available = getTwoColumnsWidth(libWidth, winWidth)
+  return Math.round(available * 0.5)
+}
+
+function getMaxMapWidth(libWidth: number, winWidth?: number) {
+  const available = getTwoColumnsWidth(libWidth, winWidth)
+  return Math.min(Math.round(available * 0.6), available - 340)
+}
+
+function getMinMapWidth(libWidth: number, winWidth?: number) {
+  const available = getTwoColumnsWidth(libWidth, winWidth)
+  return Math.max(300, Math.min(360, Math.round(available * 0.25)))
+}
+
 export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOpenAgent, mapNarrativePreview = true }: { onExport: () => void; exporting: boolean; onOpenFullMap: () => void; onOpenAgent: () => void; mapNarrativePreview?: boolean }) {
   const trip = useActiveTrip()
   const { trips, deletedTrips, activeTripId, switchTrip, createTrip, deleteTrip, scheduleWishPlace, activeDayId, setActiveDay } = useTripStore()
@@ -396,15 +415,28 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
     return Number.isFinite(saved) ? Math.max(220, Math.min(380, saved)) : 286
   })
   const [mapWidth, setMapWidth] = useState(() => {
-    const rawSaved = localStorage.getItem('tripnote-workspace-map-width-v2')
+    const rawSaved = localStorage.getItem('tripnote-workspace-map-width-v3')
     const saved = rawSaved == null ? Number.NaN : Number(rawSaved)
-    return Number.isFinite(saved) ? Math.max(360, Math.min(680, saved)) : 520
+    const winWidth = typeof window !== 'undefined' ? window.innerWidth : 1440
+    const def = getDefaultMapWidth(286, winWidth)
+    const max = getMaxMapWidth(286, winWidth)
+    const min = getMinMapWidth(286, winWidth)
+    return Number.isFinite(saved) ? Math.max(min, Math.min(max, saved)) : def
   })
 
   useEffect(() => localStorage.setItem('tripnote-workspace-library-width-v1', String(Math.round(libraryWidth))), [libraryWidth])
-  useEffect(() => localStorage.setItem('tripnote-workspace-map-width-v2', String(Math.round(mapWidth))), [mapWidth])
+  useEffect(() => localStorage.setItem('tripnote-workspace-map-width-v3', String(Math.round(mapWidth))), [mapWidth])
   useEffect(() => setWorkspaceMapScope('follow'), [activeTripId])
   useEffect(() => setSelectedWishPlaceId(null), [activeDayId])
+  useEffect(() => {
+    const handleResize = () => {
+      const max = getMaxMapWidth(libraryWidth, window.innerWidth)
+      const min = getMinMapWidth(libraryWidth, window.innerWidth)
+      setMapWidth((prev) => Math.max(min, Math.min(max, prev)))
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [libraryWidth])
   // 全部日程连续滚动时，地图只在阅读停留后跟随，避免每跨过一张卡片就重新缩放。
   useEffect(() => {
     const timer = window.setTimeout(() => setMapFollowDayId(activeDayId), 360)
@@ -426,12 +458,14 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
     const startWidth = edge === 'library' ? libraryWidth : mapWidth
     const update = (moveEvent: PointerEvent) => {
       const delta = moveEvent.clientX - startX
+      const winWidth = window.innerWidth
       if (edge === 'library') {
-        const max = Math.max(220, Math.min(380, window.innerWidth - mapWidth - 380))
+        const max = Math.max(220, Math.min(380, winWidth - mapWidth - 340))
         setLibraryWidth(Math.max(220, Math.min(max, startWidth + delta)))
       } else {
-        const max = Math.max(360, Math.min(680, window.innerWidth - libraryWidth - 380))
-        setMapWidth(Math.max(360, Math.min(max, startWidth - delta)))
+        const min = getMinMapWidth(libraryWidth, winWidth)
+        const max = getMaxMapWidth(libraryWidth, winWidth)
+        setMapWidth(Math.max(min, Math.min(max, startWidth - delta)))
       }
     }
     const finish = () => {
@@ -536,11 +570,11 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
     <div className="flex min-h-0 flex-1 gap-2 bg-bg px-2 pb-2">
       <PlaceLibrary onStartMapPick={() => setMapPickRequest((request) => request + 1)} recentlyScheduledPlaceId={recentlyScheduledPlaceId} selectedWishPlaceId={selectedWishPlaceId} onSelectWishPlace={setSelectedWishPlaceId} onScheduleSuccess={handleScheduleSuccess} />
       <div role="separator" aria-label="调整想去宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'library')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>
-      <main data-workspace-scroll onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[380px] flex-1 overflow-y-auto rounded-[18px] border border-border/70 bg-white transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
+      <main data-workspace-scroll onDragOver={handleWishDragOver} onDragLeave={handleWishDragLeave} onDrop={scheduleDrop} className={`relative min-w-[340px] flex-1 overflow-y-auto rounded-[18px] border border-border/70 bg-white transition-colors ${isWishDropTarget ? 'bg-action-soft/35' : ''}`}>
         <TimelineView workspace showAllDays={showAllDays} onShowAllDays={() => setShowAllDays(true)} onFocusDay={(dayId) => { setActiveDay(dayId); setShowAllDays(false) }} hideQuickAdd introducedActivityId={introducedActivityId} onOpenFullMap={onOpenFullMap} />
       </main>
       <div role="separator" aria-label="调整地图宽度" aria-orientation="vertical" onPointerDown={(event) => startResize(event, 'map')} className="group flex w-2 shrink-0 cursor-col-resize touch-none items-center justify-center"><span className="h-9 w-px bg-border/0 group-hover:bg-accent/55" /></div>
-      <aside className="min-w-[360px] shrink-0 overflow-hidden rounded-[18px] border border-border/70 bg-white" style={{ width: 'var(--workspace-map-width)' }}><MapView initialDayId={mapFollowDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} workspaceMapScope={workspaceMapScope} followDayId={mapFollowDayId} onWorkspaceMapScopeChange={setWorkspaceMapScope} narrativePreview={mapNarrativePreview} /></aside>
+      <aside className="min-w-[300px] shrink-0 overflow-hidden rounded-[18px] border border-border/70 bg-white" style={{ width: 'var(--workspace-map-width)' }}><MapView initialDayId={mapFollowDayId} compact mapPickRequest={mapPickRequest} highlightWishPlace={selectedWishPlace} wishOverview={!!selectedWishPlace} workspaceMapScope={workspaceMapScope} followDayId={mapFollowDayId} onWorkspaceMapScopeChange={setWorkspaceMapScope} narrativePreview={mapNarrativePreview} /></aside>
     </div>
     {budgetDrawerOpen && <BudgetDrawer trip={trip} onClose={() => setBudgetDrawerOpen(false)} />}
     {tripTrashOpen && <TripTrashDialog onClose={() => setTripTrashOpen(false)} />}
