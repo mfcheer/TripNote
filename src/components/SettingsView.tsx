@@ -255,14 +255,14 @@ export default function SettingsView({
     <div className={`settings-view ${embedded ? 'mx-auto max-w-[760px] px-0 py-0 pb-8' : 'mx-auto max-w-[760px] px-4 py-6 pb-12 sm:px-8 sm:py-10 sm:pb-16'}`}>
       {!embedded && <div className="mb-6">
         <h1 className="text-[20px] font-semibold tracking-[-0.025em]">设置</h1>
-        <p className="mt-1 text-[12.5px] text-text-muted">管理安装、本地数据与地图配置。</p>
+        <p className="mt-1 text-[12.5px] text-text-muted">管理安装、本地数据与地图配置</p>
       </div>}
 
       <div className={`overflow-hidden border-border/70 bg-white/90 px-5 pb-5 sm:px-7 sm:pb-6 ${embedded ? '' : 'rounded-xl border shadow-[0_10px_34px_rgba(32,40,46,0.05)]'}`}>
         <section className="border-b border-border/80 py-4.5 sm:py-5">
           <div className="mb-1 text-[14.5px] font-semibold">安装与分享</div>
           <p className="mb-3 max-w-[610px] text-[12px] leading-relaxed text-text-muted">
-            支持安装为桌面独立应用。数据均保存在本地，链接分享给他人后各自独立，互不影响。
+            支持安装为桌面独立应用。数据均保存在本地，链接分享给他人后各自独立，互不影响
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             {!isStandalone && canInstall && onInstall && (
@@ -276,29 +276,29 @@ export default function SettingsView({
           </div>
           {!isStandalone && isIos && (
             <div className="mt-3 border-l-2 border-action/50 pl-2.5 text-[11.5px] text-text-muted">
-              iOS：在 Safari 中点击“分享” → “添加到主屏幕”。
+              iOS：在 Safari 中点击“分享” → “添加到主屏幕”
             </div>
           )}
           {!isStandalone && !isIos && !canInstall && (
             <div className="mt-3 border-l-2 border-border pl-2.5 text-[11.5px] text-text-muted">
-              可在 Chrome、Edge 地址栏或菜单中选择“安装应用”。
+              可在 Chrome、Edge 地址栏或菜单中选择“安装应用”
             </div>
           )}
-          {isStandalone && <div className="mt-3 text-[11.5px] font-medium text-accent-hover">✓ 已作为独立应用安装运行。</div>}
+          {isStandalone && <div className="mt-3 text-[11.5px] font-medium text-accent-hover">✓ 已作为独立应用安装运行</div>}
         </section>
 
         <section className="border-b border-border/80 py-4.5 sm:py-5">
           <div className="text-[14.5px] font-semibold">规划助手</div>
-          <p className="mt-1 max-w-[620px] text-[12px] leading-relaxed text-text-muted">可选自建 AI 助手服务。行程保留在本机，模型 API 密钥保存在服务端。</p>
+          <p className="mt-1 max-w-[620px] text-[12px] leading-relaxed text-text-muted">可选自建 AI 助手服务。行程保留在本机，模型 API 密钥保存在服务端</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]"><input value={agentUrl} onChange={(event) => setAgentUrl(event.target.value)} placeholder="例如：https://agent.example.ts.net" className="min-w-0 rounded-md border border-border bg-[#fcfdfd] px-3 py-2 text-[12.5px] outline-none focus:border-accent" /><input value={agentToken} type="password" onChange={(event) => setAgentToken(event.target.value)} placeholder="访问口令（可选）" className="min-w-0 rounded-md border border-border bg-[#fcfdfd] px-3 py-2 text-[12.5px] outline-none focus:border-accent" /><button onClick={() => { setAgentServiceUrl(agentUrl); setAgentAccessToken(agentToken); useToastStore.getState().show(agentUrl.trim() ? '规划助手连接已保存' : '已关闭规划助手服务') }} className="rounded-md bg-action px-4 py-2 text-[12px] font-medium text-white hover:bg-action-hover">保存</button></div>
-          <p className="mt-2 text-[11px] text-text-faint">若服务端设置了访问口令请在此填入，口令保存在本机。</p>
+          <p className="mt-2 text-[11px] text-text-faint">若服务端设置了访问口令请在此填入，口令保存在本机</p>
         </section>
 
         {/* 数据管理 */}
         <section className="border-b border-border/80 py-4.5 sm:py-5">
           <div className="mb-1 text-[14.5px] font-semibold">数据管理</div>
           <p className="mb-3 max-w-[610px] text-[12px] leading-relaxed text-text-muted">
-            数据保存在本地浏览器中，备份包含全部行程与个性化配置。
+            数据保存在本地浏览器中，备份包含全部行程与个性化配置
           </p>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
@@ -323,7 +323,7 @@ export default function SettingsView({
               onClick={() =>
                 askConfirm({
                   title: '重置全部数据？',
-                  message: '所有旅程将被清除，恢复为示例旅程。',
+                  message: '所有旅程将被清除，恢复为示例旅程',
                   onConfirm: resetAll,
                 })
               }
@@ -335,7 +335,7 @@ export default function SettingsView({
           <p className="mt-2 text-[11px] text-text-faint">
             {portableBackupAt
               ? `最近备份：${new Date(portableBackupAt).toLocaleString('zh-CN', { hour12: false })}`
-              : '建议在重要修改后保存备份文件以防丢失。'}
+              : '建议在重要修改后保存备份文件以防丢失'}
           </p>
           <div className="mt-4 rounded-lg border border-border/80 bg-surface/75 p-3.5 sm:p-4">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
@@ -344,20 +344,20 @@ export default function SettingsView({
                 {backupStatus?.configured && <p role="status" className={`mt-1 text-[11.5px] ${writeStatus.state === 'error' || writeStatus.state === 'permission' ? 'text-amber-700' : 'text-accent-hover'}`}>
                   {writeStatus.state === 'writing' ? '正在写入备份文件…'
                     : writeStatus.state === 'pending' ? '等待自动同步…'
-                    : writeStatus.state === 'error' ? `同步失败：${writeStatus.error}，将自动重试。`
-                    : writeStatus.state === 'permission' ? '需重新授权写入文件夹以恢复同步。'
-                    : writeStatus.state === 'saved' ? '最新修改已同步至文件夹。' : '数据已保存在当前浏览器。'}
+                    : writeStatus.state === 'error' ? `同步失败：${writeStatus.error}，将自动重试`
+                    : writeStatus.state === 'permission' ? '需重新授权写入文件夹以恢复同步'
+                    : writeStatus.state === 'saved' ? '最新修改已同步至文件夹' : '数据已保存在当前浏览器'}
                 </p>}
                 {backupStatus?.supported ? (
                   <p className="mt-1 max-w-[500px] text-[11.5px] leading-relaxed text-text-muted">
                     {backupStatus.configured
                       ? backupStatus.permission === 'granted'
-                        ? `已关联「${backupStatus.directoryName}」，数据变动自动同步（保留近 10 份历史）。${backupStatus.lastBackupAt ? ` 最近同步：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
-                        : `已关联「${backupStatus.directoryName}」，需重新授权即可恢复自动同步。`
-                      : '关联本机文件夹后，数据变动将在打开应用时自动备份归档。'}
+                        ? `已关联「${backupStatus.directoryName}」，数据变动自动同步（保留近 10 份历史）${backupStatus.lastBackupAt ? ` · 最近同步：${new Date(backupStatus.lastBackupAt).toLocaleString('zh-CN', { hour12: false })}` : ''}`
+                        : `已关联「${backupStatus.directoryName}」，需重新授权即可恢复自动同步`
+                      : '关联本机文件夹后，数据变动将在打开应用时自动备份归档'}
                   </p>
                 ) : (
-                  <p className="mt-1 max-w-[500px] text-[11.5px] leading-relaxed text-text-muted">当前浏览器不支持文件夹自动归档，请使用上方“保存完整备份”手动导出。</p>
+                  <p className="mt-1 max-w-[500px] text-[11.5px] leading-relaxed text-text-muted">当前浏览器不支持文件夹自动归档，请使用上方“保存完整备份”手动导出</p>
                 )}
               </div>
               {backupStatus?.supported && (
@@ -388,7 +388,7 @@ export default function SettingsView({
         <section className="py-4.5 sm:py-5">
           <div className="mb-1 text-[14.5px] font-semibold">地图设置</div>
           <p className="mb-3 max-w-[620px] text-[12px] leading-relaxed text-text-muted">
-            默认使用全球 OSM 开源底图与免 Key 地理搜索；国内出行如需高德底图可在此配置。
+            默认使用全球 OSM 开源底图与免 Key 地理搜索；国内出行如需高德底图可在此配置
           </p>
 
           <div className="space-y-4">
@@ -412,7 +412,7 @@ export default function SettingsView({
                 </button>
               </div>
               <p className="mt-1 text-[11px] text-text-faint">
-                密钥仅保存在本地浏览器，不上传云端。
+                密钥仅保存在本地浏览器，不上传云端
               </p>
             </div>
 
@@ -443,7 +443,7 @@ export default function SettingsView({
                 </button>
               </div>
               <p className="mt-1 text-[11px] text-text-faint">
-                使用高德需填入 JS API Key，未配置时自动回退至 OSM。
+                使用高德需填入 JS API Key，未配置时自动回退至 OSM
               </p>
             </div>
 
@@ -476,7 +476,7 @@ export default function SettingsView({
                 </button>
               </div>
               <p className="mt-1.5 text-[11px] leading-relaxed text-text-faint">
-                智能路线由 OSRM 实时规划；大交通或规划失败时自动使用直线连接。
+                智能路线由 OSRM 实时规划；大交通或规划失败时自动使用直线连接
               </p>
             </div>
           </div>
