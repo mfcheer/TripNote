@@ -91,6 +91,32 @@ function escapeHtml(value: string) {
 }
 
 // 视角跟随筛选结果
+// Leaflet 只会自动处理窗口尺寸变化；拖动面板改变容器大小时需主动更新地图尺寸。
+function MapSizeObserver() {
+  const map = useMap()
+
+  useEffect(() => {
+    const container = map.getContainer()
+    let frame: number | null = null
+    const observer = new ResizeObserver(() => {
+      if (frame !== null) cancelAnimationFrame(frame)
+      frame = requestAnimationFrame(() => {
+        frame = null
+        if (container.clientWidth && container.clientHeight) {
+          map.invalidateSize({ animate: false, pan: true, debounceMoveend: true })
+        }
+      })
+    })
+    observer.observe(container)
+    return () => {
+      observer.disconnect()
+      if (frame !== null) cancelAnimationFrame(frame)
+    }
+  }, [map])
+
+  return null
+}
+
 function FitBounds({ points }: { points: [number, number][] }) {
   const map = useMap()
   const key = points.join(',')
@@ -423,6 +449,7 @@ export default function MapView({
         <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={amapLines} className="h-full w-full" zoom={9} onMapPick={isPicking ? handleMapPick : undefined} onError={handleAmapError} onRouteFallback={handleRouteFallback} />
       ) : (
       <MapContainer center={[34.9, 135.6]} zoom={9} className="h-full w-full">
+        <MapSizeObserver />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
