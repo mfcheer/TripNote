@@ -230,7 +230,176 @@ async function generate(payload) {
 
 http.createServer(async (request, response) => {
   if (request.method === 'OPTIONS') return reply(response, 204, {})
-  if (request.method === 'GET' && request.url === '/health') return reply(response, 200, { ok: true, model: apiKey ? model : null, requiresAuth: Boolean(accessToken) })
+  if (request.method === 'GET' && (request.url === '/' || request.url === '/health')) {
+    if (request.headers.accept?.includes('text/html')) {
+      response.writeHead(200, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'Access-Control-Allow-Origin': '*'
+      })
+      response.end(`<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TripNote AI 规划助手 API</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background: #0f172a;
+      color: #f8fafc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 20px;
+      padding: 32px;
+      max-width: 520px;
+      width: 100%;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      padding: 6px 14px;
+      border-radius: 9999px;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .dot {
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #10b981;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #f8fafc;
+    }
+    p {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .info-list {
+      background: #0f172a;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      border: 1px solid #334155;
+    }
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #1e293b;
+      font-size: 13px;
+    }
+    .info-item:last-child {
+      border-bottom: none;
+      padding-bottom: 0;
+    }
+    .info-item:first-child {
+      padding-top: 0;
+    }
+    .info-label { color: #64748b; }
+    .info-val {
+      color: #38bdf8;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-weight: 500;
+    }
+    .guide-box {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #cbd5e1;
+    }
+    .guide-box strong { color: #60a5fa; }
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      background: #3b82f6;
+      color: #ffffff;
+      text-decoration: none;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: #2563eb; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">
+      <span class="dot"></span>
+      后端服务运行中 (Active)
+    </div>
+    <h1>✈️ TripNote AI 规划助手</h1>
+    <p>
+      此端口（<strong>8787</strong>）是 TripNote 的<strong>后端 RPC 接口服务</strong>（非独立前端页面），专为前端界面提供 AI 路线生成、日程规划与行程校验能力。
+    </p>
+
+    <div class="info-list">
+      <div class="info-item">
+        <span class="info-label">服务端口</span>
+        <span class="info-val">8787</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">服务类型</span>
+        <span class="info-val">Node.js HTTP API</span>
+      </div>
+      <div class="info-item">
+        <span class="info-label">可用接口</span>
+        <span class="info-val">/health, /v1/plan, /v1/check</span>
+      </div>
+    </div>
+
+    <div class="guide-box">
+      <strong>💡 如何在前端中使用：</strong><br>
+      1. 打开 TripNote 前端工作台（端口 5173）；<br>
+      2. 点击右上角「设置」→「规划助手」；<br>
+      3. 确认服务地址填入 <code>http://localhost:8787</code>；<br>
+      4. 在行程页面点击「AI 帮我规划」，即可直接调用本接口。
+    </div>
+
+    <a href="http://localhost:5173" class="btn">前往 TripNote 前端工作台 (5173) →</a>
+  </div>
+</body>
+</html>`)
+      return
+    }
+    return reply(response, 200, {
+      ok: true,
+      service: 'TripNote Agent Server',
+      port,
+      model: apiKey ? model : null,
+      requiresAuth: Boolean(accessToken),
+      endpoints: ['/health', '/v1/plan', '/v1/check']
+    })
+  }
   if (request.method !== 'POST' || !['/v1/plan', '/v1/check'].includes(request.url)) return reply(response, 404, { error: 'Not found' })
   if (!authorized(request)) return reply(response, 401, { error: '规划助手访问口令不正确' })
   try {
