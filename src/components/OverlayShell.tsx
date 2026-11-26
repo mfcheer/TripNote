@@ -122,7 +122,7 @@ export default function ModalShell({
           </header>
         )}
         <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 ${bodyClassName}`}>{children}</div>
-        {footer && <footer className="mobile-safe-bottom flex shrink-0 items-center justify-end gap-2 bg-surface px-4 py-3 sm:px-5">{footer}</footer>}
+        {footer && <footer className="mobile-safe-bottom flex shrink-0 items-center justify-end gap-2 border-t border-border/55 bg-surface-card px-4 py-3 sm:px-5">{footer}</footer>}
       </section>
     </div>,
     document.body,

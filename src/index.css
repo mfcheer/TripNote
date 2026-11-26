@@ -87,35 +87,35 @@
 
 /* Apple-inspired travel workspace: 让内容、地图与操作拥有清晰的材质层级，而不是靠重色块分区。 */
 @theme static {
-  --color-bg: #F7F6F2;
-  --color-surface: #F8F6F1;
+  --color-bg: #F4F4F2;
+  --color-surface: #F7F7F6;
   --color-surface-card: #FFFFFF;
-  --color-surface-2: #EFECE6;
-  --color-border: #E5E1D8;
+  --color-surface-2: #EEEEEC;
+  --color-border: #E4E4E0;
   --color-text: #1C1F23;
-  --color-text-muted: #4E555E;
+  --color-text-muted: #4E545C;
   --color-text-faint: #646970;
-  --color-accent: #0F7499;
-  --color-accent-soft: #E8F4FA;
-  --color-accent-hover: #0A5470;
-  --color-action: #0C6E9E;
-  --color-action-soft: #E6F3FA;
-  --color-action-hover: #085278;
-  --color-travel: #AF472E;
-  --color-travel-soft: #FDF0EC;
-  --color-route: #C43B35;
-  --color-danger: #C23434;
+  --color-accent: #1D70AD;
+  --color-accent-soft: #EDF4FA;
+  --color-accent-hover: #145585;
+  --color-action: #1B6CA8;
+  --color-action-soft: #EBF3FA;
+  --color-action-hover: #135384;
+  --color-travel: #A84E3B;
+  --color-travel-soft: #FBF1EE;
+  --color-route: #C4453E;
+  --color-danger: #C23939;
 
-  --color-cat-traffic: #0B6E9E;
-  --color-cat-traffic-soft: #E6F3FA;
-  --color-cat-sight: #0A7A54;
-  --color-cat-sight-soft: #E6F6EF;
-  --color-cat-food: #B84B0A;
-  --color-cat-food-soft: #FFF1E6;
-  --color-cat-stay: #524EB3;
-  --color-cat-stay-soft: #EEF0FC;
-  --color-cat-shop: #AD396A;
-  --color-cat-shop-soft: #FCEEF4;
+  --color-cat-traffic: #1B6CA8;
+  --color-cat-traffic-soft: #EBF3FA;
+  --color-cat-sight: #187556;
+  --color-cat-sight-soft: #EAF6F1;
+  --color-cat-food: #AC5214;
+  --color-cat-food-soft: #FCF2EA;
+  --color-cat-stay: #5752B0;
+  --color-cat-stay-soft: #EFF0FB;
+  --color-cat-shop: #A93D6B;
+  --color-cat-shop-soft: #FBEFF4;
 
   --shadow-card: 0 1px 2px rgba(28, 31, 35, 0.04), 0 4px 12px -2px rgba(28, 31, 35, 0.035);
   --shadow-panel: 0 1px 0 rgba(255, 255, 255, 0.85), 0 10px 28px -6px rgba(28, 31, 35, 0.055);
@@ -289,10 +289,11 @@ input:focus, textarea:focus, select:focus {
   margin-right: 0 !important;
   margin-left: 0 !important;
   border-radius: 12px;
-  background: var(--color-surface) !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
   box-shadow: none;
 }
-.app-sidebar { background: #F2EFE9; }
+.app-sidebar { background: #EFEFED; }
 .timeline-root [aria-label="行程日期导航"] {
   backdrop-filter: saturate(160%) blur(18px);
 }
@@ -310,11 +311,17 @@ input:focus, textarea:focus, select:focus {
   background: var(--color-surface-card);
   box-shadow: var(--shadow-modal);
 }
-.apple-modal-surface > footer { background: var(--color-surface); }
+.apple-modal-surface > footer {
+  background: var(--color-surface-card);
+  border-top: 1px solid color-mix(in srgb, var(--color-border) 55%, transparent);
+}
 .apple-modal-surface > header { min-height: 64px; }
 
 /* 移动端不是桌面缩小版：日期、地图浮层和底部动作使用同一层次语言。 */
-.mobile-plan-root .mobile-day-rail { background: var(--color-surface); }
+.mobile-plan-root .mobile-day-rail {
+  background: var(--color-surface-card);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-border) 50%, transparent);
+}
 .mobile-plan-root .mobile-map-stage { background: var(--color-surface-2); }
 
 .map-narrative-preview .trip-map-view .leaflet-control-zoom { margin-top: 72px; }
@@ -373,14 +380,14 @@ input:focus, textarea:focus, select:focus {
 }
 /* 细滚动条 */
 *::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: #D5D0C5; border-radius: 4px; }
-*::-webkit-scrollbar-thumb:hover { background: #B8B2A5; }
+*::-webkit-scrollbar-thumb { background: #D5D5D0; border-radius: 4px; }
+*::-webkit-scrollbar-thumb:hover { background: #B8B8B2; }
 *::-webkit-scrollbar-track { background: transparent; }
 
 /* Leaflet 融入浅色设计 */
 .leaflet-container {
   font-family: var(--font-sans);
-  background: #EEECE6;
+  background: #ECECE8;
 }
 .leaflet-control-zoom {
   border: 0 !important;

@@ -155,7 +155,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
       data-library-place-id={place.id}
       draggable
       onDragStart={(event) => dragStart(event, place)}
-      className={`group flex items-center gap-2 rounded-xl px-3.5 py-3 ${selected ? 'bg-action-soft shadow-card' : 'hover:bg-surface'} ${scheduled ? 'bg-surface/25' : ''} ${recentlyScheduledPlaceId === place.id ? 'wish-place-complete' : ''} cursor-grab active:cursor-grabbing`}
+      className={`group flex items-center gap-2 rounded-xl px-3.5 py-3 ${selected ? 'bg-action-soft shadow-card' : 'hover:bg-surface'} ${recentlyScheduledPlaceId === place.id ? 'wish-place-complete' : ''} cursor-grab active:cursor-grabbing`}
     >
       <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ background: meta.soft, color: meta.color }}><Icon size={14} /></span>
       <button onClick={() => onSelectWishPlace(selected ? null : place.id)} className="min-w-0 flex-1 text-left">
@@ -238,7 +238,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
   }
 
   return <aside className="workspace-library flex min-h-0 shrink-0 flex-col overflow-hidden rounded-2xl bg-surface-card shadow-panel" style={{ width: 'var(--workspace-library-width)' }}>
-    <div className="bg-surface px-4 pt-4 pb-3">
+    <div className="border-b border-border/55 bg-surface-card px-4 pt-4 pb-3">
       <div className="flex items-center justify-between">
         <div className="text-base font-semibold text-text">想去</div>
         <span className="rounded-full bg-action-soft px-2 py-0.5 text-xs font-medium text-accent-hover">{places.unscheduled.length}</span>
@@ -362,7 +362,7 @@ function PlaceLibrary({ onStartMapPick, recentlyScheduledPlaceId, selectedWishPl
         <div className="grid gap-1.5 px-1.5">{places.scheduled.map((place) => renderPlace(place, true))}</div>
       </details>}
     </div>
-    <div className="mt-2 bg-surface px-4 py-3 text-xs leading-relaxed text-text-faint"><HeartIcon size={12} className="mr-1 inline" />安排后仍保留在清单中，方便多天使用。</div>
+    <div className="mt-2 border-t border-border/55 bg-surface-card px-4 py-3 text-xs leading-relaxed text-text-faint"><HeartIcon size={12} className="mr-1 inline" />安排后仍保留在清单中，方便多天使用。</div>
   </aside>
 }
 
@@ -561,7 +561,7 @@ export default function WorkspaceView({ onExport, exporting, onOpenFullMap, onOp
       <div className="ml-auto flex items-center gap-1.5">
         <button onClick={onOpenAgent} className="hidden items-center gap-1 rounded-xl bg-action-soft px-2.5 py-1.5 text-xs font-semibold text-accent-hover transition-colors hover:bg-action hover:text-white xl:flex">✦ 帮我规划</button>
         <button onClick={onOpenFullMap} className="hidden items-center gap-1 rounded-md px-2.5 py-1.5 text-xs text-text-muted hover:bg-surface lg:flex"><MapIcon size={13} /> 全程地图</button>
-        <button onClick={() => setBudgetDrawerOpen(true)} className="inline-flex rounded-full bg-surface px-2 py-1 text-xs text-text-faint transition-colors hover:bg-accent-soft hover:text-accent-hover" title="查看并设置旅行总预算">预算 ¥{totalCost.toLocaleString()}{trip.totalBudget ? ` / ¥${trip.totalBudget.toLocaleString()}` : ''}</button>
+        <button onClick={() => setBudgetDrawerOpen(true)} className="inline-flex rounded-full border border-border/75 bg-surface-card px-2 py-1 text-xs text-text-faint transition-colors hover:bg-accent-soft hover:text-accent-hover" title="查看并设置旅行总预算">预算 ¥{totalCost.toLocaleString()}{trip.totalBudget ? ` / ¥${trip.totalBudget.toLocaleString()}` : ''}</button>
         <span className="mx-1 hidden h-4 w-px bg-border/80 lg:block" aria-hidden="true" />
         <button onClick={onExport} disabled={exporting} className="rounded-xl border border-border bg-white px-2.5 py-1.5 text-xs font-medium text-text-muted hover:border-accent/40 disabled:opacity-60">{exporting ? '生成中…' : '导出行程卡片'}</button>
         <button onClick={() => setSettingsOpen(true)} className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-surface" title="数据与设置" aria-label="数据与设置"><SettingsIcon size={15} /></button>

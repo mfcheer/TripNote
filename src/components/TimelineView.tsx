@@ -570,7 +570,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
   }
 
   return (
-    <div className="rounded-md border border-border/80 bg-white p-3 shadow-card sm:p-3.5">
+    <div className="rounded-xl border border-border/80 bg-white p-3 shadow-card sm:p-3.5">
       <div className="flex flex-wrap gap-2">
         <input
           type="time"
@@ -791,8 +791,12 @@ function ActivityCard({
     <div
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
-      className={`group relative flex min-w-0 w-full items-center ${compact ? 'gap-2 px-3 py-2' : 'gap-2.5 px-3.5 py-2.5'} rounded-xl border-l-2 transition-[border-color,background-color,box-shadow] ${introduced ? 'activity-drop-in' : ''} ${
-        selected ? 'border-action bg-white shadow-card' : highlighted ? 'border-accent/40 bg-accent-soft/70' : 'border-transparent bg-surface hover:bg-surface-2'
+      className={`group relative flex min-w-0 w-full items-center ${compact ? 'gap-2 px-3 py-2' : 'gap-2.5 px-3.5 py-2.5'} rounded-xl border border-l-2 transition-[border-color,background-color,box-shadow] ${introduced ? 'activity-drop-in' : ''} ${
+        selected
+          ? 'border-action/30 border-l-action bg-action-soft/45 shadow-card'
+          : highlighted
+            ? 'border-accent/35 border-l-accent/60 bg-accent-soft/55'
+            : 'border-border/65 bg-surface-card hover:border-border hover:bg-surface'
       }`}
     >
       <div
@@ -1204,7 +1208,7 @@ function DaySection({
               ))}
               {!hideQuickAdd && <button
                 onClick={onQuickAdd}
-                className={`hidden items-center gap-2 rounded-md border border-transparent bg-surface-2/65 font-medium text-text-muted transition-colors hover:border-border hover:bg-white hover:text-text sm:flex ${compact ? 'px-3 py-2 text-xs' : 'px-3.5 py-2.5 text-sm'}`}
+                className={`hidden items-center gap-2 rounded-md border border-dashed border-border/75 bg-transparent font-medium text-text-muted transition-colors hover:border-accent/40 hover:bg-surface hover:text-text sm:flex ${compact ? 'px-3 py-2 text-xs' : 'px-3.5 py-2.5 text-sm'}`}
               >
                 <PlusIcon size={15} /> 在这里添加安排
               </button>}
@@ -1384,7 +1388,7 @@ function WorkspaceDayNavigator({ showAllDays, onShowAllDays, onFocusDay }: { sho
   }
 
   return (
-    <nav className="sticky top-0 z-20 mb-4 rounded-xl bg-surface/92 px-5 py-2.5 backdrop-blur" aria-label="行程日期导航">
+    <nav className="sticky top-0 z-20 mb-4 rounded-xl border-b border-border/55 bg-surface-card/92 px-5 py-2.5 backdrop-blur" aria-label="行程日期导航">
       <div className="flex items-center gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button onClick={onShowAllDays} className={`shrink-0 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${showAllDays ? 'bg-action-soft text-accent-hover' : 'text-text-muted hover:bg-surface hover:text-text'}`}>全部</button>
         <span className="h-4 w-px shrink-0 bg-border" />

@@ -260,7 +260,7 @@ export default function SettingsView({
 
       <div className={`overflow-hidden bg-surface-card px-5 pb-5 sm:px-7 sm:pb-6 ${embedded ? '' : 'rounded-2xl shadow-panel'}`}>
         <section className="py-5 sm:py-5">
-          <div className="mb-1 text-[14.5px] font-semibold">安装与分享</div>
+          <div className="mb-1 text-[14px] font-semibold">安装与分享</div>
           <p className="mb-3 max-w-[610px] text-xs leading-relaxed text-text-muted">
             支持安装为桌面独立应用。数据均保存在本地，链接分享给他人后各自独立，互不影响
           </p>
@@ -288,7 +288,7 @@ export default function SettingsView({
         </section>
 
         <section className="py-5 sm:py-5">
-          <div className="text-[14.5px] font-semibold">规划助手</div>
+          <div className="text-[14px] font-semibold">规划助手</div>
           <p className="mt-1 max-w-[620px] text-xs leading-relaxed text-text-muted">可选自建 AI 助手服务。行程保留在本机，模型 API 密钥保存在服务端</p>
           <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]"><input value={agentUrl} onChange={(event) => setAgentUrl(event.target.value)} placeholder="例如：https://agent.example.ts.net" className="min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent" /><input value={agentToken} type="password" onChange={(event) => setAgentToken(event.target.value)} placeholder="访问口令（可选）" className="min-w-0 rounded-xl border border-border bg-surface px-3 py-2 text-sm outline-none focus:border-accent" /><button onClick={() => { setAgentServiceUrl(agentUrl); setAgentAccessToken(agentToken); useToastStore.getState().show(agentUrl.trim() ? '规划助手连接已保存' : '已关闭规划助手服务') }} className="rounded-xl bg-action px-4 py-2 text-xs font-medium text-white hover:bg-action-hover">保存</button></div>
           <p className="mt-2 text-xs text-text-faint">若服务端设置了访问口令请在此填入，口令保存在本机</p>
@@ -296,7 +296,7 @@ export default function SettingsView({
 
         {/* 数据管理 */}
         <section className="py-5 sm:py-5">
-          <div className="mb-1 text-[14.5px] font-semibold">数据管理</div>
+          <div className="mb-1 text-[14px] font-semibold">数据管理</div>
           <p className="mb-3 max-w-[610px] text-xs leading-relaxed text-text-muted">
             数据保存在本地浏览器中，备份包含全部行程与个性化配置
           </p>
@@ -386,7 +386,7 @@ export default function SettingsView({
 
         {/* 地图设置 */}
         <section className="py-4.5 sm:py-5">
-          <div className="mb-1 text-[14.5px] font-semibold">地图设置</div>
+          <div className="mb-1 text-[14px] font-semibold">地图设置</div>
           <p className="mb-3 max-w-[620px] text-xs leading-relaxed text-text-muted">
             默认使用全球 OSM 开源底图与免 Key 地理搜索；国内出行如需高德底图可在此配置
           </p>
