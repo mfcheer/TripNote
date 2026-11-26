@@ -144,7 +144,7 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = tr
       {!mapCollapsed ? <>
       <section className="mobile-map-stage relative shrink-0 overflow-hidden bg-surface" style={{ height: mapHeight }}>
         <MapView initialDayId={mapDayId} compact narrativePreview={mapNarrativePreview} />
-        <div className="pointer-events-none absolute top-3 left-3 z-[600] rounded-md bg-white/92 px-2.5 py-1.5 text-[11.5px] font-semibold text-text shadow-[0_2px_10px_rgba(32,40,46,0.10)] backdrop-blur">
+        <div className="pointer-events-none absolute top-3 left-3 z-[600] rounded-xl bg-surface-card/92 px-2.5 py-1.5 text-xs font-semibold text-text shadow-card backdrop-blur">
           {mapNarrativePreview ? `${activeDay.label} · ${activeDay.place || '当天地图'} · ${items.length} 个地点` : `${activeDay.place || '当天地图'} · ${items.length} 个地点`}
         </div>
       </section>
@@ -163,13 +163,13 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = tr
         onPointerDown={startMapResize}
         className="group -mt-1 flex h-3 shrink-0 cursor-row-resize touch-none items-center justify-center bg-bg"
       >
-        <span className="h-1 w-10 rounded-full bg-border transition-colors group-active:bg-accent" />
+        <span className="h-1 w-10 rounded-full bg-text-faint/55 transition-colors group-active:bg-accent" />
       </div>
       </> : (
         <div className="mobile-map-summary shrink-0">
           <button
             onClick={() => setMapCollapsed(false)}
-            className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1.5 py-2 text-left text-[11.5px] font-medium text-text-muted active:bg-surface"
+            className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-1.5 py-2 text-left text-xs font-medium text-text-muted active:bg-surface"
             aria-label="展开当天地图"
           >
             <MapIcon size={15} className="shrink-0 text-accent" />
@@ -178,14 +178,14 @@ export default function MobilePlanView({ onOpenFullMap, mapNarrativePreview = tr
           </button>
           <button
             onClick={onOpenFullMap}
-            className="shrink-0 rounded-md px-2 py-1.5 text-[10.5px] font-medium text-text-muted active:bg-surface"
+            className="shrink-0 rounded-xl px-2 py-1.5 text-xs font-medium text-text-muted active:bg-surface"
           >
             全程
           </button>
         </div>
       )}
 
-      <div ref={timelineScrollRef} data-mobile-timeline-scroll className="min-h-0 flex-1 overflow-y-auto">
+      <div ref={timelineScrollRef} data-mobile-timeline-scroll className="min-h-0 flex-1 overflow-y-auto bg-surface-card">
         <TimelineView onOpenFullMap={onOpenFullMap} onOpenBudget={() => setBudgetDrawerOpen(true)} onOpenWish={() => setWishSheetOpen(true)} mobilePresentation showAllDays />
       </div>
 

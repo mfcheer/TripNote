@@ -195,7 +195,7 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
         size="md"
         bodyClassName="pt-2.5 pb-5"
       >
-        <div className="mb-2 text-[11.5px] text-text-faint">搜索、收藏或选择一个地点安排到行程</div>
+        <div className="mb-2 text-xs text-text-faint">搜索、收藏或选择一个地点安排到行程</div>
         <div className="relative mb-3 rounded-xl border border-border/80 bg-surface p-2.5">
           <div className="flex gap-2">
             <input
@@ -209,41 +209,41 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
               }}
               placeholder="搜索或输入地点名称（支持粘贴攻略）"
               aria-label="搜索并收藏新地点"
-              className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-[16px] outline-none focus:border-accent sm:text-[13px]"
+              className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-2 text-base outline-none focus:border-accent sm:text-sm"
             />
             <button
               type="button"
               onClick={addSnippetPlace}
               disabled={!query.trim()}
-              className={`${overlayPrimaryButtonClass} min-h-9 shrink-0 px-3 text-[12px]`}
+              className={`${overlayPrimaryButtonClass} min-h-9 shrink-0 px-3 text-xs`}
             >
               收藏
             </button>
           </div>
           <div className="mt-2 flex items-center gap-2">
-            <select value={category} onChange={(event) => setCategory(event.target.value as ActivityCategory)} className="min-w-0 flex-1 rounded-lg border border-border bg-white px-2.5 py-1.5 text-[11.5px] text-text-muted outline-none focus:border-accent">{(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => <option key={value} value={value}>{CATEGORY_META[value].label}</option>)}</select>
-            <button type="button" onClick={() => setShowCustomMap(true)} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-2.5 py-1.5 text-[11.5px] font-medium text-text-muted hover:border-accent hover:text-accent"><MapIcon size={13} /> 地图选点</button>
+            <select value={category} onChange={(event) => setCategory(event.target.value as ActivityCategory)} className="min-w-0 flex-1 rounded-xl border border-border bg-white px-2.5 py-1.5 text-xs text-text-muted outline-none focus:border-accent">{(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => <option key={value} value={value}>{CATEGORY_META[value].label}</option>)}</select>
+            <button type="button" onClick={() => setShowCustomMap(true)} className="inline-flex items-center gap-1.5 rounded-xl border border-border bg-white px-2.5 py-1.5 text-xs font-medium text-text-muted hover:border-accent hover:text-accent"><MapIcon size={13} /> 地图选点</button>
           </div>
 
           {query.trim().length > 0 && (
-            <div className="mt-2 overflow-hidden rounded-lg border border-border bg-white shadow-xs">
+            <div className="mt-2 overflow-hidden rounded-xl border border-border bg-white shadow-xs">
               <button
                 type="button"
                 onClick={addSnippetPlace}
                 className="flex w-full items-center justify-between border-b border-border/70 bg-action-soft/35 px-3 py-2 text-left hover:bg-action-soft"
               >
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-[13px] font-semibold text-text">
+                  <div className="truncate text-sm font-semibold text-text">
                     ↵ 直接收藏：<span className="text-accent">{parsed.title}</span>
                   </div>
                   {parsed.isSnippet && (
-                    <div className="mt-0.5 truncate text-[11px] text-text-faint">
+                    <div className="mt-0.5 truncate text-xs text-text-faint">
                       {parsed.location && <span>📍 {parsed.location} </span>}
                       {parsed.note && <span>💬 {parsed.note}</span>}
                     </div>
                   )}
                 </div>
-                <span className="ml-2 shrink-0 rounded bg-white px-2 py-0.5 text-[10.5px] font-medium text-accent shadow-xs">
+                <span className="ml-2 shrink-0 rounded-md bg-white px-2 py-0.5 text-xs font-medium text-accent shadow-xs">
                   秒存
                 </span>
               </button>
@@ -258,7 +258,7 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
                       setSelectedPlaceId(place.id)
                       clearAdd()
                     }}
-                    className="block w-full truncate border-b border-border/40 px-3 py-1.5 text-left text-[11.5px] text-accent-hover hover:bg-action-soft/40"
+                    className="block w-full truncate border-b border-border/40 px-3 py-1.5 text-left text-xs text-accent-hover hover:bg-action-soft/40"
                   >
                     ⭐ 已收藏 · {place.title}
                   </button>
@@ -266,16 +266,16 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {searchStatus === 'loading' && <div role="status" className="mt-2 text-[11px] text-text-faint">正在查找定位建议（可随时点击上方直接收藏）…</div>}
-          {results.length > 0 && <div className="mt-2 overflow-hidden rounded-lg border border-border bg-white">
-            {groupedResults.trip.length > 0 && <div className="border-b border-border/70 bg-surface px-3 py-1.5 text-[10.5px] font-medium text-text-muted">旅行范围内匹配</div>}
-            {groupedResults.trip.map((result) => <button key={`${result.lat},${result.lng}`} type="button" onClick={() => addFromResult(result)} className="block w-full border-b border-border/70 px-3 py-2 text-left last:border-b-0 hover:bg-accent-soft"><span className="block truncate text-[12.5px] font-medium text-text">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}
-            {groupedResults.broader.length > 0 && <><div className="border-y border-border/70 bg-surface px-3 py-1.5 text-[10.5px] font-medium text-text-faint">其他可能地点</div>{groupedResults.broader.map((result) => <button key={`${result.lat},${result.lng}`} type="button" onClick={() => addFromResult(result)} className="block w-full border-b border-border/70 px-3 py-2 text-left last:border-b-0 hover:bg-accent-soft"><span className="block truncate text-[12.5px] font-medium text-text">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-[10.5px] text-text-faint">{result.label}</span></button>)}</>}
+          {searchStatus === 'loading' && <div role="status" className="mt-2 text-xs text-text-faint">正在查找定位建议（可随时点击上方直接收藏）…</div>}
+          {results.length > 0 && <div className="mt-2 overflow-hidden rounded-xl border border-border bg-white">
+            {groupedResults.trip.length > 0 && <div className="border-b border-border/70 bg-surface px-3 py-1.5 text-xs font-medium text-text-muted">旅行范围内匹配</div>}
+            {groupedResults.trip.map((result) => <button key={`${result.lat},${result.lng}`} type="button" onClick={() => addFromResult(result)} className="block w-full border-b border-border/70 px-3 py-2 text-left last:border-b-0 hover:bg-accent-soft"><span className="block truncate text-sm font-medium text-text">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-xs text-text-faint">{result.label}</span></button>)}
+            {groupedResults.broader.length > 0 && <><div className="border-y border-border/70 bg-surface px-3 py-1.5 text-xs font-medium text-text-faint">其他可能地点</div>{groupedResults.broader.map((result) => <button key={`${result.lat},${result.lng}`} type="button" onClick={() => addFromResult(result)} className="block w-full border-b border-border/70 px-3 py-2 text-left last:border-b-0 hover:bg-accent-soft"><span className="block truncate text-sm font-medium text-text">{result.label.split(',')[0]}</span><span className="mt-0.5 block truncate text-xs text-text-faint">{result.label}</span></button>)}</>}
           </div>}
           <PlaceSearchFeedback status={searchStatus} error={searchError} query={query} onRetry={retrySearch} onManual={addSnippetPlace} onMap={() => setShowCustomMap(true)} />
         </div>
 
-        {places.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-[12px] leading-relaxed text-text-faint">还没有收藏地点。可以搜索，或从地图上选一个位置。</div> : <div className="divide-y divide-border/80">
+        {places.length === 0 ? <div className="rounded-xl border border-dashed border-border bg-surface px-4 py-8 text-center text-xs leading-relaxed text-text-faint">还没有收藏地点。可以搜索，或从地图上选一个位置。</div> : <div className="divide-y divide-border/80">
           {places.map((place, index) => {
             const meta = CATEGORY_META[place.category]
             const Icon = CATEGORY_ICONS[place.category]
@@ -283,13 +283,13 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
             const scheduledItems = scheduledItemsFor(place)
             const startsScheduled = scheduledItems.length > 0 && !places.slice(0, index).some((item) => scheduledItemsFor(item).length > 0)
             return <div key={place.id} className="py-2.5 first:pt-1.5">
-              {startsScheduled && <div className="mb-1.5 flex items-center gap-2 text-[10.5px] font-medium text-text-faint"><span className="h-px flex-1 bg-border" />已安排到行程<span className="h-px flex-1 bg-border" /></div>}
+              {startsScheduled && <div className="mb-1.5 flex items-center gap-2 text-xs font-medium text-text-faint"><span className="h-px flex-1 bg-border" />已安排到行程<span className="h-px flex-1 bg-border" /></div>}
               <div className={`flex items-center gap-2 rounded-xl px-1.5 py-1.5 transition-colors ${expanded ? 'bg-action-soft/55' : 'hover:bg-surface'}`}>
                 <button type="button" onClick={() => choosePlace(place.id)} aria-expanded={expanded} className="flex min-w-0 flex-1 items-center gap-3 text-left">
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full" style={{ background: meta.soft, color: meta.color }}><Icon size={18} /></span>
-                  <span className="min-w-0 flex-1"><span className="block truncate text-[14px] font-semibold tracking-[-0.01em] text-text">{place.title}</span><span className="mt-0.5 block truncate text-[11.5px] text-text-faint">{place.location || '未补充位置'}</span></span>
+                  <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold tracking-[-0.01em] text-text">{place.title}</span><span className="mt-0.5 block truncate text-xs text-text-faint">{place.location || '未补充位置'}</span></span>
                 </button>
-                <button type="button" onClick={() => choosePlace(place.id)} className={`shrink-0 rounded-full px-2 py-1 text-[10.5px] font-semibold ${scheduledItems.length ? 'bg-surface-2 text-text-muted' : 'bg-action-soft text-action'}`}>{scheduledItems.length ? `已排 ${scheduledItems.length} 次` : '待安排'}</button>
+                <button type="button" onClick={() => choosePlace(place.id)} className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold ${scheduledItems.length ? 'bg-surface-2 text-text-muted' : 'bg-action-soft text-action'}`}>{scheduledItems.length ? `已排 ${scheduledItems.length} 次` : '待安排'}</button>
                 {place.geo && (
                   <button
                     type="button"
@@ -301,17 +301,17 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
                     <NavigateIcon size={13} />
                   </button>
                 )}
-                <button type="button" onClick={() => removePlace(place)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-faint hover:bg-red-50 hover:text-red-500" aria-label={`移出「${place.title}」`}><TrashIcon size={14} /></button>
+                <button type="button" onClick={() => removePlace(place)} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-faint hover:bg-red-50 hover:text-danger" aria-label={`移出「${place.title}」`}><TrashIcon size={14} /></button>
               </div>
 
               {expanded && targetDay && <div ref={assignmentRef} className="mt-2.5 scroll-mt-2 rounded-xl border border-action/10 bg-action-soft/42 px-3 py-3">
-                <div className="mb-2 truncate text-[12px] font-semibold text-text">安排「{place.title}」</div>
-                {scheduledItems.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5"><span className="mr-1 self-center text-[10.5px] text-text-faint">已安排</span>{scheduledItems.map((item) => <span key={item.id} className="inline-flex items-center overflow-hidden rounded-md border border-border bg-white text-[10.5px]"><span className="px-1.5 py-1 text-text-muted">{item.day?.label ?? '未分配'} · {item.time}</span><button type="button" onClick={() => cancelAssignment(place, item.id)} className="border-l border-border px-1.5 py-1 text-text-faint hover:bg-red-50 hover:text-red-500" aria-label={`取消 ${item.day?.label ?? ''} ${item.time} 的安排`}>×</button></span>)}</div>}
-                <div className="flex items-center justify-between gap-3"><span className="text-[11px] font-medium text-text-muted">{scheduledItems.length ? '再安排到' : '安排到'}</span><span className="truncate text-[11px] text-text-faint">{targetDay.label} · {targetDay.place || '待定'}</span></div>
-                <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">{trip.days.map((day) => <button type="button" key={day.id} onClick={() => chooseDay(day.id)} className={`min-w-[74px] shrink-0 rounded-[10px] border px-2 py-2 text-center transition-colors ${day.id === targetDay.id ? 'border-action bg-white text-action shadow-[0_1px_4px_rgba(40,120,212,0.10)]' : 'border-border/80 bg-white/70 text-text-muted hover:border-action/35'}`}><span className="block text-[10.5px] leading-none">{compactDate(day.date)}</span><span className="mt-1 block text-[11.5px] font-semibold leading-none">{day.label}</span></button>)}</div>
-                <section aria-label="目标日期行程预览" className="mt-2 rounded-lg border border-border/70 bg-white/85 px-2.5 py-2">
-                  <div className="flex items-center justify-between text-[10.5px] text-text-muted"><span className="font-medium">当天已有安排</span><span>{targetActivities.length} 项</span></div>
-                  {targetActivities.length === 0 ? <p className="mt-2 text-[11px] text-text-faint">这一天还是空白，可以从这个地点开始。</p>
+                <div className="mb-2 truncate text-xs font-semibold text-text">安排「{place.title}」</div>
+                {scheduledItems.length > 0 && <div className="mb-2 flex flex-wrap gap-1.5"><span className="mr-1 self-center text-xs text-text-faint">已安排</span>{scheduledItems.map((item) => <span key={item.id} className="inline-flex items-center overflow-hidden rounded-md border border-border bg-white text-xs"><span className="px-1.5 py-1 text-text-muted">{item.day?.label ?? '未分配'} · {item.time}</span><button type="button" onClick={() => cancelAssignment(place, item.id)} className="border-l border-border px-1.5 py-1 text-text-faint hover:bg-red-50 hover:text-danger" aria-label={`取消 ${item.day?.label ?? ''} ${item.time} 的安排`}>×</button></span>)}</div>}
+                <div className="flex items-center justify-between gap-3"><span className="text-xs font-medium text-text-muted">{scheduledItems.length ? '再安排到' : '安排到'}</span><span className="truncate text-xs text-text-faint">{targetDay.label} · {targetDay.place || '待定'}</span></div>
+                <div className="-mx-1 mt-2 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">{trip.days.map((day) => <button type="button" key={day.id} onClick={() => chooseDay(day.id)} className={`min-w-[74px] shrink-0 rounded-xl border px-2 py-2 text-center transition-colors ${day.id === targetDay.id ? 'border-action bg-white text-action shadow-card' : 'border-border/80 bg-white/70 text-text-muted hover:border-action/35'}`}><span className="block text-xs leading-none">{compactDate(day.date)}</span><span className="mt-1 block text-xs font-semibold leading-none">{day.label}</span></button>)}</div>
+                <section aria-label="目标日期行程预览" className="mt-2 rounded-xl border border-border/70 bg-white/85 px-2.5 py-2">
+                  <div className="flex items-center justify-between text-xs text-text-muted"><span className="font-medium">当天已有安排</span><span>{targetActivities.length} 项</span></div>
+                  {targetActivities.length === 0 ? <p className="mt-2 text-xs text-text-faint">这一天还是空白，可以从这个地点开始。</p>
                     : <div className="mt-1.5 max-h-[180px] overflow-y-auto overscroll-contain">
                       {targetActivities.map((activity, index) => {
                         const end = endMinutes(activity)
@@ -319,20 +319,20 @@ export default function MobileWishSheet({ onClose }: { onClose: () => void }) {
                         const gap = end !== undefined && next ? timeMinutes(next.time) - end : 0
                         const after = end ?? timeMinutes(activity.time) + 30
                         return <div key={activity.id}>
-                          <div className="flex items-center gap-2 py-1.5 text-[11px]">
+                          <div className="flex items-center gap-2 py-1.5 text-xs">
                             <span className="w-[38px] shrink-0 tabular-nums text-text-faint">{activity.time}</span>
-                            <span className="min-w-0 flex-1"><span className="block truncate text-text">{activity.title}</span>{end !== undefined && <span className="block text-[10px] text-text-faint">{end >= 1440 ? '次日 ' : ''}{clockTime(end)} 结束</span>}</span>
-                            {after < 1440 && <button type="button" onClick={() => setTime(clockTime(after))} aria-label={`排在${activity.title}后面`} className="shrink-0 rounded-md px-1.5 py-1.5 text-[10px] font-medium text-accent-hover hover:bg-action-soft">排在后面</button>}
+                            <span className="min-w-0 flex-1"><span className="block truncate text-text">{activity.title}</span>{end !== undefined && <span className="block text-xs text-text-faint">{end >= 1440 ? '次日 ' : ''}{clockTime(end)} 结束</span>}</span>
+                            {after < 1440 && <button type="button" onClick={() => setTime(clockTime(after))} aria-label={`排在${activity.title}后面`} className="shrink-0 rounded-md px-1.5 py-1.5 text-xs font-medium text-accent-hover hover:bg-action-soft">排在后面</button>}
                           </div>
-                          {gap > 0 && <div className="ml-[46px] border-l border-border pl-2 text-[10px] text-text-faint">间隔 {gap >= 60 ? `${Math.floor(gap / 60)} 小时${gap % 60 ? ` ${gap % 60} 分钟` : ''}` : `${gap} 分钟`} · 含移动时间</div>}
+                          {gap > 0 && <div className="ml-[46px] border-l border-border pl-2 text-xs text-text-faint">间隔 {gap >= 60 ? `${Math.floor(gap / 60)} 小时${gap % 60 ? ` ${gap % 60} 分钟` : ''}` : `${gap} 分钟`} · 含移动时间</div>}
                         </div>
                       })}
                     </div>}
-                  {targetActivities.some((activity) => endMinutes(activity) === undefined) && <p className="mt-1 text-[10px] text-text-faint">未填时长的安排，默认在开始后 30 分钟；请预留游玩和交通时间。</p>}
+                  {targetActivities.some((activity) => endMinutes(activity) === undefined) && <p className="mt-1 text-xs text-text-faint">未填时长的安排，默认在开始后 30 分钟；请预留游玩和交通时间。</p>}
                 </section>
-                {overlapping && <p role="status" className="mt-2 text-[11px] text-amber-700">所选时间与「{overlapping.title}」重叠，可修改时间后安排。</p>}
-                {referenceDistances.length > 0 && <div className="mt-1.5 space-y-0.5 text-[10.5px] text-text-muted">{referenceDistances.map((distance, index) => <p key={`${distance.title}-${index}`} className="truncate">距「{distance.title}」直线约 {(distance.meters / 1000).toFixed(1)} km{distance.meters >= 15000 ? ' · 请预留交通时间' : ''}</p>)}</div>}
-                <div className="mt-2.5 flex items-center gap-2 border-t border-action/10 pt-2.5"><label className="flex min-w-0 flex-1 items-center gap-2 text-[11px] text-text-muted"><ClockIcon size={14} className="shrink-0 text-accent" /><span className="shrink-0">建议时间</span><input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="min-w-0 flex-1 bg-transparent text-right text-[13px] font-semibold text-text outline-none" aria-label="安排时间" /></label><button type="button" onClick={confirmAssignment} className={`${overlayPrimaryButtonClass} min-h-9 shrink-0 px-4 text-[12px]`}>安排</button></div>
+                {overlapping && <p role="status" className="mt-2 text-xs text-amber-700">所选时间与「{overlapping.title}」重叠，可修改时间后安排。</p>}
+                {referenceDistances.length > 0 && <div className="mt-1.5 space-y-0.5 text-xs text-text-muted">{referenceDistances.map((distance, index) => <p key={`${distance.title}-${index}`} className="truncate">距「{distance.title}」直线约 {(distance.meters / 1000).toFixed(1)} km{distance.meters >= 15000 ? ' · 请预留交通时间' : ''}</p>)}</div>}
+                <div className="mt-2.5 flex items-center gap-2 border-t border-action/10 pt-2.5"><label className="flex min-w-0 flex-1 items-center gap-2 text-xs text-text-muted"><ClockIcon size={14} className="shrink-0 text-accent" /><span className="shrink-0">建议时间</span><input type="time" value={time} onChange={(event) => setTime(event.target.value)} className="min-w-0 flex-1 bg-transparent text-right text-sm font-semibold text-text outline-none" aria-label="安排时间" /></label><button type="button" onClick={confirmAssignment} className={`${overlayPrimaryButtonClass} min-h-9 shrink-0 px-4 text-xs`}>安排</button></div>
               </div>}
             </div>
           })}

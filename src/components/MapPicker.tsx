@@ -9,7 +9,7 @@ import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 
 const pickIcon = L.divIcon({
   className: '',
-  html: `<div class="map-marker" style="border-color:#59636e;color:#59636e">📍</div>`,
+  html: `<div class="map-marker" style="border-color:var(--color-text-muted);color:var(--color-text-muted)">📍</div>`,
   iconSize: [26, 26],
   iconAnchor: [13, 26],
 })
@@ -86,7 +86,7 @@ export default function MapPicker({
     }
   }
 
-  const amapMarkers: AmapMarker[] = point ? [{ id: 'picked', point, label: '📍', color: '#59636e' }] : []
+  const amapMarkers: AmapMarker[] = point ? [{ id: 'picked', point, label: '📍', color: 'var(--color-text-muted)' }] : []
 
   return (
     <div className="overflow-hidden rounded-md border border-border">
@@ -110,7 +110,7 @@ export default function MapPicker({
         </MapContainer>
         )}
       </div>
-      <div className="flex items-center justify-between border-t border-border bg-surface px-3 py-1.5 text-[11.5px] text-text-muted">
+      <div className="flex items-center justify-between border-t border-border bg-surface px-3 py-1.5 text-xs text-text-muted">
         <span>{resolving ? '正在解析地名…' : picking || point ? '已选点，点击地图可重新选' : '点击地图选取位置'}</span>
         {point && (
           <span className="tabular-nums text-text-faint">

@@ -35,10 +35,10 @@ export default function DataSafetyStatus({ onOpenSettings }: { onOpenSettings: (
   return (
     <button onClick={onOpenSettings} className="flex w-full items-center justify-between gap-3 border-t border-border/70 px-3 py-2.5 text-left hover:bg-surface">
       <span className="min-w-0">
-        <span className="block text-[11.5px] font-medium text-text-muted">数据与备份</span>
-        <span className={`mt-0.5 block truncate text-[10.5px] ${protectedData ? 'text-accent-hover' : 'text-text-faint'}`}>{pendingCopy || backupCopy(status, portableBackupAt)}</span>
+        <span className="block text-xs font-medium text-text-muted">数据与备份</span>
+        <span className={`mt-0.5 block truncate text-xs ${protectedData ? 'text-accent-hover' : 'text-text-faint'}`}>{pendingCopy || backupCopy(status, portableBackupAt)}</span>
       </span>
-      <span className="shrink-0 text-[12px] text-text-faint">›</span>
+      <span className="shrink-0 text-xs text-text-faint">›</span>
     </button>
   )
 }

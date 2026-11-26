@@ -126,7 +126,7 @@ export default function App() {
         {view === 'plan' && (
           <>
             {/* 平板采用双栏编排与连续行程两个明确视图，避免标签切换后内容无变化。 */}
-            <div className="trip-topbar hidden h-[52px] shrink-0 items-end justify-between border-b border-border/80 px-7 md:flex lg:hidden">
+            <div className="trip-topbar hidden h-[52px] shrink-0 items-end justify-between px-7 md:flex lg:hidden">
               <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto">
                 {PLAN_TABS.map(({ key, label, Icon }) => {
                   const active = visiblePlanTab === key
@@ -134,7 +134,7 @@ export default function App() {
                     <button
                       key={key}
                       onClick={() => setPlanTab(key)}
-                      className={`relative flex shrink-0 items-center gap-1.5 px-3 pb-3 pt-2 text-[13px] transition-colors ${
+                      className={`relative flex shrink-0 items-center gap-1.5 px-3 pb-3 pt-2 text-sm transition-colors ${
                         active ? 'font-semibold text-text' : 'text-text-muted hover:text-text'
                       }`}
                     >
@@ -148,7 +148,7 @@ export default function App() {
                 {installPrompt && (
                   <button
                     onClick={installApp}
-                    className="rounded-md px-2.5 py-1 text-[12px] font-medium text-accent transition-colors hover:bg-accent-soft"
+                    className="rounded-md px-2.5 py-1 text-xs font-medium text-accent transition-colors hover:bg-accent-soft"
                     title="将 TripNote 添加到设备"
                   >
                     安装应用
@@ -157,7 +157,7 @@ export default function App() {
                 <button
                   onClick={downloadImage}
                   disabled={exportingImage}
-                  className="flex items-center gap-1.5 rounded-md border border-border/80 bg-white/80 px-2.5 py-1.5 text-[12px] font-medium text-text-muted shadow-[0_1px_2px_rgba(32,40,46,0.04)] backdrop-blur-sm transition-colors hover:border-accent/50 hover:text-text disabled:cursor-wait disabled:opacity-60"
+                  className="flex items-center gap-1.5 rounded-xl border border-border/80 bg-white/80 px-2.5 py-1.5 text-xs font-medium text-text-muted shadow-card backdrop-blur-sm transition-colors hover:border-accent/50 hover:text-text disabled:cursor-wait disabled:opacity-60"
                 >
                   <DownloadIcon size={13} /> {exportingImage ? '生成中…' : '导出行程卡片'}
                 </button>
@@ -185,18 +185,18 @@ export default function App() {
       </div>
       {fullScreenMapDayId && (
         <section role="dialog" aria-modal="true" className="fixed inset-0 z-[1000] flex flex-col bg-bg" aria-label="完整行程地图">
-          <header className="trip-topbar mobile-safe-top flex min-h-[58px] shrink-0 items-center gap-3 border-b border-border/80 px-3 sm:px-5">
+          <header className="trip-topbar mobile-safe-top flex min-h-[58px] shrink-0 items-center gap-3 px-3 sm:px-5">
             <button
               onClick={closeFullScreenMap}
-              className="shrink-0 rounded-md border border-border/80 bg-white/80 px-3 py-2 text-[12.5px] font-medium text-text-muted transition-colors hover:border-accent/50 hover:text-text"
+              className="shrink-0 rounded-xl border border-border/80 bg-white/80 px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:border-accent/50 hover:text-text"
             >
               返回行程
             </button>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13.5px] font-semibold text-text">{trip.name}</div>
-              <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-text-faint"><MapIcon size={12} /> 完整行程地图</div>
+              <div className="truncate text-sm font-semibold text-text">{trip.name}</div>
+              <div className="mt-0.5 flex items-center gap-1.5 text-xs text-text-faint"><MapIcon size={12} /> 完整行程地图</div>
             </div>
-            <span className="hidden shrink-0 text-[11.5px] text-text-faint sm:inline">Esc 关闭</span>
+            <span className="hidden shrink-0 text-xs text-text-faint sm:inline">Esc 关闭</span>
           </header>
           <div className="min-h-0 flex-1">
             <MapView

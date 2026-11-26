@@ -45,7 +45,7 @@ function selectedWishIcon(label: string) {
 function clusterIcon(count: number) {
   return L.divIcon({
     className: '',
-    html: `<div class="map-marker" style="border-color:#59636e;color:#59636e">${count}</div>`,
+    html: `<div class="map-marker" style="border-color:var(--color-text-muted);color:var(--color-text-muted)">${count}</div>`,
     iconSize: [26, 26],
     iconAnchor: [13, 13],
   })
@@ -336,7 +336,7 @@ export default function MapView({
     ...crossDaySegments.map(({ from, to, mode }) => ({
       id: `cross-${from.id}-${to.id}`,
       points: [from.geo!, to.geo!],
-      color: mode === 'flight' ? '#8294a0' : mode === 'train' ? '#6f8794' : '#8b9ca6',
+      color: mode === 'flight' ? '#7A727F' : mode === 'train' ? '#516C78' : '#736C5E',
       dashed: true,
       weight: mode === 'train' ? 3.2 : 2.5,
     })),
@@ -380,36 +380,36 @@ export default function MapView({
   return (
     <div className={`trip-map-view relative h-full min-w-0 w-full overflow-hidden ${isPicking ? 'cursor-crosshair' : ''}`}>
       {onWorkspaceMapScopeChange && !wishOverview && (narrativePreview ? (
-        <div className="map-story-context absolute top-3 left-3 right-3 z-[550] flex items-center justify-between gap-2 rounded-lg border border-white/75 bg-white/92 px-2.5 py-2 shadow-[0_5px_18px_rgba(32,40,46,0.10)] backdrop-blur-md">
-          <div className="min-w-0"><div className="truncate text-[11.5px] font-semibold text-text">{workspaceMapScope === 'all' ? '全程路线' : (narrativeDay?.place || narrativeDay?.label || '当前日期')}</div><div className="truncate text-[10px] text-text-faint">{narrativeSummary}</div></div>
+        <div className="map-story-context absolute top-3 left-3 right-3 z-[550] flex items-center justify-between gap-2 rounded-xl border border-white/75 bg-white/92 px-2.5 py-2 shadow-card backdrop-blur-md">
+          <div className="min-w-0"><div className="truncate text-xs font-semibold text-text">{workspaceMapScope === 'all' ? '全程路线' : (narrativeDay?.place || narrativeDay?.label || '当前日期')}</div><div className="truncate text-xs text-text-faint">{narrativeSummary}</div></div>
           <div className="flex shrink-0 rounded-md bg-surface-2/90 p-0.5">
-            <button onClick={() => onWorkspaceMapScopeChange('follow')} className={`rounded px-2 py-1 text-[10.5px] font-medium transition-colors ${workspaceMapScope !== 'all' ? 'bg-white text-accent-hover shadow-sm' : 'text-text-muted'}`}>跟随日期</button>
-            <button onClick={() => onWorkspaceMapScopeChange('all')} className={`rounded px-2 py-1 text-[10.5px] font-medium transition-colors ${workspaceMapScope === 'all' ? 'bg-white text-accent-hover shadow-sm' : 'text-text-muted'}`}>全程</button>
+            <button onClick={() => onWorkspaceMapScopeChange('follow')} className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${workspaceMapScope !== 'all' ? 'bg-white text-accent-hover shadow-sm' : 'text-text-muted'}`}>跟随日期</button>
+            <button onClick={() => onWorkspaceMapScopeChange('all')} className={`rounded-md px-2 py-1 text-xs font-medium transition-colors ${workspaceMapScope === 'all' ? 'bg-white text-accent-hover shadow-sm' : 'text-text-muted'}`}>全程</button>
           </div>
         </div>
       ) : (
-        <div className="absolute top-3 left-16 z-[550] flex items-center rounded-lg border border-white/80 bg-white/94 p-1 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
+        <div className="absolute top-3 left-16 z-[550] flex items-center rounded-xl border border-white/80 bg-white/94 p-1 shadow-card backdrop-blur-md">
           <button
             onClick={() => onWorkspaceMapScopeChange('follow')}
-            className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${workspaceMapScope !== 'all' ? 'bg-action text-white shadow-[0_1px_3px_rgba(32,40,46,0.12)]' : 'text-text-muted hover:bg-surface hover:text-text'}`}
+            className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${workspaceMapScope !== 'all' ? 'bg-action text-white shadow-card' : 'text-text-muted hover:bg-surface hover:text-text'}`}
           >
             跟随日期
           </button>
           <button
             onClick={() => onWorkspaceMapScopeChange('all')}
-            className={`rounded-md px-2.5 py-1.5 text-[11px] font-medium transition-colors ${workspaceMapScope === 'all' ? 'bg-action text-white shadow-[0_1px_3px_rgba(32,40,46,0.12)]' : 'text-text-muted hover:bg-surface hover:text-text'}`}
+            className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition-colors ${workspaceMapScope === 'all' ? 'bg-action text-white shadow-card' : 'text-text-muted hover:bg-surface hover:text-text'}`}
           >
             全程
           </button>
-          <span className="hidden border-l border-border/80 px-2 text-[10.5px] text-text-faint xl:inline">{workspaceMapScope === 'all' ? '完整路线' : (followedDay?.place || followedDay?.label || '当前日期')}</span>
+          <span className="hidden border-l border-border/80 px-2 text-xs text-text-faint xl:inline">{workspaceMapScope === 'all' ? '完整路线' : (followedDay?.place || followedDay?.label || '当前日期')}</span>
         </div>
       ))}
       {/* 天数筛选 */}
       {!compact && <div className="absolute inset-x-3 top-3 z-[500] overflow-x-auto pb-1 md:inset-x-auto md:top-4 md:left-[64px]">
-        <div className="mx-auto flex w-max items-center gap-1 rounded-lg border border-white/80 bg-white/94 p-1.5 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md">
+        <div className="mx-auto flex w-max items-center gap-1 rounded-xl border border-white/80 bg-white/94 p-1.5 shadow-card backdrop-blur-md">
           <div className="mr-1 hidden max-w-[190px] items-center gap-2 border-r border-border/80 px-2 pr-3 md:flex">
-            <span className="truncate text-[12px] font-semibold text-text">{trip.name}</span>
-            <span className="shrink-0 text-[10.5px] text-text-faint">{trip.daysCount} 天</span>
+            <span className="truncate text-xs font-semibold text-text">{trip.name}</span>
+            <span className="shrink-0 text-xs text-text-faint">{trip.daysCount} 天</span>
           </div>
           {[{ id: 'all', label: '全部' }, ...trip.days.map((d) => ({ id: d.id, label: d.label }))].map((item) => {
             const active = filter === item.id
@@ -417,8 +417,8 @@ export default function MapView({
               <button
                 key={item.id}
                 onClick={() => setFilter(item.id)}
-                className={`rounded-md px-3 py-1 text-[12px] font-medium transition-colors ${
-                  active ? 'bg-accent text-white shadow-[0_1px_3px_rgba(32,40,46,0.12)]' : 'text-text-muted hover:bg-surface-2 hover:text-text'
+                className={`rounded-md px-3 py-1 text-xs font-medium transition-colors ${
+                  active ? 'bg-accent text-white shadow-card' : 'text-text-muted hover:bg-surface-2 hover:text-text'
                 }`}
               >
                 {item.label}
@@ -430,17 +430,17 @@ export default function MapView({
 
       {!compact && !pickedPoint && <button
         onClick={() => isPicking ? stopPicking() : setIsPicking(true)}
-        className={`absolute bottom-4 left-3 z-[550] flex items-center gap-1.5 rounded-md border px-3 py-2 text-[12px] font-medium shadow-[0_5px_18px_rgba(32,40,46,0.12)] transition-colors md:top-4 md:right-4 md:bottom-auto md:left-auto ${
+        className={`absolute bottom-4 left-3 z-[550] flex items-center gap-1.5 rounded-md border px-3 py-2 text-xs font-medium shadow-card transition-colors md:top-4 md:right-4 md:bottom-auto md:left-auto ${
           isPicking ? 'border-action bg-action text-white' : 'border-white/80 bg-white/94 text-text-muted backdrop-blur-md hover:text-text'
         }`}
       >
         {isPicking ? '取消选点' : <><PlusIcon size={14} /> 选点收藏</>}
       </button>}
 
-      {wishOverview && <div className="absolute top-3 left-3 z-[550] rounded-md border border-white/80 bg-white/94 px-2.5 py-1.5 text-[10.5px] text-text-muted shadow-[0_4px_14px_rgba(32,40,46,0.10)] backdrop-blur"><span className="font-medium text-text">地点总览</span><span className="mx-1.5 text-border">|</span><span className="text-action-hover">● 待安排</span><span className="ml-1.5 text-accent-hover">● 已安排</span></div>}
+      {wishOverview && <div className="absolute top-3 left-3 z-[550] rounded-md border border-white/80 bg-white/94 px-2.5 py-1.5 text-xs text-text-muted shadow-card backdrop-blur"><span className="font-medium text-text">地点总览</span><span className="mx-1.5 text-border">|</span><span className="text-action-hover">● 待安排</span><span className="ml-1.5 text-accent-hover">● 已安排</span></div>}
 
       {isPicking && !pickedPoint && (
-        <div className="absolute top-[96px] left-3 z-[550] rounded-lg border border-accent/30 bg-white/95 px-3 py-2 text-[12px] text-text-muted shadow-[0_2px_10px_rgba(0,0,0,0.08)] backdrop-blur md:top-[64px] md:left-4">
+        <div className="absolute top-[96px] left-3 z-[550] rounded-xl border border-accent/30 bg-white/95 px-3 py-2 text-xs text-text-muted shadow-card backdrop-blur md:top-[64px] md:left-4">
           点击地图空白处，收藏一个地点到想去
         </div>
       )}
@@ -459,7 +459,7 @@ export default function MapView({
 
         {crossDaySegments.map(({ from, to, mode }) => {
           const positions = [[from.geo!.lat, from.geo!.lng], [to.geo!.lat, to.geo!.lng]] as [number, number][]
-          const lineColor = mode === 'flight' ? '#8294a0' : mode === 'train' ? '#6f8794' : '#8b9ca6'
+          const lineColor = mode === 'flight' ? '#7A727F' : mode === 'train' ? '#516C78' : '#736C5E'
           const dashArray = mode === 'flight' ? '3 9' : mode === 'train' ? '11 7' : '7 8'
           return <Fragment key={`${from.id}-${to.id}`}>
             <Polyline positions={positions} pathOptions={{ color: '#fffdf9', weight: mode === 'train' ? 7 : 6, opacity: 0.72, dashArray }} />
@@ -490,14 +490,14 @@ export default function MapView({
                   <Icon size={13} />
                   <span>{activity.title}</span>
                 </div>
-                <div className="mt-1 text-[12px] text-text-muted">
+                <div className="mt-1 text-xs text-text-muted">
                   {day.label} {activity.time}
                   {activity.location && ` · ${activity.location}`}
                 </div>
                 <button
                   type="button"
                   onClick={() => openNavigation({ title: activity.title, location: activity.location, lat: group.point.lat, lng: group.point.lng })}
-                  className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-md bg-action px-2.5 py-1 text-[11.5px] font-medium text-white transition-colors hover:bg-action-hover"
+                  className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl bg-action px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-action-hover"
                 >
                   <NavigateIcon size={12} /> 外部地图导航
                 </button>
@@ -506,7 +506,7 @@ export default function MapView({
           </Marker>
         })() : (
           <Marker key={`cluster-${group.id}`} position={[group.point.lat, group.point.lng]} icon={clusterIcon(group.items.length)}>
-            <Popup><div className="min-w-[180px]"><div className="mb-1.5 text-[12px] font-semibold">{group.items.length} 个重叠地点</div>{group.items.map(({ activity, day }) => <button key={activity.id} onClick={() => focusMapActivity(activity.id)} className="block w-full truncate rounded px-1 py-1 text-left text-[12px] hover:bg-surface">{day.label} · {activity.title}</button>)}</div></Popup>
+            <Popup><div className="min-w-[180px]"><div className="mb-1.5 text-xs font-semibold">{group.items.length} 个重叠地点</div>{group.items.map(({ activity, day }) => <button key={activity.id} onClick={() => focusMapActivity(activity.id)} className="block w-full truncate rounded-md px-1 py-1 text-left text-xs hover:bg-surface">{day.label} · {activity.title}</button>)}</div></Popup>
           </Marker>
         ))}
         {!wishOverview && filter === 'all' && trip.days.map((day) => {
@@ -529,13 +529,13 @@ export default function MapView({
                 <div className="font-medium" style={{ color: scheduled ? WISH_SCHEDULED_TEXT : WISH_PENDING_TEXT }}>
                   {scheduled ? '已安排' : '待安排'} · {place.title}
                 </div>
-                <div className="mt-1 text-[12px] text-text-muted">
+                <div className="mt-1 text-xs text-text-muted">
                   {place.location || '未补充位置'}
                 </div>
                 <button
                   type="button"
                   onClick={() => openNavigation({ title: place.title, location: place.location, lat: place.geo!.lat, lng: place.geo!.lng })}
-                  className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-md bg-action px-2.5 py-1 text-[11.5px] font-medium text-white transition-colors hover:bg-action-hover"
+                  className="mt-2.5 flex w-full items-center justify-center gap-1.5 rounded-xl bg-action px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-action-hover"
                 >
                   <NavigateIcon size={12} /> 外部地图导航
                 </button>
@@ -547,7 +547,7 @@ export default function MapView({
           position={[highlightWishPlace.geo.lat, highlightWishPlace.geo.lng]}
           icon={selectedWishIcon(highlightWishPlace.title)}
           zIndexOffset={1000}
-        ><Popup><div className="min-w-[150px]"><div className="font-medium" style={{ color: WISH_PENDING_TEXT }}>待安排 · {highlightWishPlace.title}</div><div className="mt-1 text-[12px] text-text-muted">{highlightWishPlace.location || '未补充位置'}</div></div></Popup></Marker>}
+        ><Popup><div className="min-w-[150px]"><div className="font-medium" style={{ color: WISH_PENDING_TEXT }}>待安排 · {highlightWishPlace.title}</div><div className="mt-1 text-xs text-text-muted">{highlightWishPlace.location || '未补充位置'}</div></div></Popup></Marker>}
         {pickedPoint && <Marker position={[pickedPoint.lat, pickedPoint.lng]} icon={pickedPointIcon} interactive={false} />}
       </MapContainer>
       )}
@@ -557,55 +557,55 @@ export default function MapView({
           icon={<MapIcon size={18} />}
           title="地图上还没有地点"
           description="为行程补充已定位地点，或直接在地图上选点收藏。"
-          action={!compact ? <button onClick={() => setIsPicking(true)} className="inline-flex items-center gap-1.5 rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white hover:bg-action-hover"><PlusIcon size={13} /> 选点收藏</button> : undefined}
+          action={!compact ? <button onClick={() => setIsPicking(true)} className="inline-flex items-center gap-1.5 rounded-xl bg-action px-3 py-2 text-xs font-medium text-white hover:bg-action-hover"><PlusIcon size={13} /> 选点收藏</button> : undefined}
           compact
-          className="absolute left-1/2 top-1/2 z-[550] w-[min(340px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2 bg-white/94 shadow-[0_12px_32px_rgba(32,40,46,0.12)] backdrop-blur"
+          className="absolute left-1/2 top-1/2 z-[550] w-[min(340px,calc(100%-32px))] -translate-x-1/2 -translate-y-1/2 bg-white/94 shadow-popover backdrop-blur"
         />
       )}
 
       {isPicking && pickedPoint && (
-        <div className="absolute inset-x-3 bottom-3 z-[600] rounded-xl border border-border bg-white p-3 shadow-[0_8px_24px_rgba(20,34,52,0.18)] md:inset-x-auto md:right-4 md:bottom-5 md:w-[310px]">
-          <div className="mb-2 flex items-center justify-between gap-1.5 text-[12px] font-semibold text-text"><span className="flex items-center gap-1.5"><MapIcon size={14} /> 已选位置</span><button onClick={stopPicking} className="font-normal text-text-faint hover:text-text-muted">取消</button></div>
-          <input value={pickedName} onChange={(event) => setPickedName(event.target.value)} placeholder="给这个地点起个名称" className="w-full rounded-md border border-border px-2.5 py-2 text-[12.5px] outline-none focus:border-accent" autoFocus />
+        <div className="absolute inset-x-3 bottom-3 z-[600] rounded-xl border border-border bg-white p-3 shadow-popover md:inset-x-auto md:right-4 md:bottom-5 md:w-[310px]">
+          <div className="mb-2 flex items-center justify-between gap-1.5 text-xs font-semibold text-text"><span className="flex items-center gap-1.5"><MapIcon size={14} /> 已选位置</span><button onClick={stopPicking} className="font-normal text-text-faint hover:text-text-muted">取消</button></div>
+          <input value={pickedName} onChange={(event) => setPickedName(event.target.value)} placeholder="给这个地点起个名称" className="w-full rounded-xl border border-border px-2.5 py-2 text-sm outline-none focus:border-accent" autoFocus />
           <div className="mt-2 flex gap-2">
-            <select value={pickedCategory} onChange={(event) => setPickedCategory(event.target.value as ActivityCategory)} className="min-w-0 flex-1 rounded-md border border-border bg-white px-2 py-1.5 text-[12px] text-text-muted outline-none focus:border-accent">
+            <select value={pickedCategory} onChange={(event) => setPickedCategory(event.target.value as ActivityCategory)} className="min-w-0 flex-1 rounded-xl border border-border bg-white px-2 py-1.5 text-xs text-text-muted outline-none focus:border-accent">
               {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((category) => <option key={category} value={category}>{CATEGORY_META[category].label}</option>)}
             </select>
-            <button onClick={savePickedPlace} disabled={!pickedName.trim()} className="rounded-md bg-action px-3 py-1.5 text-[12px] font-medium text-white hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40">收藏到想去</button>
+            <button onClick={savePickedPlace} disabled={!pickedName.trim()} className="rounded-xl bg-action px-3 py-1.5 text-xs font-medium text-white hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40">收藏到想去</button>
           </div>
-          <div className="mt-2 truncate text-[11px] text-text-faint">{resolvingPoint ? '正在识别附近位置…' : pickedLocation}</div>
+          <div className="mt-2 truncate text-xs text-text-faint">{resolvingPoint ? '正在识别附近位置…' : pickedLocation}</div>
         </div>
       )}
 
       {openCluster && (
-        <div className="absolute top-16 left-4 z-[600] w-[230px] rounded-lg border border-border bg-white p-2 shadow-[0_4px_16px_rgba(0,0,0,0.14)]">
-          <div className="mb-1 flex items-center justify-between px-1"><span className="text-[12px] font-semibold">{openCluster.items.length} 个重叠地点</span><button onClick={() => setOpenCluster(null)} className="text-[16px] leading-none text-text-faint">×</button></div>
-          {openCluster.items.map(({ activity, day }) => <button key={activity.id} onClick={() => focusMapActivity(activity.id)} className="block w-full truncate rounded px-1.5 py-1.5 text-left text-[12px] hover:bg-surface"><span className="mr-1 text-text-faint">{day.label}</span>{activity.title}</button>)}
+        <div className="absolute top-16 left-4 z-[600] w-[230px] rounded-xl border border-border bg-white p-2 shadow-card">
+          <div className="mb-1 flex items-center justify-between px-1"><span className="text-xs font-semibold">{openCluster.items.length} 个重叠地点</span><button onClick={() => setOpenCluster(null)} className="text-base leading-none text-text-faint">×</button></div>
+          {openCluster.items.map(({ activity, day }) => <button key={activity.id} onClick={() => focusMapActivity(activity.id)} className="block w-full truncate rounded-md px-1.5 py-1.5 text-left text-xs hover:bg-surface"><span className="mr-1 text-text-faint">{day.label}</span>{activity.title}</button>)}
         </div>
       )}
 
       {openDaySummary && (
-        <div className="map-day-story-card absolute bottom-4 left-3 z-[600] w-[min(280px,calc(100%-24px))] rounded-xl border border-white/80 bg-white/94 p-3 shadow-[0_8px_26px_rgba(33,49,59,0.14)] backdrop-blur-md md:bottom-6 md:left-4">
+        <div className="map-day-story-card absolute bottom-4 left-3 z-[600] w-[min(280px,calc(100%-24px))] rounded-xl border border-white/80 bg-white/94 p-3 shadow-popover backdrop-blur-md md:bottom-6 md:left-4">
           <div className="flex items-start gap-3">
             <span className="map-day-story-card__index">{String(trip.days.indexOf(openDaySummary) + 1).padStart(2, '0')}</span>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-[13px] font-semibold text-text">{openDaySummary.place || openDaySummary.label}</div>
-              <div className="mt-0.5 truncate text-[10.5px] text-text-faint">{displayDate(openDaySummary.date)} · {openDayItems.length} 个地点{openDayDistance > 0 ? ` · 移动约 ${(openDayDistance / 1000).toFixed(1)} km` : ''}</div>
+              <div className="truncate text-sm font-semibold text-text">{openDaySummary.place || openDaySummary.label}</div>
+              <div className="mt-0.5 truncate text-xs text-text-faint">{displayDate(openDaySummary.date)} · {openDayItems.length} 个地点{openDayDistance > 0 ? ` · 移动约 ${(openDayDistance / 1000).toFixed(1)} km` : ''}</div>
             </div>
-            <button onClick={() => setOpenDaySummaryId(null)} className="rounded-md px-1.5 text-[17px] leading-5 text-text-faint hover:bg-surface hover:text-text" aria-label="关闭当天摘要">×</button>
+            <button onClick={() => setOpenDaySummaryId(null)} className="rounded-md px-1.5 text-base leading-5 text-text-faint hover:bg-surface hover:text-text" aria-label="关闭当天摘要">×</button>
           </div>
         </div>
       )}
 
       {/* 桌面端默认展开行程进度，仍可随时手动收起。 */}
-      {!compact && <details open className="group absolute right-4 bottom-6 z-[500] hidden w-[238px] rounded-md border border-white/80 bg-white/94 shadow-[0_5px_18px_rgba(32,40,46,0.12)] backdrop-blur-md md:block">
-        <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-[11.5px] font-medium text-text-muted [&::-webkit-details-marker]:hidden">
+      {!compact && <details open className="group absolute right-4 bottom-6 z-[500] hidden w-[238px] rounded-md border border-white/80 bg-white/94 shadow-card backdrop-blur-md md:block">
+        <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2 text-xs font-medium text-text-muted [&::-webkit-details-marker]:hidden">
           <span>行程进度 · {trip.daysCount} 天</span>
           <span className="text-text-faint group-open:hidden">展开</span>
           <span className="hidden text-text-faint group-open:inline">收起</span>
         </summary>
         <div className="border-t border-border px-3.5 py-2.5">
-        <div className="mb-2 flex items-center gap-1 text-[10.5px] text-text-faint">
+        <div className="mb-2 flex items-center gap-1 text-xs text-text-faint">
           <span>第 1 天</span>
           <span className="h-1 flex-1 rounded-full" style={{ background: `linear-gradient(90deg, ${ROUTE_PROGRESS_COLORS.join(', ')})` }} />
           <span>最后一天</span>
@@ -617,7 +617,7 @@ export default function MapView({
               setFilter(d.id)
               setActiveDay(d.id)
             }}
-            className={`flex w-full items-center gap-2 rounded px-1 py-[3px] text-[12px] transition-colors hover:bg-surface ${
+            className={`flex w-full items-center gap-2 rounded-md px-1 py-[3px] text-xs transition-colors hover:bg-surface ${
               filter === d.id ? 'font-medium' : 'text-text-muted'
             }`}
           >
@@ -626,12 +626,12 @@ export default function MapView({
           </button>
         ))}
         {crossDaySegments.length > 0 && (
-          <div className="mt-2 border-t border-border pt-2 text-[11px] text-text-faint">
-            <span className="mr-1 inline-block w-5 align-middle border-t-2 border-dashed" style={{ borderColor: '#8b9ca6' }} />
+          <div className="mt-2 border-t border-border pt-2 text-xs text-text-faint">
+            <span className="mr-1 inline-block w-5 align-middle border-t-2 border-dashed" style={{ borderColor: '#736C5E' }} />
             灰蓝虚线为跨日衔接；{mapRouteMode === 'walking' ? '智能路线（近步行、远驾车）' : '直线连接'}由浅至深代表行程推进
           </div>
         )}
-        {routeFallback && mapRouteMode === 'walking' && <div className="mt-1.5 text-[11px] text-amber-700">路线请求失败，已显示直线连线。</div>}
+        {routeFallback && mapRouteMode === 'walking' && <div className="mt-1.5 text-xs text-amber-700">路线请求失败，已显示直线连线。</div>}
         </div>
       </details>}
 

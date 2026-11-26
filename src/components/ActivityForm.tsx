@@ -42,8 +42,8 @@ function addMinutes(time: string, minutes: number) {
 }
 
 const inputCls =
-  'min-h-10 rounded-md border border-border bg-white px-3 py-2 text-[13px] text-text outline-none transition-colors focus:border-accent'
-const labelCls = 'text-[11.5px] font-medium text-text-muted'
+  'min-h-10 rounded-xl border border-border bg-white px-3 py-2 text-sm text-text outline-none transition-colors focus:border-accent'
+const labelCls = 'text-xs font-medium text-text-muted'
 
 // 行程条目表单：新增与编辑共用（展示与交互保持一致）
 export default function ActivityForm({
@@ -176,11 +176,11 @@ export default function ActivityForm({
                 type="button"
                 key={c}
                 onClick={() => setForm({ ...form, category: c })}
-                className="flex min-h-9 items-center gap-1 rounded-md px-2.5 py-1.5 text-[12px] transition-colors"
+                className="flex min-h-9 items-center gap-1 rounded-md px-2.5 py-1.5 text-xs transition-colors"
                 style={{
                   background: active ? meta.soft : 'transparent',
                   color: active ? meta.color : 'var(--color-text-muted)',
-                  border: `1px solid ${active ? meta.color + '55' : 'var(--color-border)'}`,
+                  boxShadow: active ? `inset 0 0 0 1px ${meta.color}` : undefined,
                 }}
               >
                 <Icon size={13} /> {meta.label}
@@ -219,25 +219,25 @@ export default function ActivityForm({
           )}
           {geoLabel && (
             <div
-              className="absolute top-1 right-2 h-4 w-4 rounded-full bg-accent text-center text-[10px] leading-4 text-white"
+              className="absolute top-1 right-2 h-4 w-4 rounded-full bg-accent text-center text-xs leading-4 text-white"
               title={geoLabel}
             >
               ✓
             </div>
           )}
           {geoResults.length > 0 && (
-            <ul className="absolute top-full left-0 z-20 mt-1 w-[320px] max-w-full max-h-[220px] overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
+            <ul className="absolute top-full left-0 z-20 mt-1 w-[320px] max-w-full max-h-[220px] overflow-y-auto rounded-2xl bg-white py-1 shadow-popover">
               {geoResults.map((r, i) => (
                 <li key={`${r.lat},${r.lng}`}>
                   <button
                     onClick={() => pickGeo(r)}
                     onMouseEnter={() => setGeoIndex(i)}
-                    className={`block w-full px-3 py-2 text-left text-[12.5px] leading-snug ${
+                    className={`block w-full px-3 py-2 text-left text-sm leading-snug ${
                       i === geoIndex ? 'bg-accent-soft text-accent-hover' : 'hover:bg-surface'
                     }`}
                   >
                     <div className="truncate font-medium">{r.label.split(',')[0]}</div>
-                    <div className="mt-0.5 truncate text-[11px] text-text-faint">{r.label}</div>
+                    <div className="mt-0.5 truncate text-xs text-text-faint">{r.label}</div>
                   </button>
                 </li>
               ))}
@@ -256,13 +256,13 @@ export default function ActivityForm({
             inputMode="numeric"
             className={`${inputCls} w-full pr-9 tabular-nums`}
           />
-          <span className="absolute top-3 right-3 text-[12px] text-text-faint">分钟</span>
+          <span className="absolute top-3 right-3 text-xs text-text-faint">分钟</span>
           </div>
         </label>
         <label className={labelCls}>
           花费 <span className="font-normal text-text-faint">（选填）</span>
           <div className="relative mt-1.5">
-            <span className="absolute top-2.5 left-3 text-[13px] text-text-faint">¥</span>
+            <span className="absolute top-2.5 left-3 text-sm text-text-faint">¥</span>
             <input
               value={form.cost}
               onChange={(e) => onCostChange(e.target.value)}
@@ -276,7 +276,7 @@ export default function ActivityForm({
         <button
           type="button"
           onClick={() => setShowMapPicker(!showMapPicker)}
-          className={`flex min-h-10 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-[12.5px] transition-colors sm:col-span-2 sm:justify-start ${
+          className={`flex min-h-10 items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm transition-colors sm:col-span-2 sm:justify-start ${
             showMapPicker
               ? 'border-accent bg-accent-soft text-accent-hover'
               : 'border-border text-text-muted hover:border-accent hover:text-accent'
@@ -308,17 +308,17 @@ export default function ActivityForm({
           className={`${inputCls} mt-1.5 w-full resize-none leading-relaxed`}
         />
       </label>
-      <div className={`flex items-center justify-end gap-2 border-t border-border/80 ${stickyActions ? 'sticky bottom-0 z-10 bg-white py-3 shadow-[0_-8px_16px_rgba(255,255,255,0.96)]' : 'pt-3'}`}>
+      <div className={`flex items-center justify-end gap-2 ${stickyActions ? 'sticky bottom-0 z-10 bg-white py-3 shadow-dock' : 'pt-3'}`}>
         <button
           onClick={onCancel}
-          className="min-h-10 rounded-md border border-border bg-white px-4 py-2 text-[13px] font-medium text-text-muted hover:bg-surface-2 hover:text-text"
+          className="min-h-10 rounded-md border border-border bg-white px-4 py-2 text-sm font-medium text-text-muted hover:bg-surface-2 hover:text-text"
         >
           取消
         </button>
         <button
           onClick={submit}
           disabled={!form.title.trim()}
-          className="min-h-10 rounded-md bg-action px-5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className="min-h-10 rounded-xl bg-action px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
           {submitLabel}
         </button>

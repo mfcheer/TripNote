@@ -27,22 +27,22 @@ export default function TripInfoDialog({ tripId, onClose }: { tripId: string; on
       onClose={onClose}
       size="sm"
       footer={<>
-        <span className="mr-auto text-[11.5px] text-text-muted">仅用于这趟旅行</span>
+        <span className="mr-auto text-xs text-text-muted">仅用于这趟旅行</span>
         <button type="button" onClick={onClose} className={overlaySecondaryButtonClass}>取消</button>
         <button type="button" onClick={save} disabled={!name.trim()} className={overlayPrimaryButtonClass}>保存</button>
       </>}
     >
-      <label className="mb-4 block text-[12px] font-medium text-text-muted">
+      <label className="mb-4 block text-xs font-medium text-text-muted">
         旅行名称
         <input
           value={name}
           onChange={(event) => setName(event.target.value)}
           onKeyDown={(event) => { if (event.key === 'Enter' && !event.nativeEvent.isComposing) save() }}
           placeholder="为这趟旅行取个名字"
-          className="mt-1.5 w-full rounded-[10px] border border-border bg-white px-3 py-2.5 text-[16px] font-normal text-text outline-none focus:border-accent sm:text-[14px]"
+          className="mt-1.5 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-base font-normal text-text outline-none focus:border-accent sm:text-sm"
         />
       </label>
-      <label className="block text-[12px] font-medium text-text-muted">
+      <label className="block text-xs font-medium text-text-muted">
         地点搜索范围
         <input
           value={draft}
@@ -51,13 +51,13 @@ export default function TripInfoDialog({ tripId, onClose }: { tripId: string; on
             if (event.key === 'Enter' && !event.nativeEvent.isComposing) save()
           }}
           placeholder="例如：东北、济州岛、关西"
-          className="mt-1.5 w-full rounded-[10px] border border-border bg-white px-3 py-2.5 text-[16px] font-normal text-text outline-none focus:border-accent sm:text-[14px]"
+          className="mt-1.5 w-full rounded-xl border border-border bg-white px-3 py-2.5 text-base font-normal text-text outline-none focus:border-accent sm:text-sm"
         />
       </label>
-      <p className="mt-2 text-[12px] leading-relaxed text-text-muted">搜索地点时优先匹配这里，找不到时自动扩大范围。</p>
-      <div className="mt-3 flex items-center justify-between gap-3 rounded-[10px] bg-surface px-3 py-2.5">
-        <span className="text-[11.5px] leading-relaxed text-text-faint">留空后，系统会根据旅行名称和已安排地点自动判断。</span>
-        {draft && <button type="button" onClick={() => setDraft('')} className="shrink-0 text-[11.5px] font-medium text-accent hover:text-accent-hover">恢复智能判断</button>}
+      <p className="mt-2 text-xs leading-relaxed text-text-muted">搜索地点时优先匹配这里，找不到时自动扩大范围。</p>
+      <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-surface px-3 py-2.5">
+        <span className="text-xs leading-relaxed text-text-faint">留空后，系统会根据旅行名称和已安排地点自动判断。</span>
+        {draft && <button type="button" onClick={() => setDraft('')} className="shrink-0 text-xs font-medium text-accent hover:text-accent-hover">恢复智能判断</button>}
       </div>
     </ModalShell>
   )

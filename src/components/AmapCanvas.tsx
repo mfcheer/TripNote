@@ -170,11 +170,11 @@ export default function AmapCanvas({
     }
     for (const marker of markers) {
       const point = wgs84ToGcj02(marker.point)
-      const color = marker.color ?? '#59636e'
+      const color = marker.color ?? 'var(--color-text-muted)'
       const className = marker.simple ? `wish-map-marker${marker.active ? ' is-active' : ''}` : marker.wide ? 'map-place-marker' : 'map-marker'
       const content = marker.simple
         ? `<div class="${className}" style="--wish-marker-color:${color}"></div>`
-        : `<div class="${className}" style="border-color:${color};color:${color};${marker.active ? 'background:#e9f1f7;' : ''}">${escapeHtml(marker.label ?? '')}</div>`
+        : `<div class="${className}" style="border-color:${color};color:${color};${marker.active ? 'background:var(--color-action-soft);' : ''}">${escapeHtml(marker.label ?? '')}</div>`
       const markerOverlay = new AMap.Marker({
         position: [point.lng, point.lat],
         content,

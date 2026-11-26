@@ -27,10 +27,10 @@ function readMapPanelWidth() {
 }
 
 function wishMarker(active: boolean, label: string) {
-  const color = active ? '#3f4953' : '#59636e'
+  const color = active ? 'var(--color-action-hover)' : 'var(--color-text-muted)'
   return L.divIcon({
     className: '',
-    html: `<div class="map-place-marker" style="border-color:${color};color:${color};${active ? 'background:#e9f1f7;' : ''}">${escapeHtml(label)}</div>`,
+    html: `<div class="map-place-marker" style="border-color:${color};color:${color};${active ? 'background:var(--color-action-soft);' : ''}">${escapeHtml(label)}</div>`,
     iconSize: [140, 28],
     iconAnchor: [70, 14],
   })
@@ -121,7 +121,7 @@ export function CustomMapWishDialog({
       mobile="sheet"
       bodyClassName="sm:py-5"
       footer={<>
-        {!point && <span className="mr-auto hidden text-[11.5px] text-text-faint sm:inline">需要先点击地图放置标记</span>}
+        {!point && <span className="mr-auto hidden text-xs text-text-faint sm:inline">需要先点击地图放置标记</span>}
         <button onClick={onClose} className={overlaySecondaryButtonClass}>取消</button>
         <button onClick={save} disabled={!name.trim() || !point} className={overlayPrimaryButtonClass}>收藏这个位置</button>
       </>}
@@ -139,22 +139,22 @@ export function CustomMapWishDialog({
       />
 
       <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_130px]">
-            <label className="text-[12px] font-medium text-text-muted">
+            <label className="text-xs font-medium text-text-muted">
               自定义名称
               <input
                 autoFocus
                 value={name}
                 onChange={(event) => setName(event.target.value)}
                 placeholder="例如：海边看日落的位置"
-                className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
+                className="mt-1.5 w-full rounded-xl border border-border px-3 py-2 text-sm font-normal text-text outline-none focus:border-accent"
               />
             </label>
-            <label className="text-[12px] font-medium text-text-muted">
+            <label className="text-xs font-medium text-text-muted">
               分类
               <select
                 value={category}
                 onChange={(event) => setCategory(event.target.value as ActivityCategory)}
-                className="mt-1.5 w-full rounded-md border border-border bg-white px-2.5 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
+                className="mt-1.5 w-full rounded-xl border border-border bg-white px-2.5 py-2 text-sm font-normal text-text outline-none focus:border-accent"
               >
                 {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => (
                   <option key={value} value={value}>{CATEGORY_META[value].label}</option>
@@ -163,13 +163,13 @@ export function CustomMapWishDialog({
             </label>
       </div>
 
-      <label className="mt-3 block text-[12px] font-medium text-text-muted">
+      <label className="mt-3 block text-xs font-medium text-text-muted">
             位置说明 <span className="font-normal text-text-faint">（选点后自动识别，也可自己修改）</span>
             <input
               value={location}
               onChange={(event) => setLocation(event.target.value)}
               placeholder={point ? '没有识别到地址，可以手动填写' : '请先在地图上点击一个位置'}
-              className="mt-1.5 w-full rounded-md border border-border px-3 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
+              className="mt-1.5 w-full rounded-xl border border-border px-3 py-2 text-sm font-normal text-text outline-none focus:border-accent"
             />
       </label>
     </ModalShell>
@@ -208,12 +208,12 @@ function ScheduleWishDialog({
       size="lg"
       mobile="sheet"
     >
-          <label className="mb-4 block text-[12px] font-medium text-text-muted">
+          <label className="mb-4 block text-xs font-medium text-text-muted">
             安排日期
             <select
               value={dayId}
               onChange={(event) => setDayId(event.target.value)}
-              className="mt-1.5 w-full rounded-md border border-border bg-white px-3 py-2 text-[13px] font-normal text-text outline-none focus:border-accent"
+              className="mt-1.5 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm font-normal text-text outline-none focus:border-accent"
             >
               {trip.days.map((tripDay) => (
                 <option key={tripDay.id} value={tripDay.id}>
@@ -252,7 +252,7 @@ function ScheduleDragButton({ place, onSchedule }: { place: WishPlace; onSchedul
   return (
     <button
       onClick={onSchedule}
-      className="hidden items-center gap-1 rounded-md px-2 py-1 text-[11px] text-text-faint opacity-0 transition-[opacity,color,background] group-hover:opacity-100 hover:bg-surface-2 hover:text-text focus:opacity-100 md:flex"
+      className="hidden items-center gap-1 rounded-md px-2 py-1 text-xs text-text-faint opacity-0 transition-[opacity,color,background] group-hover:opacity-100 hover:bg-surface-2 hover:text-text focus:opacity-100 md:flex"
       title="手动选择安排日期"
       aria-label={`为「${place.title}」选择安排日期`}
     >
@@ -304,8 +304,8 @@ function SortableWishCard({
         event.dataTransfer.dropEffect = 'move'
       }}
       onDrop={onCardDrop}
-      className={`group border-b border-l-2 border-b-border/70 px-2.5 py-2 transition-[background-color,border-color,box-shadow] md:cursor-grab md:active:cursor-grabbing ${
-        active ? 'border-l-action bg-white shadow-[0_2px_8px_rgba(32,40,46,0.06)]' : highlighted ? 'border-l-accent/40 bg-accent-soft/55' : 'border-l-transparent hover:bg-white/65'
+      className={`group rounded-xl border-l-2 px-3.5 py-3 transition-[background-color,border-color,box-shadow] md:cursor-grab md:active:cursor-grabbing ${
+        active ? 'border-l-action bg-white shadow-card' : highlighted ? 'border-l-accent/40 bg-accent-soft/55' : 'border-l-transparent bg-surface hover:bg-surface-2'
       }`}
       title="拖动卡片可调整顺序；拖到左侧日期可快速安排"
     >
@@ -313,17 +313,17 @@ function SortableWishCard({
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md" style={{ background: meta.soft, color: meta.color }}>
           <Icon size={15} />
         </div>
-        <div className="min-w-0 flex-1 rounded">
-          <div className="truncate text-[14px] font-semibold leading-[1.35] tracking-[-0.01em]">{place.title}</div>
-          {place.location && <div className="truncate text-[12px] leading-[1.4] text-text-muted">{place.location}</div>}
-          {place.note && <div className="hidden truncate text-[11.5px] leading-[1.4] text-text-faint md:block">{place.note}</div>}
+        <div className="min-w-0 flex-1 rounded-md">
+          <div className="truncate text-sm font-semibold leading-[1.35] tracking-[-0.01em]">{place.title}</div>
+          {place.location && <div className="truncate text-xs leading-[1.4] text-text-muted">{place.location}</div>}
+          {place.note && <div className="hidden truncate text-xs leading-[1.4] text-text-faint md:block">{place.note}</div>}
         </div>
         <button
           onClick={(event) => {
             event.stopPropagation()
             onSchedule()
           }}
-          className={`shrink-0 rounded-full px-2 py-1 text-[10.5px] font-semibold leading-none md:hidden ${
+          className={`shrink-0 rounded-full px-2 py-1 text-xs font-semibold leading-none md:hidden ${
             scheduledItems.length > 0 ? 'bg-surface-2 text-text-muted' : 'bg-action-soft text-action'
           }`}
           aria-label={scheduledItems.length > 0 ? `查看并追加安排「${place.title}」` : `安排「${place.title}」`}
@@ -337,7 +337,7 @@ function SortableWishCard({
               event.stopPropagation()
               openNavigation({ title: place.title, location: place.location, lat: place.geo!.lat, lng: place.geo!.lng })
             }}
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-text-faint transition-all hover:bg-accent-soft hover:text-accent-hover md:h-auto md:w-auto md:p-1 md:opacity-0 md:group-hover:opacity-100"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-text-faint transition-all hover:bg-accent-soft hover:text-accent-hover md:h-auto md:w-auto md:p-1 md:opacity-0 md:group-hover:opacity-100"
             title="外部地图导航"
             aria-label={`导航至 ${place.title}`}
           >
@@ -349,7 +349,7 @@ function SortableWishCard({
             event.stopPropagation()
             onRemove()
           }}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded text-text-faint opacity-100 transition-opacity hover:text-red-500 focus:opacity-100 md:h-auto md:w-auto md:p-1 md:opacity-0 md:group-hover:opacity-100"
+        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-text-faint opacity-100 transition-opacity hover:text-danger focus:opacity-100 md:h-auto md:w-auto md:p-1 md:opacity-0 md:group-hover:opacity-100"
           title={scheduledItems.length > 0 ? '移出清单，已排行程会保留' : '移出清单'}
         >
           <TrashIcon size={14} />
@@ -358,20 +358,20 @@ function SortableWishCard({
       <div className="mt-1.5 hidden flex-wrap items-center gap-1.5 pl-[34px] pt-0.5 md:flex">
         {scheduledItems.length > 0 ? (
           <>
-            <span className="mr-auto text-[11.5px] font-medium text-text-muted">已安排 {scheduledItems.length} 次</span>
+            <span className="mr-auto text-xs font-medium text-text-muted">已安排 {scheduledItems.length} 次</span>
             <ScheduleDragButton place={place} onSchedule={onSchedule} />
-            <button onClick={onSchedule} className="rounded-md px-2 py-1 text-[11.5px] font-medium text-action hover:bg-action-soft">
+            <button onClick={onSchedule} className="rounded-md px-2 py-1 text-xs font-medium text-action hover:bg-action-soft">
               再安排
             </button>
             <div className="flex w-full flex-wrap gap-1 pt-0.5">
               {scheduledItems.map((item) => (
-                <span key={item.id} className="inline-flex items-center overflow-hidden rounded-md bg-surface-2 text-[11px]">
+                <span key={item.id} className="inline-flex items-center overflow-hidden rounded-md bg-surface-2 text-xs">
                   <button onClick={() => onFocus(item.id)} className="px-1.5 py-0.5 text-text-muted hover:bg-surface-2 hover:text-accent">
                     {item.dayLabel} · {item.time}
                   </button>
                   <button
                     onClick={() => onCancel(item.id)}
-                    className="border-l border-border px-1.5 py-0.5 text-text-faint hover:bg-red-50 hover:text-red-500"
+                    className="border-l border-border px-1.5 py-0.5 text-text-faint hover:bg-red-50 hover:text-danger"
                     title={`取消 ${item.dayLabel} · ${item.time} 的安排`}
                     aria-label={`取消 ${item.dayLabel} ${item.time} 的安排`}
                   >
@@ -383,9 +383,9 @@ function SortableWishCard({
           </>
         ) : (
           <>
-            <span className="mr-auto text-[11.5px] text-text-faint">尚未安排日期</span>
+            <span className="mr-auto text-xs text-text-faint">尚未安排日期</span>
             <ScheduleDragButton place={place} onSchedule={onSchedule} />
-            <button onClick={onSchedule} className="rounded-md bg-action px-2.5 py-1.5 text-[11.5px] font-medium text-white hover:bg-action-hover">
+            <button onClick={onSchedule} className="rounded-xl bg-action px-2.5 py-1.5 text-xs font-medium text-white hover:bg-action-hover">
               安排
             </button>
           </>
@@ -505,7 +505,7 @@ export default function WishlistView() {
     id: place.id,
     point: place.geo!,
     label: place.title,
-    color: activeId === place.id ? '#3f4953' : '#59636e',
+    color: activeId === place.id ? 'var(--color-action-hover)' : 'var(--color-text-muted)',
     active: activeId === place.id || hoveredId === place.id,
     wide: true,
     onClick: () => setActiveId(place.id),
@@ -594,14 +594,14 @@ export default function WishlistView() {
       <section className="min-w-0 flex-1 overflow-y-auto">
         <div className="mr-auto max-w-[1000px] px-4 py-4 sm:px-7 sm:py-7 lg:px-10">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 sm:mb-5">
-            <h1 className="text-[20px] font-semibold tracking-[-0.02em]">想去</h1>
-            <p className="text-[12px] text-text-muted">
+            <h1 className="text-xl font-semibold tracking-[-0.02em]">想去</h1>
+            <p className="text-xs text-text-muted">
               待安排 {trip.wishPlaces.length - scheduledCount} · 已安排 {scheduledCount}
             </p>
           </div>
 
-          <div className="wishlist-search-panel relative mb-3 rounded-xl border border-border/70 p-2.5 sm:mb-4 sm:p-3">
-            <div className="mb-2 text-[11.5px] font-medium text-text-muted">搜索并收藏新地点</div>
+          <div className="wishlist-search-panel relative mb-3 rounded-2xl bg-surface-card p-3 shadow-card sm:mb-4 sm:p-3">
+            <div className="mb-2 text-xs font-medium text-text-muted">搜索并收藏新地点</div>
             <div className="flex flex-wrap gap-2">
               <div className="relative min-w-full flex-1 sm:min-w-[250px]">
                 <input
@@ -612,25 +612,25 @@ export default function WishlistView() {
                   onKeyDown={(event) => event.key === 'Enter' && addManual()}
                   placeholder="输入地点名称，搜索并收藏"
                   aria-label="搜索并收藏新地点"
-                  className="wishlist-primary-search w-full rounded-md border border-border bg-white px-3 py-2.5 text-[13px] outline-none focus:border-accent sm:py-2"
+                  className="wishlist-primary-search w-full rounded-xl border border-border bg-white px-3 py-2.5 text-sm outline-none focus:border-accent sm:py-2"
                 />
                 {results.length > 0 && (
-                  <ul className="absolute top-full left-0 z-20 mt-1 max-h-[230px] w-full overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
-                    {groupedResults.trip.length > 0 && <li className="px-3 py-1 text-[10.5px] font-medium text-text-muted">旅行范围内</li>}
+                  <ul className="absolute top-full left-0 z-20 mt-1 max-h-[230px] w-full overflow-y-auto rounded-2xl bg-white py-1 shadow-popover">
+                    {groupedResults.trip.length > 0 && <li className="px-3 py-1 text-xs font-medium text-text-muted">旅行范围内</li>}
                     {groupedResults.trip.map((result) => (
                       <li key={`${result.lat},${result.lng}`}>
                         <button onClick={() => addFromResult(result)} className="w-full px-3 py-2 text-left hover:bg-accent-soft">
-                          <div className="truncate text-[12.5px] font-medium">{result.label.split(',')[0]}</div>
-                          <div className="mt-0.5 truncate text-[11px] text-text-faint">{result.label}</div>
+                          <div className="truncate text-sm font-medium">{result.label.split(',')[0]}</div>
+                          <div className="mt-0.5 truncate text-xs text-text-faint">{result.label}</div>
                         </button>
                       </li>
                     ))}
-                    {groupedResults.broader.length > 0 && <li className="my-1 border-y border-border/70 bg-surface px-3 py-1 text-[10.5px] font-medium text-text-faint">其他可能地点</li>}
+                    {groupedResults.broader.length > 0 && <li className="my-1 border-y border-border/70 bg-surface px-3 py-1 text-xs font-medium text-text-faint">其他可能地点</li>}
                     {groupedResults.broader.map((result) => (
                       <li key={`${result.lat},${result.lng}`}>
                         <button onClick={() => addFromResult(result)} className="w-full px-3 py-2 text-left hover:bg-accent-soft">
-                          <div className="truncate text-[12.5px] font-medium">{result.label.split(',')[0]}</div>
-                          <div className="mt-0.5 truncate text-[11px] text-text-faint">{result.label}</div>
+                          <div className="truncate text-sm font-medium">{result.label.split(',')[0]}</div>
+                          <div className="mt-0.5 truncate text-xs text-text-faint">{result.label}</div>
                         </button>
                       </li>
                     ))}
@@ -643,43 +643,43 @@ export default function WishlistView() {
               </div>
               <button
                 onClick={() => setShowCustomMap(true)}
-                className="flex items-center gap-1.5 rounded-md border border-border bg-white px-3 py-2 text-[12.5px] font-medium text-text-muted transition-colors hover:border-accent hover:text-accent"
+                className="flex items-center gap-1.5 rounded-xl border border-border bg-white px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:border-accent hover:text-accent"
               >
                 <MapIcon size={14} /> 地图选点
               </button>
               <select
                 value={manualCategory}
                 onChange={(event) => setManualCategory(event.target.value as ActivityCategory)}
-                className="rounded-md border border-border bg-white px-2.5 py-2 text-[12.5px] text-text-muted outline-none focus:border-accent"
+                className="rounded-xl border border-border bg-white px-2.5 py-2 text-sm text-text-muted outline-none focus:border-accent"
               >
                 {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => (
                   <option key={value} value={value}>{CATEGORY_META[value].label}</option>
                 ))}
               </select>
-              <button onClick={addManual} disabled={!searching.trim()} className="flex items-center gap-1 rounded-md bg-action px-3 py-2 text-[13px] font-medium text-white hover:bg-action-hover disabled:opacity-40">
+              <button onClick={addManual} disabled={!searching.trim()} className="flex items-center gap-1 rounded-xl bg-action px-3 py-2 text-sm font-medium text-white hover:bg-action-hover disabled:opacity-40">
                 <PlusIcon size={14} /> 收藏
               </button>
             </div>
           </div>
 
-          <div className="mb-3 flex flex-wrap items-center gap-1.5 border-b border-border/80 pb-2.5">
-            <span className="w-full text-[11.5px] font-medium text-text-muted sm:w-auto">筛选清单</span>
+          <div className="mb-3 flex flex-wrap items-center gap-1.5 pb-2.5">
+            <span className="w-full text-xs font-medium text-text-muted sm:w-auto">筛选清单</span>
             <input
               value={keyword}
               onChange={(event) => setKeyword(event.target.value)}
               placeholder="筛选想去地点"
               aria-label="筛选想去地点"
-              className="wishlist-filter-search w-full rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent sm:w-[180px]"
+              className="wishlist-filter-search w-full rounded-xl border border-border px-2.5 py-1.5 text-sm outline-none focus:border-accent sm:w-[180px]"
             />
-            <button onClick={() => setCategory('all')} className={`border-b-2 px-2.5 py-1 text-[12px] font-medium ${category === 'all' ? 'border-action text-text' : 'border-transparent text-text-muted hover:text-text'}`}>全部 {trip.wishPlaces.length}</button>
+            <button onClick={() => setCategory('all')} className={`border-b-2 px-2.5 py-1 text-xs font-medium ${category === 'all' ? 'border-action text-text' : 'border-transparent text-text-muted hover:text-text'}`}>全部 {trip.wishPlaces.length}</button>
             {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => (
-              <button key={value} onClick={() => setCategory(value)} className={`border-b-2 px-2.5 py-1 text-[12px] font-medium ${category === value ? 'border-action text-text' : 'border-transparent text-text-muted hover:text-text'}`}>
+              <button key={value} onClick={() => setCategory(value)} className={`border-b-2 px-2.5 py-1 text-xs font-medium ${category === value ? 'border-action text-text' : 'border-transparent text-text-muted hover:text-text'}`}>
                 {CATEGORY_META[value].label}
               </button>
             ))}
           </div>
 
-          <div className="mb-2 hidden text-[11.5px] leading-relaxed text-text-faint md:block">
+          <div className="mb-2 hidden text-xs leading-relaxed text-text-faint md:block">
             拖动整张卡片可调整收藏顺序，也可以直接拖到左侧日期快速安排。
           </div>
 
@@ -689,23 +689,21 @@ export default function WishlistView() {
               title={trip.wishPlaces.length === 0 ? '还没有收藏地点' : '没有符合筛选条件的地点'}
               description={trip.wishPlaces.length === 0 ? '先搜索一个想去的地方，或直接在地图上选点收藏。' : '可以清空关键词或切换到“全部”继续查看。'}
               action={trip.wishPlaces.length === 0 ? (
-                <button onClick={() => setShowCustomMap(true)} className="inline-flex items-center gap-1.5 rounded-md bg-action px-3 py-2 text-[12px] font-medium text-white hover:bg-action-hover">
+                <button onClick={() => setShowCustomMap(true)} className="inline-flex items-center gap-1.5 rounded-xl bg-action px-3 py-2 text-xs font-medium text-white hover:bg-action-hover">
                   <MapIcon size={13} /> 地图选点
                 </button>
               ) : undefined}
             />
           ) : (
-            <div className="wishlist-list-surface flex flex-col overflow-hidden rounded-xl border border-border/75 px-2 sm:px-3">
+            <div className="wishlist-list-surface flex flex-col gap-1.5 overflow-hidden rounded-2xl bg-surface-card p-2 shadow-card sm:p-3">
                   {filtered.map((place, index) => {
                     const scheduledItems = scheduledItemsFor(place)
                     const startsScheduledSection = scheduledItems.length > 0 && !filtered.slice(0, index).some(isPlaceScheduled)
                     return (
                       <div key={place.id}>
                         {startsScheduledSection && (
-                          <div className="flex items-center gap-2 py-1.5 text-[11.5px] font-medium text-text-faint">
-                            <span className="h-px flex-1 bg-border" />
+                          <div className="mt-2 px-3.5 pt-3 pb-2 text-xs font-medium text-text-faint">
                             已安排到行程
-                            <span className="h-px flex-1 bg-border" />
                           </div>
                         )}
                         <SortableWishCard
@@ -758,11 +756,11 @@ export default function WishlistView() {
       >
         <span className="h-10 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
       </div>
-      <aside className="sticky top-0 hidden h-full shrink-0 border-l border-border/80 bg-[#fafbfb] p-4 lg:block" style={{ width: mapPanelWidth }}>
-        <div className="mb-1 text-[13px] font-semibold">地点与行程</div>
-        <div className="mb-3 text-[11.5px] text-text-faint">默认展示行程连线；点击地点名称可定位收藏</div>
+      <aside className="sticky top-0 hidden h-full shrink-0 bg-surface p-4 lg:block" style={{ width: mapPanelWidth }}>
+        <div className="mb-1 text-sm font-semibold">地点与行程</div>
+        <div className="mb-3 text-xs text-text-faint">默认展示行程连线；点击地点名称可定位收藏</div>
         {allMapPoints.length > 0 ? (
-          <div className="h-[calc(100%-48px)] overflow-hidden rounded-md border border-border/80">
+          <div className="h-[calc(100%-48px)] overflow-hidden rounded-2xl shadow-card">
             {mapDisplayProvider === 'amap' && amapJsKey ? (
               <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={[...itineraryLines, ...crossDayLines]} className="h-full w-full" zoom={11} />
             ) : (
@@ -786,7 +784,7 @@ export default function WishlistView() {
             )}
           </div>
         ) : (
-          <div className="flex h-[180px] items-center justify-center rounded-lg border border-dashed border-border p-5 text-center text-[12px] leading-relaxed text-text-faint">收藏带坐标的地点，或先为行程补充地点后，会在这里看到路线与分布。</div>
+          <div className="flex h-[180px] items-center justify-center rounded-xl border border-dashed border-border p-5 text-center text-xs leading-relaxed text-text-faint">收藏带坐标的地点，或先为行程补充地点后，会在这里看到路线与分布。</div>
         )}
       </aside>
 

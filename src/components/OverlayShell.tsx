@@ -2,17 +2,17 @@ import { useEffect, useId, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 
 export const overlayPrimaryButtonClass =
-  'inline-flex min-h-10 items-center justify-center rounded-[10px] bg-action px-4 py-2 text-[13px] font-semibold text-white shadow-[0_2px_8px_rgba(40,120,212,0.20)] transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40'
+  'inline-flex min-h-10 items-center justify-center rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white shadow-card transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40'
 
 export const overlaySecondaryButtonClass =
-  'inline-flex min-h-10 items-center justify-center rounded-[10px] border border-border bg-white/85 px-4 py-2 text-[13px] font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text'
+  'inline-flex min-h-10 items-center justify-center rounded-xl border border-border bg-white/85 px-4 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-surface-2 hover:text-text'
 
 export function OverlayCloseButton({ onClick, label = '关闭' }: { onClick: () => void; label?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="-mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] text-[22px] leading-none text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+      className="-mr-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-2xl leading-none text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
       aria-label={label}
     >
       ×
@@ -36,10 +36,10 @@ export function OverlayHeader({
   titleId?: string
 }) {
   return (
-    <header className="flex shrink-0 items-start justify-between gap-4 border-b border-border/80 px-4 py-3.5 sm:px-5 sm:py-4">
+    <header className="flex shrink-0 items-start justify-between gap-4 px-4 py-3.5 sm:px-5 sm:py-4">
       <div className="min-w-0">
-        <div id={titleId} className="truncate text-[16px] font-semibold tracking-[-0.01em] text-text">{title}</div>
-        {description && <div className="mt-1 text-[12px] leading-relaxed text-text-muted">{description}</div>}
+        <div id={titleId} className="truncate text-base font-semibold tracking-[-0.01em] text-text">{title}</div>
+        {description && <div className="mt-1 text-xs leading-relaxed text-text-muted">{description}</div>}
       </div>
       <OverlayCloseButton onClick={onClose} />
     </header>
@@ -95,10 +95,10 @@ export default function ModalShell({
       ? 'items-stretch sm:items-center sm:justify-center sm:p-4'
       : 'items-center justify-center p-4'
   const surfaceClass = mobile === 'sheet'
-    ? 'max-h-[88dvh] rounded-t-[22px] sm:max-h-[calc(100dvh-32px)] sm:rounded-xl'
+    ? 'max-h-[88dvh] rounded-t-2xl sm:max-h-[calc(100dvh-32px)] sm:rounded-2xl'
     : mobile === 'fullscreen'
-      ? 'h-[100dvh] sm:h-auto sm:max-h-[calc(100dvh-32px)] sm:rounded-xl'
-      : 'max-h-[calc(100dvh-32px)] rounded-xl'
+      ? 'h-[100dvh] sm:h-auto sm:max-h-[calc(100dvh-32px)] sm:rounded-2xl'
+      : 'max-h-[calc(100dvh-32px)] rounded-2xl'
 
   return createPortal(
     <div
@@ -111,18 +111,18 @@ export default function ModalShell({
         if (event.target === event.currentTarget && closeOnBackdrop) onClose()
       }}
     >
-      <section className={`apple-modal-surface ${mobile === 'fullscreen' ? 'mobile-safe-top ' : ''}mobile-safe-bottom flex w-full flex-col overflow-hidden border-border sm:border ${sizeClass[size]} ${surfaceClass}`}>
+      <section className={`apple-modal-surface ${mobile === 'fullscreen' ? 'mobile-safe-top ' : ''}mobile-safe-bottom flex w-full flex-col overflow-hidden ${sizeClass[size]} ${surfaceClass}`}>
         {mobile === 'sheet' && <div className="pt-2.5 sm:hidden"><SheetHandle /></div>}
         {showClose ? (
           <OverlayHeader title={title} description={description} onClose={onClose} titleId={titleId} />
         ) : (
           <header className="shrink-0 px-5 pt-5">
-            <div id={titleId} className="text-[16px] font-semibold tracking-[-0.01em] text-text">{title}</div>
-            {description && <div className="mt-1.5 text-[12.5px] leading-relaxed text-text-muted">{description}</div>}
+            <div id={titleId} className="text-base font-semibold tracking-[-0.01em] text-text">{title}</div>
+            {description && <div className="mt-1.5 text-sm leading-relaxed text-text-muted">{description}</div>}
           </header>
         )}
         <div className={`min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-5 ${bodyClassName}`}>{children}</div>
-        {footer && <footer className="mobile-safe-bottom flex shrink-0 items-center justify-end gap-2 border-t border-border/80 bg-white px-4 py-3 sm:px-5">{footer}</footer>}
+        {footer && <footer className="mobile-safe-bottom flex shrink-0 items-center justify-end gap-2 bg-surface px-4 py-3 sm:px-5">{footer}</footer>}
       </section>
     </div>,
     document.body,

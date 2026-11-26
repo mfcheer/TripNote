@@ -4,7 +4,7 @@ export default function PlaceSearchFeedback({ status, error, query, onRetry, onM
   if (status !== 'empty' && status !== 'error') return null
   const isErr = status === 'error'
   return (
-    <div role="status" className="mt-2 rounded-lg border border-border/70 bg-surface/80 px-2.5 py-2 text-[11px] leading-relaxed">
+    <div role="status" className="mt-2 rounded-xl border border-border/70 bg-surface/80 px-2.5 py-2 text-xs leading-relaxed">
       <p className={isErr ? 'text-amber-700' : 'text-text-muted'}>
         {isErr ? error : `未找到「${query.trim()}」的在线定位，但可直接添加为想去，或在地图上手动标点。`}
       </p>
@@ -13,7 +13,7 @@ export default function PlaceSearchFeedback({ status, error, query, onRetry, onM
           <button
             type="button"
             onClick={onManual}
-            className="rounded bg-action px-2 py-0.5 text-[11px] font-medium text-white transition-colors hover:bg-action-hover"
+            className="rounded-xl bg-action px-2 py-0.5 text-xs font-medium text-white transition-colors hover:bg-action-hover"
           >
             直接保存为想去 ↵
           </button>

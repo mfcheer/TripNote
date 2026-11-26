@@ -26,7 +26,7 @@ export function InlineStatus({
     <div
       role="status"
       aria-live="polite"
-      className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-[11.5px] leading-snug ${toneClass[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs leading-snug ${toneClass[tone]} ${className}`}
     >
       {loading ? <span className="ui-spinner" aria-hidden="true" /> : Icon ? <Icon size={13} aria-hidden="true" /> : null}
       <span>{children}</span>

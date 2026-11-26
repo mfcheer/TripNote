@@ -1,11 +1,11 @@
 // 地图绘制无法直接读取 CSS 颜色变量，因此在这里集中维护与界面一致的路线与地点色。
-export const ROUTE_PROGRESS_COLORS = ['#E9A668', '#EA795A', '#D65F58', '#B63E44', '#7F344A']
-export const MAP_ROUTE_ACTIVE = '#D65F58'
-export const MAP_ROUTE_INACTIVE = '#AEBFC8'
-export const WISH_PENDING = '#B26F5E'
-export const WISH_PENDING_TEXT = '#8B5044'
-export const WISH_SCHEDULED = '#597988'
-export const WISH_SCHEDULED_TEXT = '#405F6D'
+export const ROUTE_PROGRESS_COLORS = ['#B85C14', '#C94D28', '#C43B35', '#A62B3D', '#7D2340']
+export const MAP_ROUTE_ACTIVE = '#C43B35'
+export const MAP_ROUTE_INACTIVE = '#B8B3A8'
+export const WISH_PENDING = '#B84C32'
+export const WISH_PENDING_TEXT = '#8F3620'
+export const WISH_SCHEDULED = '#1E6B8C'
+export const WISH_SCHEDULED_TEXT = '#154F69'
 
 export function routeProgressColor(dayIndex: number, totalDays: number) {
   if (totalDays <= 1) return ROUTE_PROGRESS_COLORS.at(-1)!

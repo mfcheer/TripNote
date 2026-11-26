@@ -34,7 +34,7 @@ function NoteField({ value, onSave }: { value: string; onSave: (note: string) =>
       onChange={(e) => setDraft(e.target.value)}
       onBlur={() => draft !== value && onSave(draft)}
       placeholder="点击填写备注…"
-      className="w-full resize-none border-none bg-transparent text-[13px] leading-relaxed outline-none placeholder:text-text-faint"
+      className="w-full resize-none border-none bg-transparent text-sm leading-relaxed outline-none placeholder:text-text-faint"
       rows={3}
     />
   )
@@ -90,7 +90,7 @@ function CostRow({
         onBlur={() => titleDraft !== title && onTitleChange(titleDraft)}
         onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
         placeholder="说明，如：门票"
-        className="min-w-0 flex-1 rounded border border-transparent bg-white/70 px-2 py-1 text-[12.5px] outline-none focus:border-accent"
+        className="min-w-0 flex-1 rounded-xl border border-transparent bg-white/70 px-2 py-1 text-sm outline-none focus:border-accent"
       />
       <input
         value={amountDraft}
@@ -103,18 +103,18 @@ function CostRow({
           }
         }}
         inputMode="decimal"
-        className="w-[72px] rounded border border-transparent bg-white/70 px-2 py-1 text-right text-[12.5px] tabular-nums outline-none focus:border-accent"
+        className="w-[72px] rounded-xl border border-transparent bg-white/70 px-2 py-1 text-right text-sm tabular-nums outline-none focus:border-accent"
       />
       <button
         onClick={() => commit(true)}
-        className="rounded px-1.5 py-1 text-[11.5px] font-medium text-accent transition-colors hover:bg-accent-soft"
+        className="rounded-md px-1.5 py-1 text-xs font-medium text-accent transition-colors hover:bg-accent-soft"
         title="保存这笔花费"
       >
         保存
       </button>
       <button
         onClick={onRemove}
-        className="rounded p-1 text-text-faint transition-colors hover:text-red-500"
+        className="rounded-md p-1 text-text-faint transition-colors hover:text-danger"
         title="删除该笔花费"
       >
         <TrashIcon size={13} />
@@ -136,10 +136,10 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
   const previousActivity = activityIndex > 0 ? dayItems[activityIndex - 1] : undefined
 
   return (
-    <div className="rounded-lg border border-border bg-surface px-3.5 py-3">
+    <div className="rounded-xl bg-surface px-3.5 py-3">
       {/* 头部：编辑 / 收起 */}
       <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-[11.5px]" style={{ color: meta.color }}>
+        <div className="flex items-center gap-1.5 text-xs" style={{ color: meta.color }}>
           <Icon size={13} />
           <span className="font-medium">{meta.label}</span>
         </div>
@@ -148,7 +148,7 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
             <button
               type="button"
               onClick={() => openNavigation({ title: activity.title, location: activity.location, lat: activity.geo!.lat, lng: activity.geo!.lng })}
-              className="flex items-center gap-1 rounded bg-accent-soft px-2 py-0.5 text-[12px] font-medium text-accent-hover transition-colors hover:bg-accent-soft/80"
+              className="flex items-center gap-1 rounded-md bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent-hover transition-colors hover:bg-accent-soft/80"
               title="在外部地图中导航"
             >
               <NavigateIcon size={12} /> 导航
@@ -156,13 +156,13 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
           )}
           <button
             onClick={() => setEditingActivity(activity.id)}
-            className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[12px] text-accent transition-colors hover:bg-accent-soft"
+            className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs text-accent transition-colors hover:bg-accent-soft"
           >
             <EditIcon size={12} /> 编辑
           </button>
           <button
             onClick={() => selectActivity(null)}
-            className="rounded px-1.5 py-0.5 text-[12px] text-text-muted transition-colors hover:bg-surface-2"
+            className="rounded-md px-1.5 py-0.5 text-xs text-text-muted transition-colors hover:bg-surface-2"
           >
             收起
           </button>
@@ -170,7 +170,7 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
       </div>
 
       {/* 信息行 */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12.5px] text-text-muted">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm text-text-muted">
         <span className="flex items-center gap-1.5">
           <ClockIcon size={13} /> {activity.time}
           {activity.endTime && ` - ${activity.endTime}`}
@@ -184,12 +184,12 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
       </div>
 
       {previousActivity?.geo && activity.geo && (
-        <label className="mt-2.5 flex items-center justify-between gap-3 rounded-lg border border-border bg-white px-2.5 py-2 text-[11.5px] text-text-muted">
+        <label className="mt-2.5 flex items-center justify-between gap-3 rounded-xl bg-surface-card px-2.5 py-2 text-xs text-text-muted">
           <span className="min-w-0 truncate">从「{previousActivity.title}」前往这里</span>
           <select
             value={activity.travelMode ?? ''}
             onChange={(event) => updateActivity(activity.id, { travelMode: (event.target.value || undefined) as TravelMode | undefined })}
-            className="shrink-0 rounded border border-border bg-white px-1.5 py-1 text-[11.5px] text-text outline-none focus:border-accent"
+            className="shrink-0 rounded-xl border border-border bg-white px-1.5 py-1 text-xs text-text outline-none focus:border-accent"
             title="选择到达当前安排的交通方式"
           >
             <option value="">智能判断</option>
@@ -199,8 +199,8 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
       )}
 
       {/* 花费管理：一个条目可记多笔 */}
-      <div className="mt-3 rounded-lg border border-border bg-white p-2.5">
-        <div className="mb-1.5 flex items-center gap-1.5 text-[12px] font-medium text-text-muted">
+      <div className="mt-3 rounded-xl bg-surface-card p-2.5">
+        <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-text-muted">
           <CoinIcon size={13} /> 花费
           {activity.costs.length > 0 && (
             <span className="ml-1 tabular-nums">
@@ -225,7 +225,7 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
               addCost(activity.id, { amount: 0 })
               useToastStore.getState().show('已新增一笔花费，请填写金额后保存')
             }}
-            className="rounded-md border border-dashed border-border px-2 py-1 text-[12px] text-text-muted transition-colors hover:border-accent hover:text-accent"
+            className="rounded-md border border-dashed border-border px-2 py-1 text-xs text-text-muted transition-colors hover:border-accent hover:text-accent"
           >
             ＋ 添加花费
           </button>
@@ -233,8 +233,8 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
       </div>
 
       {/* 备注：失焦即时保存 */}
-      <div className="mt-2.5 rounded-lg border border-border bg-white p-2.5">
-        <div className="mb-1 flex items-center gap-1.5 text-[12px] font-medium text-text-muted">
+      <div className="mt-2.5 rounded-xl bg-surface-card p-2.5">
+        <div className="mb-1 flex items-center gap-1.5 text-xs font-medium text-text-muted">
           <NoteIcon size={13} /> 备注
         </div>
         <NoteField
@@ -247,7 +247,7 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
       {/* 底部操作：跨天移动 / 删除 */}
       <div className="mt-2.5 flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
-          <span className="text-[12px] text-text-faint">移动到</span>
+          <span className="text-xs text-text-faint">移动到</span>
           {trip.days
             .filter((d) => d.id !== activity.dayId)
             .map((d) => (
@@ -260,7 +260,7 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
                     .activities.filter((a) => a.dayId === d.id)
                   reorderActivity(activity.id, d.id, items.length)
                 }}
-                className="rounded-md border border-border bg-white px-2 py-0.5 text-[12px] text-text-muted transition-colors hover:border-accent hover:text-accent"
+                className="rounded-xl border border-border bg-white px-2 py-0.5 text-xs text-text-muted transition-colors hover:border-accent hover:text-accent"
               >
                 {d.label}
               </button>
@@ -280,7 +280,7 @@ export default function InlineActivityDetail({ activity }: { activity: Activity 
             },
           })
           }
-          className="flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-[12px] text-text-faint transition-colors hover:text-red-500"
+          className="flex shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-text-faint transition-colors hover:text-danger"
         >
           <TrashIcon size={13} /> 删除安排
         </button>

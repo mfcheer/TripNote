@@ -7,8 +7,8 @@ import AmapCanvas, { type AmapMarker } from './AmapCanvas'
 import { MAP_ROUTE_ACTIVE } from '../utils/mapPalette'
 
 function pointIcon(label: string, selected: boolean, highlighted: boolean, showLabels: boolean) {
-  const color = selected ? '#3f4953' : '#59636e'
-  const activeStyle = selected ? 'background:#e9f1f7;' : highlighted ? 'background:#f2f7fb;' : ''
+  const color = selected ? 'var(--color-action-hover)' : 'var(--color-text-muted)'
+  const activeStyle = selected ? 'background:var(--color-action-soft);' : highlighted ? 'background:var(--color-accent-soft);' : ''
   return L.divIcon({
     className: '',
     html: showLabels
@@ -64,14 +64,14 @@ export default function DayMapPreview({
 
   if (items.length === 0) {
     return (
-      <div className="flex h-[240px] items-center justify-center rounded-lg border border-dashed border-border bg-surface text-center text-[12px] leading-relaxed text-text-faint">
+      <div className="flex h-[240px] items-center justify-center rounded-xl border border-dashed border-border bg-surface text-center text-xs leading-relaxed text-text-faint">
         选择地点后会在这里显示当天路线
       </div>
     )
   }
 
   return (
-    <div className="h-[240px] overflow-hidden rounded-lg border border-border">
+    <div className="h-[240px] overflow-hidden rounded-xl border border-border">
       {mapDisplayProvider === 'amap' && amapJsKey ? (
         <AmapCanvas apiKey={amapJsKey} markers={amapMarkers} lines={points.length > 1 ? [{ id: dayId, points: items.map((activity) => activity.geo!), color: MAP_ROUTE_ACTIVE, weight: 3 }] : []} className="h-full w-full" zoom={13} />
       ) : (

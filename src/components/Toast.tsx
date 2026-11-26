@@ -8,7 +8,7 @@ export default function Toast() {
   const Icon = tone === 'error' ? AlertCircleIcon : CheckCircleIcon
   return (
     <div className="pointer-events-none fixed bottom-[76px] left-1/2 z-[1100] w-[calc(100%-24px)] -translate-x-1/2 md:bottom-6 md:w-auto">
-      <div role="status" aria-live="polite" className="pointer-events-auto flex min-h-10 items-center justify-center gap-2.5 rounded-lg border border-white/10 bg-[#30393e]/96 px-3.5 py-2.5 text-[13px] text-white shadow-[0_10px_30px_rgba(32,40,46,0.2)] backdrop-blur-md">
+      <div role="status" aria-live="polite" className="pointer-events-auto flex min-h-10 items-center justify-center gap-2.5 rounded-xl border border-white/10 bg-text/96 px-3.5 py-2.5 text-sm text-white shadow-popover backdrop-blur-md">
         <Icon size={15} className={tone === 'error' ? 'text-[#f3a294]' : tone === 'neutral' ? 'text-white/70' : 'text-[#c9ded7]'} aria-hidden="true" />
         <span className="leading-snug">{message}</span>
         {undoFn && (

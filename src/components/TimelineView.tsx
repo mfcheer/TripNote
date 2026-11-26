@@ -115,7 +115,7 @@ function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => 
   ]
 
   return (
-    <div className="mb-5 grid grid-cols-4 gap-1 rounded-xl border border-border/70 bg-white/82 p-2 shadow-[0_4px_16px_rgba(32,40,46,0.035)] sm:mb-7 sm:flex sm:flex-wrap sm:items-center sm:gap-x-7 sm:gap-y-2 sm:rounded-none sm:border-x-0 sm:border-t-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-4 sm:shadow-none">
+    <div className="mb-5 grid grid-cols-4 gap-1 rounded-xl border border-border/70 bg-white/82 p-2 shadow-card sm:mb-7 sm:flex sm:flex-wrap sm:items-center sm:gap-x-7 sm:gap-y-2 sm:rounded-none sm:border-x-0 sm:border-t-0 sm:bg-transparent sm:px-0 sm:pt-0 sm:pb-4 sm:shadow-none">
       {stats.map(({ label, value, mobileValue, hint, Icon, onClick }, index) => {
         const className = `group flex min-w-0 flex-col gap-0.5 rounded-md px-1.5 py-1 text-left sm:flex-row sm:items-center sm:gap-1.5 sm:rounded-none sm:px-0 sm:py-0 ${index > 0 ? 'sm:border-l sm:border-border sm:pl-5' : ''} ${onClick ? 'transition-colors hover:text-accent-hover' : ''}`
         const content = <>
@@ -123,10 +123,10 @@ function TripStatsBar({ trip, onOpenBudget }: { trip: Trip; onOpenBudget: () => 
             <Icon size={13} />
           </span>
           <span className="flex min-w-0 flex-col gap-0 sm:flex-row sm:items-baseline sm:gap-1.5">
-            <span className="shrink-0 text-[10.5px] text-text-muted sm:text-[11.5px]">{label}</span>
-            <span className="truncate text-[12.5px] font-semibold text-text sm:hidden">{mobileValue}</span>
-            <span className="hidden truncate text-[13.5px] font-semibold text-text sm:inline">{value}</span>
-            {hint && <span className={`hidden truncate text-[11px] sm:inline ${trip.totalBudget > 0 && trip.totalBudget < totalCost ? 'text-red-500' : 'text-text-faint'}`}>{hint}</span>}
+            <span className="shrink-0 text-xs text-text-muted">{label}</span>
+            <span className="truncate text-sm font-semibold text-text sm:hidden">{mobileValue}</span>
+            <span className="hidden truncate text-sm font-semibold text-text sm:inline">{value}</span>
+            {hint && <span className={`hidden truncate text-xs sm:inline ${trip.totalBudget > 0 && trip.totalBudget < totalCost ? 'text-danger' : 'text-text-faint'}`}>{hint}</span>}
           </span>
         </>
         return onClick ? (
@@ -176,16 +176,16 @@ function DayOverview({ items, scheduleWarningCount, compact = false, onOpenBudge
   }).length
 
   return (
-    <div className={`${compact ? 'mb-2 gap-x-2 text-[11px]' : 'mb-4 gap-x-3 text-[12px]'} flex flex-wrap items-center gap-y-1 px-0.5 text-text-muted`}>
+    <div className={`${compact ? 'mb-2 gap-x-2 text-xs' : 'mb-4 gap-x-3 text-xs'} flex flex-wrap items-center gap-y-1 px-0.5 text-text-muted`}>
       <span>{items.length} 个安排</span>
       {dayCost > 0 && <span className="font-medium text-accent-hover">当天 ¥{dayCost.toLocaleString()}</span>}
-      {onOpenBudget && <button onClick={onOpenBudget} className="inline-flex items-center gap-1 rounded px-1 py-0.5 text-[10.5px] font-medium text-text-muted transition-colors hover:bg-surface hover:text-accent" title="查看旅行总预算"><WalletIcon size={12} /> 预算</button>}
+      {onOpenBudget && <button onClick={onOpenBudget} className="inline-flex items-center gap-1 rounded-md px-1 py-0.5 text-xs font-medium text-text-muted transition-colors hover:bg-surface hover:text-accent" title="查看旅行总预算"><WalletIcon size={12} /> 预算</button>}
       {!compact && plannedMinutes > 0 && <span className="hidden sm:inline">已安排 {formatMinutes(plannedMinutes)}</span>}
       {!compact && <span className="hidden sm:inline">{geoItems.length} 个已定位地点</span>}
       {!compact && visibleWalking?.durationMinutes && <span className="hidden md:inline">步行约 {visibleWalking.durationMinutes} 分钟</span>}
       {!compact && visibleWalking?.distanceMeters && <span className="hidden md:inline">{(visibleWalking.distanceMeters / 1000).toFixed(visibleWalking.distanceMeters >= 1000 ? 1 : 2)} km</span>}
       {(scheduleWarningCount > 0 || crossCityPending > 0 || insufficientTransit > 0) && (
-        <span className="w-full rounded-md bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+        <span className="w-full rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-700">
           {scheduleWarningCount > 0 && `${scheduleWarningCount} 处时间重叠`}
           {scheduleWarningCount > 0 && (crossCityPending > 0 || insufficientTransit > 0) && ' · '}
           {crossCityPending > 0 && `${crossCityPending} 段跨城移动待补充交通`}
@@ -282,7 +282,7 @@ export function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => voi
 
   return createPortal(
     <div className="fixed inset-0 z-[1000] bg-black/30 backdrop-blur-[1.5px]" role="dialog" aria-modal="true" aria-label="预算详情" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
-      <aside className="apple-budget-drawer mobile-safe-bottom absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-[22px] sm:inset-y-0 sm:left-auto sm:max-h-none sm:rounded-none sm:border-l sm:border-border sm:w-[var(--budget-drawer-width)]" style={{ '--budget-drawer-width': `${drawerWidth}px` } as CSSProperties}>
+      <aside className="apple-budget-drawer mobile-safe-bottom absolute inset-x-0 bottom-0 flex max-h-[88dvh] flex-col overflow-hidden rounded-t-2xl sm:inset-y-0 sm:left-auto sm:max-h-none sm:rounded-l-2xl sm:rounded-tr-none sm:w-[var(--budget-drawer-width)]" style={{ '--budget-drawer-width': `${drawerWidth}px` } as CSSProperties}>
         <div role="separator" aria-label="调整预算详情宽度" aria-orientation="vertical" onPointerDown={startDrawerResize} className="group absolute inset-y-0 -left-2 hidden w-3 cursor-col-resize touch-none items-center justify-center sm:flex">
           <span className="h-11 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
         </div>
@@ -291,35 +291,35 @@ export function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => voi
         <div className="min-h-0 flex-1 overflow-y-auto px-4 sm:px-5">
 
         <div className="grid grid-cols-3 gap-2.5 py-4">
-          <div className="rounded-lg bg-surface px-2.5 py-2.5">
-            <div className="text-[10.5px] text-text-faint">总预算</div>
+          <div className="rounded-xl bg-surface px-2.5 py-2.5">
+            <div className="text-xs text-text-faint">总预算</div>
             {editingBudget ? (
-              <input autoFocus type="number" value={budgetDraft} onChange={(event) => setBudgetDraft(event.target.value)} onBlur={commitBudget} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setEditingBudget(false) }} className="mt-1 w-full rounded border border-accent bg-white px-1 py-0.5 text-[13px] font-semibold tabular-nums outline-none" />
+              <input autoFocus type="number" value={budgetDraft} onChange={(event) => setBudgetDraft(event.target.value)} onBlur={commitBudget} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); if (event.key === 'Escape') setEditingBudget(false) }} className="mt-1 w-full rounded-xl border border-accent bg-white px-1 py-0.5 text-sm font-semibold tabular-nums outline-none" />
             ) : (
-              <button onClick={() => { setBudgetDraft(String(trip.totalBudget)); setEditingBudget(true) }} className="mt-1 text-left text-[13px] font-semibold tabular-nums hover:text-accent" title="点击修改总预算">¥{trip.totalBudget.toLocaleString()}</button>
+              <button onClick={() => { setBudgetDraft(String(trip.totalBudget)); setEditingBudget(true) }} className="mt-1 text-left text-sm font-semibold tabular-nums hover:text-accent" title="点击修改总预算">¥{trip.totalBudget.toLocaleString()}</button>
             )}
           </div>
-          <div className="rounded-lg bg-accent-soft px-2.5 py-2.5">
-            <div className="text-[10.5px] text-accent/80">已规划</div>
-            <div className="mt-1 text-[13px] font-semibold tabular-nums text-accent-hover">¥{totalPlanned.toLocaleString()}</div>
+          <div className="rounded-xl bg-accent-soft px-2.5 py-2.5">
+            <div className="text-xs text-accent-hover">已规划</div>
+            <div className="mt-1 text-sm font-semibold tabular-nums text-accent-hover">¥{totalPlanned.toLocaleString()}</div>
           </div>
-          <div className="rounded-lg bg-surface px-2.5 py-2.5">
-            <div className="text-[10.5px] text-text-faint">剩余</div>
-            <div className={`mt-1 text-[13px] font-semibold tabular-nums ${remain < 0 ? 'text-red-500' : ''}`}>¥{remain.toLocaleString()}</div>
+          <div className="rounded-xl bg-surface px-2.5 py-2.5">
+            <div className="text-xs text-text-faint">剩余</div>
+            <div className={`mt-1 text-sm font-semibold tabular-nums ${remain < 0 ? 'text-danger' : ''}`}>¥{remain.toLocaleString()}</div>
           </div>
         </div>
         {trip.totalBudget > 0 && <div className="-mt-1 mb-4 h-1.5 overflow-hidden rounded-full bg-surface-2"><div className={`h-full rounded-full ${remain < 0 ? 'bg-red-400' : 'bg-accent'}`} style={{ width: `${Math.min(100, (totalPlanned / trip.totalBudget) * 100)}%` }} /></div>}
 
-        <section className="border-t border-border py-4">
-          <div className="mb-2 text-[12px] font-semibold">分类占比</div>
-          {byCategory.length === 0 ? <div className="py-2 text-[11.5px] text-text-faint">还没有花费记录</div> : (
+        <section className="py-4">
+          <div className="mb-2 text-xs font-semibold">分类占比</div>
+          {byCategory.length === 0 ? <div className="py-2 text-xs text-text-faint">还没有花费记录</div> : (
             <div className="flex flex-col gap-2.5">
               {byCategory.map(({ category, total }) => {
                 const meta = CATEGORY_META[category]
                 const Icon = CATEGORY_ICONS[category]
                 return <div key={category}>
-                  <div className="flex items-center gap-1.5 text-[11.5px]">
-                    <span className="flex h-5 w-5 items-center justify-center rounded" style={{ background: meta.soft, color: meta.color }}><Icon size={11} /></span>
+                  <div className="flex items-center gap-1.5 text-xs">
+                    <span className="flex h-5 w-5 items-center justify-center rounded-md" style={{ background: meta.soft, color: meta.color }}><Icon size={11} /></span>
                     <span className="text-text-muted">{meta.label}</span>
                     <span className="ml-auto font-medium tabular-nums">¥{total.toLocaleString()}</span>
                     <span className="w-8 text-right text-text-faint">{Math.round((total / totalPlanned) * 100)}%</span>
@@ -331,23 +331,23 @@ export function BudgetDrawer({ trip, onClose }: { trip: Trip; onClose: () => voi
           )}
         </section>
 
-        <section className="border-t border-border py-4">
-          <div className="mb-2 text-[12px] font-semibold">按天花费</div>
+        <section className="py-4">
+          <div className="mb-2 text-xs font-semibold">按天花费</div>
           <div className="flex flex-col gap-1">
-            {byDay.map((day) => <div key={day.id} className="flex items-center gap-2 rounded-md px-1 py-1 text-[11.5px] hover:bg-surface">
+            {byDay.map((day) => <div key={day.id} className="flex items-center gap-2 rounded-md px-1 py-1 text-xs hover:bg-surface">
               <span className="font-medium">{day.label}</span><span className="min-w-0 flex-1 truncate text-text-faint">{day.place || '待定地点'}</span><span className="font-medium tabular-nums">¥{day.total.toLocaleString()}</span>
             </div>)}
           </div>
         </section>
 
         <section className="border-t border-border pt-4 pb-5">
-          <div className="mb-2 flex items-center justify-between"><span className="text-[12px] font-semibold">花费明细</span><button onClick={exportDetails} className="text-[11.5px] text-accent hover:text-accent-hover">导出 JSON</button></div>
+          <div className="mb-2 flex items-center justify-between"><span className="text-xs font-semibold">花费明细</span><button onClick={exportDetails} className="text-xs text-accent hover:text-accent-hover">导出 JSON</button></div>
           <div className="flex flex-col gap-1.5">
-            {rows.length === 0 ? <div className="py-2 text-[11.5px] text-text-faint">暂无花费记录</div> : rows.map((row) => (
+            {rows.length === 0 ? <div className="py-2 text-xs text-text-faint">暂无花费记录</div> : rows.map((row) => (
               <button key={row.id} onClick={() => { focusActivity(row.activityId); onClose() }} className="flex w-full min-w-0 items-center gap-2 rounded-md px-1.5 py-1.5 text-left transition-colors hover:bg-surface">
                 <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: CATEGORY_META[row.category].color }} />
-                <span className="min-w-0 flex-1"><span className="block truncate text-[11.5px] font-medium">{row.activityTitle}</span><span className="block truncate text-[10.5px] text-text-faint">{row.dayLabel}{row.costTitle ? ` · ${row.costTitle}` : ''}</span></span>
-                <span className="shrink-0 text-[12px] font-semibold tabular-nums">¥{row.amount.toLocaleString()}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-xs font-medium">{row.activityTitle}</span><span className="block truncate text-xs text-text-faint">{row.dayLabel}{row.costTitle ? ` · ${row.costTitle}` : ''}</span></span>
+                <span className="shrink-0 text-xs font-semibold tabular-nums">¥{row.amount.toLocaleString()}</span>
               </button>
             ))}
           </div>
@@ -437,10 +437,10 @@ function TransitHint({
           insufficient
             ? 'text-amber-700/80 hover:bg-amber-50/60 hover:text-amber-800'
             : 'text-text-faint hover:bg-surface-2/60 hover:text-text-muted'
-        } ${compact ? 'text-[10px]' : 'text-[10.5px]'}`}
+        } ${compact ? 'text-xs' : 'text-xs'}`}
         title={`点击导航前往「${to.title}」`}
       >
-        <span className={insufficient ? 'text-amber-600/70' : 'text-text-faint/80 group-hover:text-text-muted'}>
+        <span className={insufficient ? 'text-amber-800' : 'text-text-faint group-hover:text-text-muted'}>
           <IconComponent size={compact ? 11 : 12} />
         </span>
         <span>
@@ -451,7 +451,7 @@ function TransitHint({
           )}
         </span>
         {insufficient && (
-          <span className="font-medium text-amber-600/80">
+          <span className="font-medium text-amber-800/80">
             · 仅留 {available} 分钟
           </span>
         )}
@@ -570,13 +570,13 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
   }
 
   return (
-    <div className="rounded-md border border-border/80 bg-white p-3 shadow-[0_1px_3px_rgba(32,40,46,0.04)] sm:p-3.5">
+    <div className="rounded-md border border-border/80 bg-white p-3 shadow-card sm:p-3.5">
       <div className="flex flex-wrap gap-2">
         <input
           type="time"
           value={time}
           onChange={(e) => setTime(e.target.value)}
-          className="w-[96px] rounded-md border border-border px-2.5 py-2 text-[13px] tabular-nums outline-none focus:border-accent sm:w-[104px]"
+          className="w-[96px] rounded-xl border border-border px-2.5 py-2 text-sm tabular-nums outline-none focus:border-accent sm:w-[104px]"
         />
         <div className="relative min-w-[170px] flex-1 sm:min-w-[220px]">
           <input
@@ -609,37 +609,37 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
               }
             }}
             placeholder="搜索地点，或直接输入安排"
-            className="w-full rounded-md border border-border px-3 py-2 text-[13px] outline-none focus:border-accent"
+            className="w-full rounded-xl border border-border px-3 py-2 text-sm outline-none focus:border-accent"
           />
           {loading && <InlineStatus loading className="absolute top-1 right-1 border-transparent bg-white/94 py-1 shadow-none">搜索中</InlineStatus>}
           {results.length > 0 && (
-            <ul className="absolute top-full left-0 z-20 mt-1 max-h-[220px] w-full overflow-y-auto rounded-lg border border-border bg-white py-1 shadow-lg">
-              {groupedResults.trip.length > 0 && <li className="px-3 py-1 text-[10.5px] font-medium text-text-muted">旅行范围内</li>}
+            <ul className="absolute top-full left-0 z-20 mt-1 max-h-[220px] w-full overflow-y-auto rounded-2xl bg-white py-1 shadow-popover">
+              {groupedResults.trip.length > 0 && <li className="px-3 py-1 text-xs font-medium text-text-muted">旅行范围内</li>}
               {groupedResults.trip.map((place) => (
                 <li key={`${place.lat},${place.lng}`} className={`flex items-center gap-2 px-1.5 py-1 ${results[resultIndex] === place ? 'bg-accent-soft' : 'hover:bg-accent-soft'}`}>
                   <button onClick={() => pickPlace(place)} onMouseEnter={() => setResultIndex(results.indexOf(place))} className="min-w-0 flex-1 px-1.5 py-1 text-left">
-                    <div className="truncate text-[12.5px] font-medium">{place.label.split(',')[0]}</div>
-                    <div className="mt-0.5 truncate text-[11px] text-text-faint">{place.label}</div>
+                    <div className="truncate text-sm font-medium">{place.label.split(',')[0]}</div>
+                    <div className="mt-0.5 truncate text-xs text-text-faint">{place.label}</div>
                   </button>
                   <button
                     onClick={() => savePlace(place)}
-                    className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:border-accent hover:text-accent"
+                    className="shrink-0 rounded-xl border border-border px-2 py-1 text-xs text-text-muted hover:border-accent hover:text-accent"
                   >
                     收藏
                   </button>
                 </li>
               ))}
-              {groupedResults.broader.length > 0 && <li className="my-1 border-y border-border/70 bg-surface px-3 py-1 text-[10.5px] font-medium text-text-faint">其他可能地点</li>}
+              {groupedResults.broader.length > 0 && <li className="my-1 border-y border-border/70 bg-surface px-3 py-1 text-xs font-medium text-text-faint">其他可能地点</li>}
               {groupedResults.broader.map((place) => (
                 <li key={`${place.lat},${place.lng}`} className={`flex items-center gap-2 px-1.5 py-1 ${results[resultIndex] === place ? 'bg-accent-soft' : 'hover:bg-accent-soft'}`}>
-                  <button onClick={() => pickPlace(place)} onMouseEnter={() => setResultIndex(results.indexOf(place))} className="min-w-0 flex-1 px-1.5 py-1 text-left"><div className="truncate text-[12.5px] font-medium">{place.label.split(',')[0]}</div><div className="mt-0.5 truncate text-[11px] text-text-faint">{place.label}</div></button>
-                  <button onClick={() => savePlace(place)} className="shrink-0 rounded border border-border px-2 py-1 text-[11px] text-text-muted hover:border-accent hover:text-accent">收藏</button>
+                  <button onClick={() => pickPlace(place)} onMouseEnter={() => setResultIndex(results.indexOf(place))} className="min-w-0 flex-1 px-1.5 py-1 text-left"><div className="truncate text-sm font-medium">{place.label.split(',')[0]}</div><div className="mt-0.5 truncate text-xs text-text-faint">{place.label}</div></button>
+                  <button onClick={() => savePlace(place)} className="shrink-0 rounded-xl border border-border px-2 py-1 text-xs text-text-muted hover:border-accent hover:text-accent">收藏</button>
                 </li>
               ))}
             </ul>
           )}
           {!loading && searchedQuery === title.trim() && searchedQuery.length >= 2 && results.length === 0 && !pickedPlace && (
-            <div className="absolute top-full left-0 z-20 mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-[11.5px] text-text-muted shadow-lg">
+            <div className="absolute top-full left-0 z-20 mt-1 w-full rounded-2xl bg-surface-card px-3 py-2 text-xs text-text-muted shadow-popover">
               <InlineStatus tone="warning" className="w-full border-0 bg-transparent p-0">没有找到匹配地点，仍可按 Enter 作为普通安排添加。</InlineStatus>
             </div>
           )}
@@ -647,22 +647,22 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
         <button
           onClick={submit}
           disabled={!title.trim()}
-          className="rounded-md bg-action px-4 py-2 text-[13px] font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-xl bg-action px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40"
         >
           添加
         </button>
         <button
           onClick={() => setShowOptions((show) => !show)}
-          className={`rounded-md px-2.5 py-2 text-[12px] transition-colors ${showOptions ? 'bg-accent-soft text-accent-hover' : 'text-text-muted hover:bg-surface'}`}
+          className={`rounded-md px-2.5 py-2 text-xs transition-colors ${showOptions ? 'bg-accent-soft text-accent-hover' : 'text-text-muted hover:bg-surface'}`}
         >
           {showOptions ? '收起' : '更多信息'}
         </button>
-        <button onClick={onDone} className="rounded-md px-2.5 py-2 text-[13px] text-text-muted hover:bg-surface">
+        <button onClick={onDone} className="rounded-md px-2.5 py-2 text-sm text-text-muted hover:bg-surface">
           清空
         </button>
       </div>
       {!compact && <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-border pt-2">
-        <span className="mr-0.5 text-[11.5px] text-text-faint">分类</span>
+        <span className="mr-0.5 text-xs text-text-faint">分类</span>
         {(Object.keys(CATEGORY_META) as ActivityCategory[]).map((value) => {
           const active = category === value
           const meta = CATEGORY_META[value]
@@ -671,7 +671,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
             <button
               key={value}
               onClick={() => setCategory(value)}
-              className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[11.5px]"
+              className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-xs"
               style={{ background: active ? meta.soft : 'transparent', color: active ? meta.color : 'var(--color-text-muted)' }}
             >
               <Icon size={12} /> {meta.label}
@@ -679,7 +679,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
           )
         })}
         {pickedPlace && (
-          <span className="ml-auto max-w-[280px] truncate rounded-full bg-accent-soft px-2 py-0.5 text-[11px] text-accent-hover" title={pickedPlace.label}>
+          <span className="ml-auto max-w-[280px] truncate rounded-full bg-accent-soft px-2 py-0.5 text-xs text-accent-hover" title={pickedPlace.label}>
             ✓ 已定位 · {pickedPlace.label}
           </span>
         )}
@@ -693,9 +693,9 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
               placeholder="预计时长"
               inputMode="numeric"
               aria-label="预计时长"
-              className="w-full rounded-md border border-border px-2.5 py-1.5 pr-9 text-[12.5px] outline-none focus:border-accent"
+              className="w-full rounded-xl border border-border px-2.5 py-1.5 pr-9 text-sm outline-none focus:border-accent"
             />
-            <span className="absolute top-1.5 right-2.5 text-[11.5px] text-text-faint">分钟</span>
+            <span className="absolute top-1.5 right-2.5 text-xs text-text-faint">分钟</span>
           </label>
           <input
             value={cost}
@@ -703,7 +703,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
             placeholder="花费 ¥"
             inputMode="decimal"
             aria-label="花费"
-            className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent"
+            className="rounded-xl border border-border px-2.5 py-1.5 text-sm outline-none focus:border-accent"
           />
           <input
             value={note}
@@ -711,7 +711,7 @@ function AddActivityForm({ dayId, onDone, compact = false }: { dayId: string; on
             onKeyDown={(event) => event.key === 'Enter' && submit()}
             placeholder="备注（选填）"
             aria-label="备注"
-            className="rounded-md border border-border px-2.5 py-1.5 text-[12.5px] outline-none focus:border-accent"
+            className="rounded-xl border border-border px-2.5 py-1.5 text-sm outline-none focus:border-accent"
           />
         </div>
       )}
@@ -727,7 +727,7 @@ function EditActivityForm({ activity, onDone }: { activity: Activity; onDone: ()
   // 恢复属于当前条目的草稿
   const draft = useTripStore((s) => (s.activityDraft?.activityId === activity.id ? s.activityDraft : null))
   return (
-    <div className="rounded-lg border border-border/90 bg-white p-3.5 shadow-[0_2px_10px_rgba(32,40,46,0.07)] sm:p-4">
+    <div className="rounded-xl border border-border/90 bg-white p-3.5 shadow-card sm:p-4">
       <ActivityForm
         initial={draft ? { ...activityToFormValues(activity), ...draft.values } : activityToFormValues(activity)}
         submitLabel="保存"
@@ -791,12 +791,12 @@ function ActivityCard({
     <div
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
-      className={`group relative flex min-w-0 w-full items-center ${compact ? 'gap-2 py-1.5 pr-1 pl-2' : 'gap-2.5 py-2 pr-1 pl-2.5 sm:py-2.5 sm:pr-2 sm:pl-3'} rounded-md border-l-2 transition-[border-color,background-color,box-shadow] ${introduced ? 'activity-drop-in' : ''} ${
-        selected ? 'border-action bg-white shadow-[0_2px_9px_rgba(32,40,46,0.07)]' : highlighted ? 'border-accent/40 bg-accent-soft/70' : 'border-transparent hover:bg-white/80'
+      className={`group relative flex min-w-0 w-full items-center ${compact ? 'gap-2 px-3 py-2' : 'gap-2.5 px-3.5 py-2.5'} rounded-xl border-l-2 transition-[border-color,background-color,box-shadow] ${introduced ? 'activity-drop-in' : ''} ${
+        selected ? 'border-action bg-white shadow-card' : highlighted ? 'border-accent/40 bg-accent-soft/70' : 'border-transparent bg-surface hover:bg-surface-2'
       }`}
     >
       <div
-        className={`flex shrink-0 items-center justify-center rounded-[7px] ${compact ? 'h-6 w-6' : 'h-7 w-7'}`}
+        className={`flex shrink-0 items-center justify-center rounded-md ${compact ? 'h-6 w-6' : 'h-7 w-7'}`}
         style={{ background: meta.soft, color: meta.color }}
       >
         <Icon size={compact ? 14 : 16} />
@@ -804,8 +804,8 @@ function ActivityCard({
       {/* 可点击主体（展开/收起详情） */}
       <button onClick={onClick} className="flex min-w-0 flex-1 items-center text-left">
         <div className="min-w-0 flex-1">
-          <div className={`truncate font-semibold tracking-[-0.01em] ${compact ? 'text-[12.5px]' : 'text-[13.5px] sm:text-[14px]'}`}>{activity.title}</div>
-          <div className={`flex items-center gap-2.5 text-text-muted ${compact ? 'mt-0 text-[10.5px]' : 'mt-0.5 text-[11.5px] sm:text-[12px]'}`}>
+          <div className="truncate text-sm font-semibold tracking-[-0.01em]">{activity.title}</div>
+          <div className={`flex items-center gap-2 text-xs text-text-muted ${compact ? '' : 'mt-0.5'}`}>
             {activity.duration && <span>{activity.duration}</span>}
             {activity.location && <span className="truncate">{activity.location}</span>}
           </div>
@@ -848,7 +848,7 @@ function ActivityCard({
               },
             })
           }}
-          className={`flex shrink-0 items-center justify-center rounded-md text-text-faint transition-colors hover:bg-red-50 hover:text-red-500 ${compact ? 'h-7 w-7' : 'h-10 w-10 sm:h-auto sm:w-auto sm:p-1.5'}`}
+          className={`flex shrink-0 items-center justify-center rounded-md text-text-faint transition-colors hover:bg-red-50 hover:text-danger ${compact ? 'h-7 w-7' : 'h-10 w-10 sm:h-auto sm:w-auto sm:p-1.5'}`}
           title="删除安排"
         >
           <TrashIcon size={14} />
@@ -860,13 +860,13 @@ function ActivityCard({
         <button
           type="button"
           onClick={onClick}
-          className={`shrink-0 text-right font-medium text-text-muted tabular-nums hover:text-text sm:pl-1 ${compact ? 'text-[11.5px]' : 'text-[12px]'}`}
+          className="shrink-0 text-right text-xs font-medium text-text-muted tabular-nums hover:text-text sm:pl-1"
         >
           ¥{activity.costs.reduce((s, c) => s + c.amount, 0).toLocaleString()}
         </button>
       )}
       {warning && (
-        <div className="absolute top-full left-0 mt-1 text-[11px] text-amber-600">⚠ {warning}</div>
+        <div className="absolute top-full left-0 mt-1 text-xs text-amber-800">⚠ {warning}</div>
       )}
     </div>
   )
@@ -932,14 +932,14 @@ function DayHeaderInfo({ day, mobilePresentation = false }: { day: { id: string;
         title="点击编辑日期/地点"
       >
         {showDate && (!mobilePresentation || !showPlace) && (
-          <span className="text-[12.5px] text-text-muted">{isStd ? displayDate(day.date) : day.date}</span>
+          <span className="text-sm text-text-muted">{isStd ? displayDate(day.date) : day.date}</span>
         )}
         {showPlace && (
-          <span className="rounded bg-accent-soft px-1.5 py-0.5 text-[11px] font-medium text-accent-hover">
+          <span className="rounded-md bg-accent-soft px-1.5 py-0.5 text-xs font-medium text-accent-hover">
             {day.place}
           </span>
         )}
-        {!showDate && !showPlace && <span className="text-[12px] text-text-faint">＋ 设置日期 / 地点</span>}
+        {!showDate && !showPlace && <span className="text-xs text-text-faint">＋ 设置日期 / 地点</span>}
       </button>
     )
   }
@@ -965,7 +965,7 @@ function DayHeaderInfo({ day, mobilePresentation = false }: { day: { id: string;
           if (e.key === 'Enter') commit()
           if (e.key === 'Escape') setEditing(false)
         }}
-        className="rounded border border-accent px-1.5 py-0.5 text-[12px] outline-none"
+        className="rounded-xl border border-accent px-1.5 py-0.5 text-xs outline-none"
       />
       <input
         value={place}
@@ -975,15 +975,15 @@ function DayHeaderInfo({ day, mobilePresentation = false }: { day: { id: string;
           if (e.key === 'Escape') setEditing(false)
         }}
         placeholder="地点，如 大阪"
-        className="w-[90px] rounded border border-accent px-1.5 py-0.5 text-[12px] outline-none"
+        className="w-[90px] rounded-xl border border-accent px-1.5 py-0.5 text-xs outline-none"
       />
       <button
         onClick={commit}
-        className="rounded bg-action px-2 py-0.5 text-[11.5px] text-white transition-colors hover:bg-action-hover"
+        className="rounded-xl bg-action px-2 py-0.5 text-xs text-white transition-colors hover:bg-action-hover"
       >
         保存
       </button>
-      <span className="text-[10.5px] text-text-faint">修改日期后，后续天会自动顺延</span>
+      <span className="text-xs text-text-faint">修改日期后，后续天会自动顺延</span>
     </div>
   )
 }
@@ -1058,38 +1058,38 @@ function DaySection({
       <button
         ref={setNodeRef}
         onClick={() => useTripStore.getState().setActiveDay(dayId)}
-        className={`mb-1 flex w-full items-center gap-3 border-b px-1 py-3 text-left transition-colors ${
-          isOver ? 'border-action bg-action-soft/60' : 'border-border/80 hover:bg-white/55'
+        className={`mb-1 flex w-full items-center gap-3 rounded-xl px-2 py-3 text-left transition-colors ${
+          isOver ? 'bg-action-soft' : 'hover:bg-surface'
         }`}
       >
-        <div className="text-[13.5px] font-semibold">{day.label}</div>
-        <div className="text-[12px] text-text-muted">
+        <div className="text-sm font-semibold">{day.label}</div>
+        <div className="text-xs text-text-muted">
           {day.date && day.date !== '待定'
             ? /^\d{4}-\d{2}-\d{2}$/.test(day.date)
               ? displayDate(day.date)
               : day.date
             : ''}
         </div>
-        <div className="ml-auto text-[12px] text-text-muted">{items.length} 个安排</div>
+        <div className="ml-auto text-xs text-text-muted">{items.length} 个安排</div>
       </button>
     )
   }
 
   return (
-      <section id={`workspace-day-${dayId}`} ref={setNodeRef} onDragOver={(event) => { if (acceptsWish(event)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setNativeWishOver(true) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setNativeWishOver(false) }} onDrop={(event) => { if (!acceptsWish(event)) return; setNativeWishOver(false); setNativeDropConfirmed(true); onNativeWishDrop?.(event, dayId) }} className={`${compact ? 'mb-3 scroll-mt-[48px] pb-3' : 'mb-5 pb-5 sm:mb-7 sm:pb-7'} border-b border-border/70 transition-colors last:border-b-0`}>
+      <section id={`workspace-day-${dayId}`} ref={setNodeRef} onDragOver={(event) => { if (acceptsWish(event)) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy'; setNativeWishOver(true) } }} onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setNativeWishOver(false) }} onDrop={(event) => { if (!acceptsWish(event)) return; setNativeWishOver(false); setNativeDropConfirmed(true); onNativeWishDrop?.(event, dayId) }} className={`${compact ? 'mb-4 scroll-mt-[48px] pb-2' : 'mb-8 pb-2'} transition-colors`}>
         {/* 天标题 */}
-        <header className={`${compact ? mobilePresentation ? 'mb-1.5 gap-x-2' : 'mb-2 gap-x-2' : 'mb-3 gap-x-3 gap-y-2'} ${isOver || nativeWishOver || activityDropTarget ? 'itinerary-day-header-drop-target -mx-2 rounded-xl bg-white/92 px-2.5 py-2 shadow-[0_7px_18px_rgba(47,72,91,0.10)]' : ''} ${confirmedDrop || nativeDropConfirmed ? 'itinerary-day-header-drop-confirmed' : ''} flex flex-wrap items-center px-0.5 transition-[padding,background-color,box-shadow,transform]`}>
-          <h2 className={`${compact ? 'text-[17px]' : 'text-[19px]'} font-semibold tracking-[-0.02em]`}>{day.label}</h2>
+        <header className={`${compact ? mobilePresentation ? 'mb-1.5 gap-x-2' : 'mb-2 gap-x-2' : 'mb-3 gap-x-3 gap-y-2'} ${isOver || nativeWishOver || activityDropTarget ? 'itinerary-day-header-drop-target -mx-2 rounded-xl bg-white/92 px-2.5 py-2 shadow-popover' : ''} ${confirmedDrop || nativeDropConfirmed ? 'itinerary-day-header-drop-confirmed' : ''} flex flex-wrap items-center px-0.5 transition-[padding,background-color,box-shadow,transform]`}>
+          <h2 className={`${compact ? 'text-base' : 'text-xl'} leading-[1.3] font-bold tracking-[-0.02em]`}>{day.label}</h2>
           <DayHeaderInfo day={day} mobilePresentation={mobilePresentation} />
           {isCrossCity && <span className="day-route-chip"><span>{previousDay!.place}</span><span aria-hidden="true">→</span><strong>{day.place}</strong></span>}
-          {(isOver || nativeWishOver || activityDropTarget) && <span className="itinerary-day-drop-label rounded-full bg-accent-soft px-2 py-0.5 text-[10.5px] font-medium text-accent-hover">{activityDropTarget ? `移到${day.label}` : `安排到${day.label}`}</span>}
-          {forceExpanded && onFocusDay && <button onClick={() => onFocusDay(dayId)} className="rounded-md px-2 py-1 text-[11px] font-medium text-text-faint transition-colors hover:bg-white hover:text-accent" title={`只查看${day.label}`}>聚焦</button>}
+          {(isOver || nativeWishOver || activityDropTarget) && <span className="itinerary-day-drop-label rounded-full bg-accent-soft px-2 py-0.5 text-xs font-medium text-accent-hover">{activityDropTarget ? `移到${day.label}` : `安排到${day.label}`}</span>}
+          {forceExpanded && onFocusDay && <button onClick={() => onFocusDay(dayId)} className="rounded-md px-2 py-1 text-xs font-medium text-text-faint transition-colors hover:bg-white hover:text-accent" title={`只查看${day.label}`}>聚焦</button>}
           <details className="relative ml-auto">
-            <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md px-2 py-1.5 text-[12px] font-medium text-text-muted transition-colors hover:bg-white hover:text-text [&::-webkit-details-marker]:hidden">
-              管理当天 <span className="text-[10px] text-text-faint">⌄</span>
+            <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium text-text-muted transition-colors hover:bg-white hover:text-text [&::-webkit-details-marker]:hidden">
+              管理当天 <span className="text-xs text-text-faint">⌄</span>
             </summary>
             <div
-              className="absolute right-0 top-[calc(100%+6px)] z-30 flex min-w-[168px] flex-col rounded-lg border border-border bg-white p-1.5 shadow-[0_10px_30px_rgba(32,40,46,0.14)]"
+              className="absolute right-0 top-[calc(100%+6px)] z-30 flex min-w-[168px] flex-col rounded-2xl bg-white p-1.5 shadow-popover"
               onClick={(event) => {
                 if ((event.target as HTMLElement).closest('button')) event.currentTarget.parentElement?.removeAttribute('open')
               }}
@@ -1097,7 +1097,7 @@ function DaySection({
               {trip.days.length > 1 && <button
                 onClick={() => moveDay(dayId, -1)}
                 disabled={trip.days.findIndex((item) => item.id === dayId) === 0}
-                className="rounded-md px-2.5 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-30"
+                className="rounded-md px-2.5 py-2 text-left text-xs text-text-muted transition-colors hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-30"
                 title="整天前移"
               >
                 ↑ 前移
@@ -1105,7 +1105,7 @@ function DaySection({
               {trip.days.length > 1 && <button
                 onClick={() => moveDay(dayId, 1)}
                 disabled={trip.days.findIndex((item) => item.id === dayId) === trip.days.length - 1}
-                className="rounded-md px-2.5 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-30"
+                className="rounded-md px-2.5 py-2 text-left text-xs text-text-muted transition-colors hover:bg-surface-2 hover:text-text disabled:cursor-not-allowed disabled:opacity-30"
                 title="整天后移"
               >
                 ↓ 后移
@@ -1122,7 +1122,7 @@ function DaySection({
                       : `已在${day.label}后插入一天`,
                   )
                 }}
-                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
                 title="在这天后插入空白一天"
               >
                 <PlusIcon size={13} /> 空白一天
@@ -1132,7 +1132,7 @@ function DaySection({
                   copyDay(dayId)
                   useToastStore.getState().show(`已复制${day.label}的安排到下一天`)
                 }}
-                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-[12px] text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
+                className="flex items-center gap-2 rounded-md px-2.5 py-2 text-left text-xs text-text-muted transition-colors hover:bg-surface-2 hover:text-text"
                 title="复制当天的安排、地点和花费到下一天"
               >
                 复制当天
@@ -1151,7 +1151,7 @@ function DaySection({
                   },
                 })
                 }
-                className="mt-1 flex items-center gap-2 border-t border-border/70 rounded-md px-2.5 py-2 pt-2.5 text-left text-[12px] text-text-faint transition-colors hover:bg-red-50 hover:text-red-500"
+                className="mt-1 flex items-center gap-2 border-t border-border/70 rounded-md px-2.5 py-2 pt-2.5 text-left text-xs text-text-faint transition-colors hover:bg-red-50 hover:text-danger"
                 title="删除该天"
               >
                 <TrashIcon size={13} /> 删除该天
@@ -1164,10 +1164,10 @@ function DaySection({
 
         {/* 时间轴 */}
         <SortableContext items={items.map((i) => i.id)} strategy={verticalListSortingStrategy}>
-          <div className={`flex flex-col ${compact ? 'gap-1.5' : 'gap-2.5'}`}>
+          <div className={`flex flex-col ${compact ? 'gap-2' : 'gap-3'}`}>
               {items.map((a, index) => (
                 <div key={a.id} className="relative flex min-w-0 items-start gap-2 sm:gap-3" data-activity-id={a.id}>
-                  <div className={`${compact ? 'w-[34px] pt-2 text-[11px]' : 'w-[40px] pt-3 text-[11.5px] sm:w-[48px] sm:text-[12.5px]'} shrink-0 text-right font-medium tabular-nums text-text-muted`}>
+                  <div className={`${compact ? 'w-[34px] pt-2' : 'w-[40px] pt-3 sm:w-[48px]'} shrink-0 text-right text-xs font-medium tabular-nums text-text-muted`}>
                     {a.time}
                   </div>
                   <div className="relative min-w-0 flex-1">
@@ -1204,7 +1204,7 @@ function DaySection({
               ))}
               {!hideQuickAdd && <button
                 onClick={onQuickAdd}
-                className={`hidden items-center gap-2 rounded-md border border-transparent bg-surface-2/65 font-medium text-text-muted transition-colors hover:border-border hover:bg-white hover:text-text sm:flex ${compact ? 'px-3 py-2 text-[12px]' : 'px-3.5 py-2.5 text-[13px]'}`}
+                className={`hidden items-center gap-2 rounded-md border border-transparent bg-surface-2/65 font-medium text-text-muted transition-colors hover:border-border hover:bg-white hover:text-text sm:flex ${compact ? 'px-3 py-2 text-xs' : 'px-3.5 py-2.5 text-sm'}`}
               >
                 <PlusIcon size={15} /> 在这里添加安排
               </button>}
@@ -1267,15 +1267,15 @@ function PlannerInspector({
       <div role="separator" aria-label="调整行程地图与详情宽度" aria-orientation="vertical" onPointerDown={startPanelResize} className="group hidden w-2 shrink-0 cursor-col-resize touch-none items-center justify-center xl:flex">
         <span className="h-11 w-px rounded-full bg-border transition-colors group-hover:bg-accent" />
       </div>
-      <aside className="sticky top-0 hidden h-[calc(100vh-52px)] min-w-0 max-w-[45vw] shrink-0 overflow-y-auto border-l border-border/80 bg-[#fafbfb] xl:block" style={{ width: panelWidth }}>
-      <div className="border-b border-border/80 p-4">
+      <aside className="sticky top-0 hidden h-[calc(100vh-52px)] min-w-0 max-w-[45vw] shrink-0 overflow-y-auto bg-surface xl:block" style={{ width: panelWidth }}>
+      <div className="p-4">
         <div className="mb-2 flex items-center justify-between">
           <div>
-            <div className="text-[13px] font-semibold">{day?.label} 地图</div>
-            <div className="mt-0.5 text-[11.5px] text-text-faint">点击标记可定位行程</div>
+            <div className="text-sm font-semibold">{day?.label} 地图</div>
+            <div className="mt-0.5 text-xs text-text-faint">点击标记可定位行程</div>
           </div>
           <div className="flex items-center gap-1">
-            {activity && <button onClick={() => selectActivity(null)} className="rounded px-1.5 py-1 text-[11px] text-text-faint hover:bg-surface hover:text-text-muted">清除选择</button>}
+            {activity && <button onClick={() => selectActivity(null)} className="rounded-md px-1.5 py-1 text-xs text-text-faint hover:bg-surface hover:text-text-muted">清除选择</button>}
           </div>
         </div>
         <DayMapPreview dayId={dayId} selectedActivityId={activityId ?? null} highlightedActivityId={highlightedActivityId} showLabels={panelWidth >= 420} />
@@ -1285,10 +1285,10 @@ function PlannerInspector({
           editingActivityId === activity.id ? (
             <>
               <div className="mb-3 flex items-center justify-between">
-                <div className="text-[13px] font-semibold">编辑安排</div>
+                <div className="text-sm font-semibold">编辑安排</div>
                 <button
                   onClick={() => setEditingActivity(null)}
-                  className="text-[12px] text-text-muted hover:text-text"
+                  className="text-xs text-text-muted hover:text-text"
                 >
                   取消
                 </button>
@@ -1305,9 +1305,9 @@ function PlannerInspector({
             <InlineActivityDetail activity={activity} />
           )
         ) : (
-          <div className="border-t border-border/80 px-1 py-5">
-            <div className="text-[13px] font-medium text-text-muted">当天信息</div>
-            <p className="mt-1.5 text-[12px] leading-relaxed text-text-faint">选择时间轴中的安排，即可查看花费、备注和地点详情。</p>
+          <div className="rounded-xl bg-surface-2 px-3 py-4">
+            <div className="text-sm font-medium text-text-muted">当天信息</div>
+            <p className="mt-1.5 text-xs leading-relaxed text-text-faint">选择时间轴中的安排，即可查看花费、备注和地点详情。</p>
           </div>
         )}
       </div>
@@ -1342,14 +1342,14 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
               setActiveDay(day.id)
               selectActivity(null)
             }}
-            className={`shrink-0 rounded-lg border-l-2 px-3 py-2 text-left transition-colors ${
+            className={`shrink-0 rounded-xl border-l-2 px-3 py-2 text-left transition-colors ${
               active
-                ? 'border-action bg-white text-text shadow-[0_1px_5px_rgba(32,40,46,0.08)]'
+                ? 'border-action bg-white text-text shadow-card'
                 : 'border-transparent bg-surface-2/60 text-text-muted'
             }`}
           >
-            <span className="block text-[12px] font-semibold">{day.label}</span>
-            <span className="mt-0.5 block max-w-[84px] truncate text-[10.5px] text-text-faint">
+            <span className="block text-xs font-semibold">{day.label}</span>
+            <span className="mt-0.5 block max-w-[84px] truncate text-xs text-text-faint">
               {day.place || (day.date !== '待定' ? displayDate(day.date).split(' ')[0] : '待安排')}
             </span>
           </button>
@@ -1357,7 +1357,7 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
       })}
       <button
         onClick={appendDay}
-        className="flex min-w-[68px] shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-white px-2 py-2 text-[11px] text-text-muted active:border-accent active:text-accent"
+        className="flex min-w-[68px] shrink-0 flex-col items-center justify-center rounded-xl border border-dashed border-border bg-white px-2 py-2 text-xs text-text-muted active:border-accent active:text-accent"
       >
         <PlusIcon size={15} />
         <span className="mt-0.5">加一天</span>
@@ -1384,13 +1384,13 @@ function WorkspaceDayNavigator({ showAllDays, onShowAllDays, onFocusDay }: { sho
   }
 
   return (
-    <nav className="sticky top-0 z-20 -mx-5 mb-4 border-b border-border/70 bg-white/92 px-5 py-2.5 backdrop-blur" aria-label="行程日期导航">
+    <nav className="sticky top-0 z-20 mb-4 rounded-xl bg-surface/92 px-5 py-2.5 backdrop-blur" aria-label="行程日期导航">
       <div className="flex items-center gap-1.5 overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <button onClick={onShowAllDays} className={`shrink-0 rounded-md px-2.5 py-1.5 text-[11.5px] font-semibold transition-colors ${showAllDays ? 'bg-action-soft text-accent-hover' : 'text-text-muted hover:bg-surface hover:text-text'}`}>全部</button>
+        <button onClick={onShowAllDays} className={`shrink-0 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors ${showAllDays ? 'bg-action-soft text-accent-hover' : 'text-text-muted hover:bg-surface hover:text-text'}`}>全部</button>
         <span className="h-4 w-px shrink-0 bg-border" />
         {trip.days.map((day) => {
           const active = activeDayId === day.id
-          return <button key={day.id} onClick={() => { setJustSelectedDayId(day.id); showAllDays ? jumpToDay(day.id) : onFocusDay(day.id) }} className={`shrink-0 rounded-md px-2 py-1.5 text-[11px] transition-colors ${!showAllDays && active ? 'bg-action-soft text-accent-hover' : 'text-text-muted hover:bg-surface hover:text-text'} ${justSelectedDayId === day.id ? 'day-switch-flash' : ''}`} title={`${day.label}${day.place ? ` · ${day.place}` : ''}`}>
+          return <button key={day.id} onClick={() => { setJustSelectedDayId(day.id); showAllDays ? jumpToDay(day.id) : onFocusDay(day.id) }} className={`shrink-0 rounded-md px-2 py-1.5 text-xs transition-colors ${!showAllDays && active ? 'bg-action-soft text-accent-hover' : 'text-text-muted hover:bg-surface hover:text-text'} ${justSelectedDayId === day.id ? 'day-switch-flash' : ''}`} title={`${day.label}${day.place ? ` · ${day.place}` : ''}`}>
             {day.label}<span className="ml-1 text-text-faint">{day.place || displayDate(day.date).split(' ')[0]}</span>
           </button>
         })}
@@ -1600,10 +1600,10 @@ export default function TimelineView({ onOpenFullMap, onOpenBudget, onOpenWish, 
             {!workspace && !mobilePresentation && <MobileDayStrip trip={trip} />}
             {workspace && onShowAllDays && onFocusDay && <WorkspaceDayNavigator showAllDays={showAllDays} onShowAllDays={onShowAllDays} onFocusDay={onFocusDay} />}
             {!workspace && !mobilePresentation && <div className="mb-3 flex items-center justify-between sm:mb-4">
-              <span className="text-[12px] font-medium tracking-[0.08em] text-text-faint">行程概览</span>
+              <span className="text-xs font-medium tracking-[0.08em] text-text-faint">行程概览</span>
               <button
                 onClick={onOpenFullMap}
-                className="inline-flex items-center gap-1.5 rounded-md border border-border/80 bg-white/85 px-2.5 py-1.5 text-[12px] font-medium text-text-muted shadow-[0_1px_2px_rgba(32,40,46,0.04)] transition-colors hover:border-accent/45 hover:text-text active:bg-surface"
+                className="inline-flex items-center gap-1.5 rounded-xl border border-border/80 bg-white/85 px-2.5 py-1.5 text-xs font-medium text-text-muted shadow-card transition-colors hover:border-accent/45 hover:text-text active:bg-surface"
               >
                 <MapIcon size={13} /> 查看全程地图
               </button>
@@ -1611,26 +1611,26 @@ export default function TimelineView({ onOpenFullMap, onOpenBudget, onOpenWish, 
             {!workspace && !mobilePresentation && <TripStatsBar trip={trip} onOpenBudget={() => setBudgetDrawerOpen(true)} />}
             {/* 空旅程引导：还没有任何行程时给出第一步指引 */}
             {trip.activities.length === 0 && (
-              <div className="mb-6 rounded-xl border border-border/90 bg-surface px-5 py-5 shadow-[0_8px_28px_rgba(32,40,46,0.045)] sm:px-6 sm:py-6">
-                <div className="text-[15px] font-semibold text-accent-hover">从一个地点开始，行程会自然成形</div>
-                <p className="mt-1.5 max-w-[480px] text-[13px] leading-relaxed text-text-muted">
+              <div className="mb-6 rounded-xl border border-border/90 bg-surface px-5 py-5 shadow-popover sm:px-6 sm:py-6">
+                <div className="text-base font-semibold text-accent-hover">从一个地点开始，行程会自然成形</div>
+                <p className="mt-1.5 max-w-[480px] text-sm leading-relaxed text-text-muted">
                   不需要一次填完所有信息。先记下要去哪里，再逐步补充时间、花费和备注。
                 </p>
                 <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                  <button onClick={focusQuickAdd} className="rounded-lg border border-accent/30 bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-[0_2px_8px_rgba(49,92,125,0.10)]">
-                    <span className="text-[11px] font-semibold text-accent">01</span>
-                    <span className="mt-0.5 block text-[12.5px] font-medium">添加第一个安排</span>
-                    <span className="mt-0.5 block text-[11px] text-text-faint">直接输入地点或事项</span>
+                  <button onClick={focusQuickAdd} className="rounded-xl border border-accent/30 bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-card">
+                    <span className="text-xs font-semibold text-accent">01</span>
+                    <span className="mt-0.5 block text-sm font-medium">添加第一个安排</span>
+                    <span className="mt-0.5 block text-xs text-text-faint">直接输入地点或事项</span>
                   </button>
-                  <button onClick={() => onOpenWish ? onOpenWish() : setPlanTab('places')} className="rounded-lg border border-border bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-[0_2px_8px_rgba(49,92,125,0.10)]">
-                    <span className="text-[11px] font-semibold text-text-muted">02</span>
-                    <span className="mt-0.5 block text-[12.5px] font-medium">先收藏想去的地点</span>
-                    <span className="mt-0.5 block text-[11px] text-text-faint">日期暂未确定也没关系</span>
+                  <button onClick={() => onOpenWish ? onOpenWish() : setPlanTab('places')} className="rounded-xl border border-border bg-white px-3 py-2.5 text-left transition-colors hover:border-accent hover:shadow-card">
+                    <span className="text-xs font-semibold text-text-muted">02</span>
+                    <span className="mt-0.5 block text-sm font-medium">先收藏想去的地点</span>
+                    <span className="mt-0.5 block text-xs text-text-faint">日期暂未确定也没关系</span>
                   </button>
-                  <div className="rounded-lg border border-border/80 bg-white/70 px-3 py-2.5">
-                    <span className="text-[11px] font-semibold text-text-muted">03</span>
-                    <span className="mt-0.5 block text-[12.5px] font-medium">再补充细节</span>
-                    <span className="mt-0.5 block text-[11px] text-text-faint">点击条目即可编辑时长与花费</span>
+                  <div className="rounded-xl border border-border/80 bg-white/70 px-3 py-2.5">
+                    <span className="text-xs font-semibold text-text-muted">03</span>
+                    <span className="mt-0.5 block text-sm font-medium">再补充细节</span>
+                    <span className="mt-0.5 block text-xs text-text-faint">点击条目即可编辑时长与花费</span>
                   </div>
                 </div>
               </div>
@@ -1638,24 +1638,24 @@ export default function TimelineView({ onOpenFullMap, onOpenBudget, onOpenWish, 
             {((workspace && !showAllDays) ? trip.days.filter((day) => day.id === activeDayId) : trip.days).map((d) => (
               <DaySection key={d.id} dayId={d.id} onQuickAdd={focusQuickAdd} highlightedActivityId={mapHighlightedActivityId} onActivityHover={setHoveredActivityId} forceInlineDetails={workspace} compact={workspace || mobilePresentation} hideQuickAdd={hideQuickAdd} introducedActivityId={introducedActivityId} forceExpanded={(workspace && showAllDays) || mobilePresentation} mobilePresentation={mobilePresentation} onOpenBudget={mobilePresentation ? onOpenBudget : undefined} onNativeWishDrop={workspace && showAllDays ? handleNativeWishDrop : undefined} onFocusDay={workspace && showAllDays ? onFocusDay : undefined} confirmedDrop={recentlyDroppedDayId === d.id} activityDropTarget={draggingId !== null && dragOverDayId === d.id} />
             ))}
-            {workspace && showAllDays && <button onClick={() => addDay(trip.days.at(-1)?.id)} className="mb-4 flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border bg-white/65 px-3 py-3 text-[12px] font-medium text-text-faint transition-colors hover:border-accent/45 hover:bg-white hover:text-accent"><PlusIcon size={14} /> 在行程末尾添加一天</button>}
+            {workspace && showAllDays && <button onClick={() => addDay(trip.days.at(-1)?.id)} className="mb-4 flex w-full items-center justify-center gap-2 rounded-md border border-dashed border-border bg-white/65 px-3 py-3 text-xs font-medium text-text-faint transition-colors hover:border-accent/45 hover:bg-white hover:text-accent"><PlusIcon size={14} /> 在行程末尾添加一天</button>}
           </div>
-          {!hideQuickAdd && !mobilePresentation && <div data-quick-add className={`sticky bottom-0 z-20 hidden border-t border-border bg-white/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
+          {!hideQuickAdd && !mobilePresentation && <div data-quick-add className={`sticky bottom-0 z-20 hidden bg-surface-card/95 px-4 py-3 shadow-dock backdrop-blur sm:block ${workspace ? '' : 'lg:px-8'}`}>
             <div className={workspace ? '' : 'mr-auto max-w-[980px]'}>
-              <div className="mb-1.5 flex items-center justify-between text-[11.5px] font-medium text-text-faint">
+              <div className="mb-1.5 flex items-center justify-between text-xs font-medium text-text-faint">
                 <span>
                   快速添加到 {activeDay?.label ?? '当前天'}
                   {activeDay?.place ? ` · ${activeDay.place}` : ''}
                 </span>
-                <span className="hidden rounded border border-border bg-white px-1.5 py-0.5 text-[10.5px] font-normal sm:inline">按 / 快速输入</span>
+                <span className="hidden rounded-md border border-border bg-white px-1.5 py-0.5 text-xs font-normal sm:inline">按 / 快速输入</span>
               </div>
               <AddActivityForm key={`${activeDayId}-${quickAddKey}`} dayId={activeDayId} onDone={() => setQuickAddKey((key) => key + 1)} compact={workspace} />
             </div>
           </div>}
-          {!hideQuickAdd && !mobilePresentation && <div className="sticky bottom-0 z-20 border-t border-border bg-white/95 px-3 py-2 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] backdrop-blur sm:hidden">
+          {!hideQuickAdd && !mobilePresentation && <div className="sticky bottom-0 z-20 bg-surface-card/95 px-3 py-2 shadow-dock backdrop-blur sm:hidden">
             <button
               onClick={() => setMobileQuickAddOpen(true)}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-action px-4 py-2.5 text-[13px] font-medium text-white shadow-[0_3px_10px_rgba(90,48,39,0.16)] active:bg-action-hover"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-medium text-white shadow-card active:bg-action-hover"
             >
               <PlusIcon size={16} />
               添加到 {activeDay?.label ?? '当前天'}{activeDay?.place ? ` · ${activeDay.place}` : ''}
