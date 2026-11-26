@@ -791,12 +791,12 @@ function ActivityCard({
     <div
       onMouseEnter={() => onHoverChange?.(true)}
       onMouseLeave={() => onHoverChange?.(false)}
-      className={`group relative flex min-w-0 w-full items-center ${compact ? 'gap-2 px-3 py-2' : 'gap-2.5 px-3.5 py-2.5'} rounded-xl border border-l-2 transition-[border-color,background-color,box-shadow] ${introduced ? 'activity-drop-in' : ''} ${
+      className={`group relative flex min-w-0 w-full items-center ${compact ? 'gap-2 px-3 py-2' : 'gap-2.5 px-3.5 py-2.5'} rounded-xl transition-[background-color,box-shadow] ${introduced ? 'activity-drop-in' : ''} ${
         selected
-          ? 'border-action/30 border-l-action bg-action-soft/45 shadow-card'
+          ? 'bg-action-soft shadow-card'
           : highlighted
-            ? 'border-accent/35 border-l-accent/60 bg-accent-soft/55'
-            : 'border-border/65 bg-surface-card hover:border-border hover:bg-surface'
+            ? 'bg-accent-soft/65'
+            : 'bg-transparent hover:bg-surface'
       }`}
     >
       <div
@@ -1346,10 +1346,10 @@ function MobileDayStrip({ trip }: { trip: Trip }) {
               setActiveDay(day.id)
               selectActivity(null)
             }}
-            className={`shrink-0 rounded-xl border-l-2 px-3 py-2 text-left transition-colors ${
+            className={`shrink-0 rounded-xl px-3 py-2 text-left transition-colors ${
               active
-                ? 'border-action bg-white text-text shadow-card'
-                : 'border-transparent bg-surface-2/60 text-text-muted'
+                ? 'bg-white text-text shadow-card'
+                : 'bg-surface-2/60 text-text-muted'
             }`}
           >
             <span className="block text-xs font-semibold">{day.label}</span>

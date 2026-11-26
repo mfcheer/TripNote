@@ -304,12 +304,12 @@ function SortableWishCard({
         event.dataTransfer.dropEffect = 'move'
       }}
       onDrop={onCardDrop}
-      className={`group rounded-xl border border-l-2 px-3.5 py-3 transition-[background-color,border-color,box-shadow] md:cursor-grab md:active:cursor-grabbing ${
+      className={`group rounded-xl px-3.5 py-3 transition-[background-color,box-shadow] md:cursor-grab md:active:cursor-grabbing ${
         active
-          ? 'border-action/30 border-l-action bg-action-soft/45 shadow-card'
+          ? 'bg-action-soft shadow-card'
           : highlighted
-            ? 'border-accent/30 border-l-accent/50 bg-accent-soft/45'
-            : 'border-border/65 border-l-transparent bg-surface-card hover:bg-surface'
+            ? 'bg-accent-soft/65'
+            : 'bg-surface-card hover:bg-surface'
       }`}
       title="拖动卡片可调整顺序；拖到左侧日期可快速安排"
     >

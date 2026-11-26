@@ -432,14 +432,14 @@ export default function Sidebar() {
               }}
               onDragLeave={() => setDropDayId((id) => (id === d.id ? null : id))}
               onDrop={(event) => scheduleDroppedWish(event, d)}
-              className={`relative mb-1 overflow-hidden rounded-xl border-l-2 transition-[background-color,border-color,box-shadow] ${
+              className={`relative mb-1 overflow-hidden rounded-xl transition-[background-color,box-shadow] ${
                 dropDayId === d.id
-                  ? 'border-action bg-accent text-white shadow-card'
+                  ? 'bg-accent text-white shadow-card'
                   : active
-                  ? 'border-action bg-white text-text shadow-card'
+                  ? 'bg-white text-text shadow-card'
                   : expanded
-                  ? 'border-border bg-white/90 text-text shadow-card'
-                  : 'border-transparent text-text-muted hover:bg-white/70'
+                  ? 'bg-white/90 text-text shadow-card'
+                  : 'text-text-muted hover:bg-white/70'
               }`}
             >
               <div className="flex min-w-0 items-center gap-2.5 px-2.5 py-2.5">
@@ -569,10 +569,10 @@ export default function Sidebar() {
             <button
               key={key}
               onClick={() => setView(key)}
-              className={`mb-0.5 flex w-full items-center gap-2.5 rounded-md border-l-2 px-2.5 py-2 text-sm transition-colors ${
+              className={`mb-0.5 flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm transition-colors ${
                 active
-                  ? 'border-action bg-white font-medium text-text'
-                  : 'border-transparent text-text-muted hover:bg-white/70'
+                  ? 'bg-white font-medium text-text shadow-card'
+                  : 'text-text-muted hover:bg-white/70'
               }`}
             >
               <Icon size={17} />

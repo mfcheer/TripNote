@@ -453,10 +453,10 @@ export default function SettingsView({
                 <button
                   type="button"
                   onClick={() => setMapRouteMode('direct')}
-                  className={`flex-1 rounded-xl border-l-2 px-3 py-2 text-left text-xs transition-colors ${
+                  className={`flex-1 rounded-xl px-3 py-2 text-left text-xs transition-colors ${
                     mapRouteMode === 'direct'
-                      ? 'border-action bg-action-soft text-text'
-                      : 'border-transparent bg-surface-2/60 text-text-muted hover:bg-surface-2'
+                      ? 'bg-action-soft text-text shadow-card'
+                      : 'bg-surface-2/60 text-text-muted hover:bg-surface-2'
                   }`}
                 >
                   <span className="font-medium">直线连接</span>
@@ -465,10 +465,10 @@ export default function SettingsView({
                 <button
                   type="button"
                   onClick={() => setMapRouteMode('walking')}
-                  className={`flex-1 rounded-xl border-l-2 px-3 py-2 text-left text-xs transition-colors ${
+                  className={`flex-1 rounded-xl px-3 py-2 text-left text-xs transition-colors ${
                     mapRouteMode === 'walking'
-                      ? 'border-action bg-action-soft text-text'
-                      : 'border-transparent bg-surface-2/60 text-text-muted hover:bg-surface-2'
+                      ? 'bg-action-soft text-text shadow-card'
+                      : 'bg-surface-2/60 text-text-muted hover:bg-surface-2'
                   }`}
                 >
                   <span className="font-medium">智能路线</span>
