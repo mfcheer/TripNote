@@ -20,6 +20,9 @@ export function tripPlanningProgress(trip: Trip) {
 
 export function tripTagline(trip: Trip) {
   const places = trip.days.map((day) => (day.place || '').trim()).filter((place) => place && place !== '待定')
+  if (places.length >= 3 && places[0] === places.at(-1) && places.some((place) => place !== places[0])) {
+    return `${places[0]}起止环线`
+  }
   const unique = places.filter((place, index) => places.indexOf(place) === index)
   if (unique.length >= 2) return `从 ${unique[0]} 到 ${unique.at(-1)}`
   return unique[0] ? `${unique[0]}，慢慢展开` : `${trip.searchRegion || '下一站'}，从想去开始`

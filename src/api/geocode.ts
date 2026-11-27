@@ -108,7 +108,7 @@ type RegionPreset = Required<Pick<PlaceSearchContext, 'region' | 'cities' | 'vie
 
 // 常见环线名称并不是标准行政区。用小型本地词库先消除这类歧义；其余目的地仍会通过名称和已收集地点逐步收敛。
 const REGION_PRESETS: Array<{ aliases: string[]; context: RegionPreset }> = [
-  { aliases: ['东北', '东北大环线', '东北环线'], context: { region: '东北地区', cities: ['哈尔滨', '伊春', '漠河', '吉林市', '延吉', '长白山'], viewbox: [118, 54.5, 135.5, 40.5], countryCode: 'cn' } },
+  { aliases: ['东北', '东北大环线', '东北环线'], context: { region: '东北地区', cities: ['哈尔滨', '牡丹江', '延吉', '长白山', '吉林市', '长春'], viewbox: [118, 54.5, 135.5, 40.5], countryCode: 'cn' } },
   { aliases: ['关西', '日本关西'], context: { region: '日本关西', cities: ['大阪', '京都', '奈良', '神户'], viewbox: [134.2, 35.7, 136.5, 33.7], countryCode: 'jp' } },
 ]
 

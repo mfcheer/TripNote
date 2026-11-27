@@ -199,6 +199,28 @@ function agentDraftTrip(draft: AgentPlanDraft, id: string, previous?: Trip): Tri
   }
 }
 
+function isUneditedNortheastSample(trip: Trip): boolean {
+  if (
+    trip?.id !== 'trip-northeast-loop' ||
+    trip.name !== '东北大环线（示例）' ||
+    trip.days?.length !== 10 ||
+    trip.days[5]?.place !== '漠河 · 北极村' ||
+    trip.activities?.length !== 35
+  ) return false
+
+  // v13 内置样例的完整内容指纹，保留改过备注、预算或其他字段的同名行程。
+  const json = JSON.stringify(trip, (_key, value) =>
+    value && typeof value === 'object' && !Array.isArray(value)
+      ? Object.fromEntries(Object.keys(value).sort().map((key) => [key, value[key]]))
+      : value,
+  )
+  let hash = 0xcbf29ce484222325n
+  for (let i = 0; i < json.length; i++) {
+    hash = BigInt.asUintN(64, (hash ^ BigInt(json.charCodeAt(i))) * 0x100000001b3n)
+  }
+  return hash === 0x4695f7e05e2dff5dn
+}
+
 // 旧数据迁移：cost: number → costs: Cost[]；旧手动记账转移到占位条目
 function migrateTrip(raw: unknown): Trip {
   const trip = raw as Omit<Trip, 'expenses'> & {
@@ -1050,8 +1072,8 @@ export const useTripStore = create<TripState>()(
     }),
     {
       name: 'tripnote-store',
-      version: 13,
-      migrate: (persisted: unknown) => {
+      version: 14,
+      migrate: (persisted: unknown, version) => {
         const state = persisted as
           | { trips?: Trip[]; deletedTrips?: DeletedTrip[]; activeTripId?: string; trip?: unknown; theme?: unknown }
           | undefined
@@ -1060,11 +1082,13 @@ export const useTripStore = create<TripState>()(
         const { theme: _legacyTheme, ...stateWithoutTheme } = state
         // v4：为既有多旅程补上想去清单字段，并继续兼容更早的花费结构。
         if (stateWithoutTheme.trips) {
-        // v11：将从未改名的旧关西示例换成东北大环线；用户创建或改名过的旅行不受影响。
-        // v12：为既有数据补上回收站，避免删除功能升级后出现空字段。
+          // v11：将从未改名的旧关西示例换成东北大环线。
+          // v12：为既有数据补上回收站。
+          // v14：将未编辑的旧东北样例换成自驾环线。
           const replacingLegacySample = stateWithoutTheme.trips.some((trip) => trip.id === 'trip-kansai' && trip.name === '日本关西之旅（示例）')
           const trips = stateWithoutTheme.trips.map((trip) =>
-            trip.id === 'trip-kansai' && trip.name === '日本关西之旅（示例）' ? seedTrip : migrateTrip(trip),
+            (trip.id === 'trip-kansai' && trip.name === '日本关西之旅（示例）') ||
+            (version < 14 && isUneditedNortheastSample(trip)) ? seedTrip : migrateTrip(trip),
           )
           return {
             ...stateWithoutTheme,
